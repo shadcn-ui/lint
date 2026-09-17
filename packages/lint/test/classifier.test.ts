@@ -55,6 +55,16 @@ describe("groupOf", () => {
     ["col-start-2", "col-start"],
     ["self-end", "align-self"],
     ["sr-only", "sr"],
+    // Tailwind 3 names Tailwind still generates.
+    ["flex-grow", "grow"],
+    ["flex-grow-0", "grow"],
+    ["flex-shrink", "shrink"],
+    ["flex-shrink-[2]", "shrink"],
+    ["md:flex-grow", "grow"],
+    ["overflow-ellipsis", "text-overflow"],
+    ["decoration-slice", "box-decoration"],
+    ["decoration-clone", "box-decoration"],
+    ["decoration-sky-500", "text-decoration-color"],
   ])("%s -> %s", (token, group) => {
     expect(groupOf(token)).toBe(group)
   })
