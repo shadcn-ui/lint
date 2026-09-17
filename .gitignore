@@ -21,3 +21,5 @@ dist-next/
 !packages/lint/test/fixtures/project/node_modules/
 !packages/lint/test/fixtures/pnpm-linked/node_modules/
 !packages/lint/test/fixtures/pnpm-linked/node_modules/.pnpm/*/node_modules/
+!packages/lint/test/fixtures/exports-pattern/node_modules/
+!packages/lint/test/fixtures/exports-pattern/node_modules/demo-widgets/dist/

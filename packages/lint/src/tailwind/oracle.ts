@@ -136,6 +136,35 @@ function styleTarget(entry: unknown): string | null {
   return null
 }
 
+// The exports entry for a subpath: the exact key, else the longest
+// pattern key whose `*` matches, expanded the way Node expands it, so
+// `"./*.css": "./dist/*.css"` serves `demo-widgets/styles.css`.
+function exportedStyle(exports: Record<string, unknown>, subpath: string) {
+  const exact = styleTarget(exports[`./${subpath}`])
+  if (exact) return exact
+  const patterns = Object.keys(exports)
+    .filter((key) => key.startsWith("./") && key.includes("*"))
+    .sort((a, b) => b.length - a.length)
+  for (const key of patterns) {
+    const star = key.indexOf("*")
+    const prefix = key.slice(2, star)
+    const suffix = key.slice(star + 1)
+    if (
+      subpath.length < prefix.length + suffix.length ||
+      !subpath.startsWith(prefix) ||
+      !subpath.endsWith(suffix)
+    )
+      continue
+    const target = styleTarget(exports[key])
+    if (!target) continue
+    return target.replace(
+      "*",
+      subpath.slice(prefix.length, subpath.length - suffix.length)
+    )
+  }
+  return null
+}
+
 function packageDirectory(base: string, name: string) {
   let dir = base
   for (let depth = 0; depth < 32; depth++) {
@@ -173,7 +202,7 @@ export function resolveStylesheet(base: string, id: string) {
   if (subpath) {
     const target =
       exports && typeof exports === "object"
-        ? styleTarget((exports as Record<string, unknown>)[`./${subpath}`])
+        ? exportedStyle(exports as Record<string, unknown>, subpath)
         : null
     if (target) return existingFile(path.join(pkgDir, target))
     return stylesheetAt(
