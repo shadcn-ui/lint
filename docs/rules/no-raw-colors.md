@@ -46,6 +46,12 @@ color, and neither is reported as one; the same holds for
 `--background-image-*`. Classes your CSS declares with `@utility` are
 your vocabulary too.
 
+Tailwind also reads a color from the utility's own namespace before
+`--color-*`. `--background-color-surface` declares `bg-surface`,
+`--text-color-ink` declares `text-ink`, and `--border-color-edge`
+declares `border-edge`. Such a token counts for that utility only:
+`text-surface` is still undeclared.
+
 ### SVG attributes
 
 Use `currentColor` with a text color class, or reference a theme variable:

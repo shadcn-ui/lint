@@ -16,6 +16,11 @@ const LINKED = path.resolve(
   "fixtures/pnpm-linked/src/app.css"
 )
 
+const PATTERN = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures/exports-pattern"
+)
+
 describe("tailwind oracle", () => {
   test("knows the theme, @utility rules and every variant", async () => {
     resetOracle()
@@ -105,6 +110,21 @@ describe("tailwind oracle", () => {
     ])
   })
 
+  // A package can publish its CSS behind an exports pattern such as
+  // "./*.css"; the theme importing it builds, so its tokens are known.
+  test("builds a theme importing through an exports pattern", async () => {
+    resetOracle()
+    const answer = await query(path.join(PATTERN, "src/app.css"), [
+      "p-card",
+      "p-crad",
+    ])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown).toEqual([
+      { token: "p-crad", suggestion: "p-card", baseKnown: false },
+    ])
+  })
+
   test("a theme that cannot be read is unavailable, not wrong", async () => {
     const answer = await query("/nonexistent/app/globals.css", ["flex"])
     expect(answer.ok).toBe(false)
@@ -127,5 +147,17 @@ describe("resolveStylesheet", () => {
     )
     expect(resolveStylesheet(app, "no-such-package")).toBeNull()
     expect(resolveStylesheet(app, "./missing.css")).toBeNull()
+  })
+
+  test("exports subpath patterns, longest key first", () => {
+    const src = path.join(PATTERN, "src")
+    const dist = path.join(PATTERN, "node_modules/demo-widgets/dist")
+    expect(resolveStylesheet(src, "demo-widgets/styles.css")).toBe(
+      path.join(dist, "styles.css")
+    )
+    expect(resolveStylesheet(src, "demo-widgets/themes/dark")).toBe(
+      path.join(dist, "themes/dark.css")
+    )
+    expect(resolveStylesheet(src, "demo-widgets/missing.css")).toBeNull()
   })
 })

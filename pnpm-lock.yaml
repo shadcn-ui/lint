@@ -96,9 +96,6 @@ importers:
       '@eslint/core':
         specifier: ^0.17.0
         version: 0.17.0
-      '@typescript-eslint/parser':
-        specifier: ^8.40.0
-        version: 8.69.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       cn:
         specifier: 0.2.6
         version: 0.2.6
@@ -106,6 +103,9 @@ importers:
       '@types/node':
         specifier: ^24.3.0
         version: 24.13.3
+      '@typescript-eslint/parser':
+        specifier: ^8.40.0
+        version: 8.69.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       eslint:
         specifier: ^9.33.0
         version: 9.39.5(jiti@2.7.0)
