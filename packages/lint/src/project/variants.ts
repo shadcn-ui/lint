@@ -51,12 +51,16 @@ function axesOf(config: any) {
 
 const MAY_DEFINE_VARIANTS = /\b(?:cva|tv)\s*\(|\|\s*["']|\bkeyof\s+typeof\b/
 
+// How far a type is followed through parentheses, aliases and unions
+// before it is given up as unreadable.
+const MAX_TYPE_DEPTH = 8
+
 // oxc keeps parentheses in the type AST; @typescript-eslint drops them.
 function unwrapType(type: any) {
   let out = type
   for (
     let depth = 0;
-    out?.type === "TSParenthesizedType" && depth < 8;
+    out?.type === "TSParenthesizedType" && depth < MAX_TYPE_DEPTH;
     depth++
   ) {
     out = out.typeAnnotation
@@ -84,11 +88,11 @@ function objectKeys(object: any) {
 // as an inline union, which is how a design system without cva writes it.
 function literalValues(
   input: any,
-  declared: { types: Map<string, any>; objects: Map<string, any> },
+  declared: ReturnType<typeof declarationsIn>,
   depth = 0
-): string[] | null {
+) {
   const type = unwrapType(input)
-  if (!type || depth > 8) return null
+  if (!type || depth > MAX_TYPE_DEPTH) return null
   if (type.type === "TSTypeReference" && type.typeName?.type === "Identifier") {
     return literalValues(
       declared.types.get(type.typeName.name),
@@ -119,7 +123,7 @@ function literalValues(
     type.literal?.type === "Literal" &&
     typeof type.literal.value === "string"
   ) {
-    return [type.literal.value]
+    return [type.literal.value as string]
   }
   return null
 }
@@ -128,12 +132,12 @@ function literalValues(
 // `React.ComponentProps<"div"> & Props` resolves.
 function axesOfPropsType(
   input: any,
-  declared: { types: Map<string, any>; objects: Map<string, any> },
+  declared: ReturnType<typeof declarationsIn>,
   depth = 0
 ) {
   const axes: Record<string, string[]> = {}
   const type = unwrapType(input)
-  if (!type || depth > 8) return axes
+  if (!type || depth > MAX_TYPE_DEPTH) return axes
   if (type.type === "TSIntersectionType") {
     for (const member of type.types) {
       Object.assign(axes, axesOfPropsType(member, declared, depth + 1))

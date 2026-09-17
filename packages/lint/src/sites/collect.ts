@@ -10,6 +10,7 @@ import {
   type ComponentImport,
 } from "../project/component-imports"
 import { componentsFor } from "../project/components"
+import { NODE_MODULES } from "../project/fs"
 import { definingExportOf, type ExportBinding } from "../project/modules"
 import { wrapperTargetOf, type WrapperTarget } from "../project/wrappers"
 import { fileOf } from "../rules/messages"
@@ -56,8 +57,6 @@ export const DEFAULT_MERGE_FUNCTIONS = [
 export const DEFAULT_VARIANT_FUNCTIONS = ["cva", "tv"]
 
 const CLASS_ATTRIBUTE = /^(class:list|[^:]*class(name)?s?)$/i
-
-const NODE_MODULES = /[\\/]node_modules[\\/]/
 
 export function isClassAttribute(name: string) {
   return CLASS_ATTRIBUTE.test(name)
@@ -719,6 +718,14 @@ export function collectClassStrings(
       case "ArrayExpression":
         for (const el of node.elements) visit(el, valuesMode)
         return
+      // Astro's `class:list` takes a Set the way it takes an array.
+      case "NewExpression":
+        if (node.callee?.type === "Identifier" && node.callee.name === "Set") {
+          for (const arg of node.arguments) visit(arg, valuesMode)
+          return
+        }
+        unresolved.push(node)
+        return
       case "ObjectExpression":
         for (const entry of objectEntries(node, context, path)) {
           if ("unknown" in entry) {
@@ -975,26 +982,45 @@ function sharedFor(context: any, options: SiteOptions): Shared {
   return shared
 }
 
+// The name a spread of the function's own props would carry: `props` in
+// `(props) => ...`, `rest` in `({ className, ...rest }) => ...`.
+function propsSpreadNameOf(fn: any) {
+  const param = fn.params?.[0]
+  if (param?.type === "Identifier") return param.name
+  if (param?.type === "ObjectPattern") {
+    const rest = param.properties.find((p: any) => p.type === "RestElement")
+    if (rest?.argument?.type === "Identifier") return rest.argument.name
+  }
+  return null
+}
+
 // Base UI renders another element in a component's place through
 // `render`, and the className goes with it: `<DialogTrigger
 // render={<Button />} className="bg-primary" />` is a Button. Returns
-// the opening element the classes reach, null when nothing readable
-// wears them, and undefined when there is no render prop at all.
+// the opening element the classes reach, or undefined when the element
+// itself wears them: no render prop, a value that cannot be read, or a
+// function that renders without spreading its props, the way a list
+// renders an item. The element's own contract is the nearest judge then.
 function renderedOpeningOf(element: any) {
   const attribute = (element.attributes ?? []).find(
     (candidate: any) =>
       candidate.type === "JSXAttribute" && candidate.name?.name === "render"
   )
-  if (!attribute) return undefined
-  const value = attribute.value
-  if (value?.type !== "JSXExpressionContainer") return null
-  let expression = value.expression
+  const expression = attribute?.value?.expression
+  if (expression?.type === "JSXElement") return expression.openingElement
+  if (expression?.type !== "ArrowFunctionExpression") return undefined
   // `render={(props) => <Button {...props} />}` hands the classes to the
-  // same component the element form does.
-  if (expression?.type === "ArrowFunctionExpression") {
-    expression = expression.body
-  }
-  return expression?.type === "JSXElement" ? expression.openingElement : null
+  // same component the element form does, through the spread.
+  const body = expression.body
+  const spread = propsSpreadNameOf(expression)
+  if (body?.type !== "JSXElement" || !spread) return undefined
+  const forwards = (body.openingElement.attributes ?? []).some(
+    (candidate: any) =>
+      candidate.type === "JSXSpreadAttribute" &&
+      candidate.argument?.type === "Identifier" &&
+      candidate.argument.name === spread
+  )
+  return forwards ? body.openingElement : undefined
 }
 
 // Calls `onSite` for every class site in the file.
@@ -1033,8 +1059,7 @@ export function classSiteVisitors(
     const element = node.parent
     if (element?.type !== "JSXOpeningElement") return null
     const rendered = renderedOpeningOf(element)
-    if (rendered === undefined) return tracker.resolve(element.name)
-    if (!rendered) return null
+    if (!rendered) return tracker.resolve(element.name)
     const resolved = tracker.resolve(rendered.name)
     if (!resolved) return null
     return {

@@ -45,6 +45,38 @@ describe("render prop", () => {
           code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={(props) => <Button {...props} />} className="bg-primary" />`,
           errors: [{ messageId: "appearanceClassViaWrapper" }],
         },
+        // A rest of the props carries className the same way.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={({ id, ...rest }) => <Button {...rest} />} className="bg-primary" />`,
+          errors: [{ messageId: "appearanceClassViaWrapper" }],
+        },
+        // A function that renders without spreading its props hands
+        // nothing over, so the classes stay on the trigger.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={(item) => <Button />} className="bg-primary" />`,
+          errors: [
+            {
+              message:
+                /^"bg-primary" is not allowed on <DialogTrigger>: <DialogTrigger> owns its color\./,
+            },
+          ],
+        },
+        // A value the rule cannot read leaves the classes on the trigger.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\nconst trigger = <span />\nexport const A = () => <DialogTrigger render={trigger} className="bg-primary" />`,
+          errors: [
+            {
+              message:
+                /^"bg-primary" is not allowed on <DialogTrigger>: <DialogTrigger> owns its color\./,
+            },
+          ],
+        },
       ],
     })
   })

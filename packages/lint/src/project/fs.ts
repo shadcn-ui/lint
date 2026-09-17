@@ -9,6 +9,9 @@ import * as path from "node:path"
 // signature caches (components, theme, wrappers) re-stat on the same beat.
 export const TTL = 1000
 
+// A path inside an installed package, on either separator.
+export const NODE_MODULES = /[\\/]node_modules[\\/]/
+
 const MAX_MEMO_ENTRIES = 50_000
 
 const memo = new Map<string, { at: number; value: unknown }>()

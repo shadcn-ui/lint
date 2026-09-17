@@ -5,7 +5,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 
-import { normalizeClass } from "../grammar/classes"
+import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
 import { parseColor, type Lab } from "../grammar/colors"
 import { lengthInPx } from "../grammar/lengths"
 import { FONT_SIZES, RADII } from "../grammar/tailwind-theme"
@@ -335,6 +335,11 @@ export function discoverThemeFile(root: string) {
   return file
 }
 
+// The path a warning shows, as the project would write it.
+function relativeTo(root: string, file: string) {
+  return path.relative(root, file).replace(/\\/g, "/")
+}
+
 // A components.json naming a stylesheet that is not there is a wrong
 // path, not the absence of a theme: say so once and fall back to
 // discovery, so the token check does not go quiet meanwhile.
@@ -344,13 +349,11 @@ export function themeFileFor(fromFile: string) {
   if (project.cssFile) {
     if (isFile(project.cssFile)) return project.cssFile
     const discovered = discoverThemeFile(project.root)
-    const shown = (file: string) =>
-      path.relative(project.root, file).replace(/\\/g, "/")
     warnOnce(
       `theme:missing:${project.cssFile}`,
-      `components.json sets tailwind.css to ${shown(project.cssFile)}, which does not exist. ${
+      `components.json sets tailwind.css to ${relativeTo(project.root, project.cssFile)}, which does not exist. ${
         discovered
-          ? `Using ${shown(discovered)} until the path is fixed.`
+          ? `Using ${relativeTo(project.root, discovered)} until the path is fixed.`
           : "No stylesheet importing Tailwind was found under the project, so no-raw-colors cannot check declared tokens until the path is fixed."
       }`
     )
@@ -372,13 +375,11 @@ export function tailwindEntryFor(fromFile: string) {
   const project = projectFor(fromFile)
   if (!project) return file
   const discovered = discoverThemeFile(project.root)
-  const shown = (candidate: string) =>
-    path.relative(project.root, candidate).replace(/\\/g, "/")
   warnOnce(
     `theme:no-tailwind:${file}`,
-    `components.json sets tailwind.css to ${shown(file)}, which does not import Tailwind. ${
+    `components.json sets tailwind.css to ${relativeTo(project.root, file)}, which does not import Tailwind. ${
       discovered
-        ? `Using ${shown(discovered)} to read the classes Tailwind knows until the path is fixed.`
+        ? `Using ${relativeTo(project.root, discovered)} to read the classes Tailwind knows until the path is fixed.`
         : "No stylesheet importing Tailwind was found under the project, so no-unknown-classes is using the grammar bundled with @shadcn/lint until the path is fixed."
     }`
   )
@@ -511,7 +512,7 @@ export function themeVocabularyFor(fromFile: string) {
 const utilityPrefixes = new WeakMap<Set<string>, string[]>()
 
 // The `tab-` of an `@utility tab-*`, computed once per theme read.
-function prefixesOf(utilities: Set<string>) {
+export function utilityPrefixesOf(utilities: Set<string>) {
   let list = utilityPrefixes.get(utilities)
   if (!list) {
     list = [...utilities]
@@ -526,11 +527,11 @@ function prefixesOf(utilities: Set<string>) {
 // an @utility prefix, or a class selector. Tailwind generates such a
 // class, so a rule must not report it as a misspelling.
 export function declaresClass(fromFile: string, token: string) {
-  const base = normalizeClass(token).replace(/\/[\w.%]+$/, "")
+  const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
   if (!base) return false
   const { utilities, classes } = knownClassesFor(fromFile)
   if (utilities.has(base) || classes.has(base)) return true
-  return prefixesOf(utilities).some((prefix) => base.startsWith(prefix))
+  return utilityPrefixesOf(utilities).some((prefix) => base.startsWith(prefix))
 }
 
 // What a project's CSS declares beyond Tailwind's own.
