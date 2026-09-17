@@ -127,6 +127,11 @@ found. A class with no recognized group is `unclassified` and is not
 allowed by `layout`. A recognized group with no appearance category is
 treated as layout; newly unmapped groups produce a warning.
 
+Utilities Tailwind still generates under their Tailwind 3 names read as
+the utilities they are: `flex-grow` and `flex-shrink-0` classify with
+`grow` and `shrink`, `overflow-ellipsis` with `text-ellipsis`, and
+`decoration-slice` and `decoration-clone` as box decorations.
+
 ## Values in variables
 
 The linter follows class values one hop into same-file variables:

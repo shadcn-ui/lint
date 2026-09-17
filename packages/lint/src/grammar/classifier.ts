@@ -236,6 +236,28 @@ function postfixIndex(base: string) {
   return index
 }
 
+// Tailwind still generates these utilities under the names they had in
+// Tailwind 3, so a project that has not renamed them is writing real
+// classes. cn's config carries the current names only, and reads
+// `decoration-clone` as a text-decoration color, so the rename happens
+// before the lookup.
+const RENAMED = new Map([
+  ["flex-grow", "grow"],
+  ["flex-shrink", "shrink"],
+  ["overflow-ellipsis", "text-ellipsis"],
+  ["decoration-slice", "box-decoration-slice"],
+  ["decoration-clone", "box-decoration-clone"],
+])
+
+const RENAMED_SCALE = /^flex-(grow|shrink)-(.+)$/
+
+function currentName(base: string) {
+  const renamed = RENAMED.get(base)
+  if (renamed) return renamed
+  const scale = RENAMED_SCALE.exec(base)
+  return scale ? `${scale[1]}-${scale[2]}` : base
+}
+
 export function createClassifier(config = resolveCnConfig()) {
   const root = buildTrie(config)
   const postfixLookupGroups = new Set(config.postfixLookupClassGroups ?? [])
@@ -264,6 +286,7 @@ export function createClassifier(config = resolveCnConfig()) {
     if (base.endsWith("!")) base = base.slice(0, -1)
     else if (base.startsWith("!")) base = base.slice(1)
     if (!base) return null
+    base = currentName(base)
 
     const slash = postfixIndex(base)
     if (slash === -1) return lookup(base)
