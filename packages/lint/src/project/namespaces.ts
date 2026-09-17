@@ -9,7 +9,9 @@ import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
 import { classifierFor } from "../grammar/classifier"
 import { themeVocabularyFor, type ThemeVocabulary } from "./theme"
 
-type Namespace = {
+// Longest prefix first: text-shadow-crisp is a text-shadow, not text
+// "shadow-crisp".
+const NAMESPACES: {
   // The prefix as written in the class.
   prefix: string
   // The @theme namespace the utility reads, which is not always the
@@ -21,11 +23,7 @@ type Namespace = {
   // shadow family takes its own first; text- and bg- take the color.
   // Verified against Tailwind 4.3.3, not inferred from the docs.
   overColor: boolean
-}
-
-// Longest prefix first: text-shadow-crisp is a text-shadow, not text
-// "shadow-crisp".
-const NAMESPACES: Namespace[] = [
+}[] = [
   {
     prefix: "text-shadow-",
     namespace: "text-shadow-",

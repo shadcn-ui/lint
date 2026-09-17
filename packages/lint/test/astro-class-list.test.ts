@@ -38,6 +38,11 @@ describe("class:list", () => {
           filename: PAGE,
           code: `export const A = () => <a client:load="p-[13px]">Go</a>`,
         },
+        // A Set reads like the array it wraps.
+        {
+          filename: PAGE,
+          code: `export const A = () => <a class:list={new Set(["p-4", "mt-2"])}>Go</a>`,
+        },
       ],
       invalid: [
         {
@@ -78,6 +83,11 @@ describe("class:list", () => {
         {
           filename: PAGE,
           code: `export const A = ({ on }: { on: boolean }) => <a class:list={["flex", { "min-w-[70px]": on }, on && "py-[10px]"]}>Go</a>`,
+          errors: 2,
+        },
+        {
+          filename: PAGE,
+          code: `export const A = () => <a class:list={new Set(["p-[15px]", { "mt-[3px]": true }])}>Go</a>`,
           errors: 2,
         },
       ],

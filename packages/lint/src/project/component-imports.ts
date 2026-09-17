@@ -1,4 +1,5 @@
 import type { ComponentIndex } from "./components"
+import { NODE_MODULES } from "./fs"
 import type { ExportBinding } from "./modules"
 
 export type ComponentImport = {
@@ -24,8 +25,6 @@ export function importNameOf(
     suffix,
   }
 }
-
-const NODE_MODULES = /[\\/]node_modules[\\/]/
 
 // One the ui index owns, or any export of a componentImports source.
 export function componentFromImport(

@@ -12,6 +12,7 @@ import {
   knownClassesFor,
   tailwindEntryFor,
   themeFileFor,
+  utilityPrefixesOf,
 } from "../project/theme"
 import { classSiteVisitors } from "../sites/collect"
 import { unknownClasses } from "../tailwind/client"
@@ -76,9 +77,7 @@ export const noUnknownClasses = {
     // A theme file that does not import Tailwind knows no base utilities,
     // so the grammar answers instead of a half-built design system.
     const entry = tailwindEntryFor(filename)
-    const utilityPrefixes = [...known.utilities]
-      .filter((name) => name.endsWith("*"))
-      .map((name) => name.slice(0, -1))
+    const utilityPrefixes = utilityPrefixesOf(known.utilities)
 
     // What the project's CSS settles without asking Tailwind.
     const settled = (token: string) => {

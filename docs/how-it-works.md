@@ -204,14 +204,18 @@ in a trigger's place, and the `className` goes with it:
 ```
 
 The suggestion lists Button's variants, since Button is what wears the
-classes. `render={(props) => <Button {...props} />}` reads the same. A
-trigger that renders a plain element, such as `render={<span />}`,
-restyles nothing in the design system and is not reported.
+classes. `render={(props) => <Button {...props} />}` reads the same,
+because the spread is what carries `className` across. A trigger that
+renders a plain element, such as `render={<span />}`, restyles nothing
+in the design system and is not reported. When the value cannot be
+read, a variable or a function that renders without spreading its
+props, the classes stay on the trigger and its own contract decides.
 
 ## Where it looks
 
 - `className` and similar props, including `wrapperClassName`,
-  `classNames={{ day: "..." }}`, and Astro's `class:list`.
+  `classNames={{ day: "..." }}`, and Astro's `class:list` with a string,
+  array, object, or Set.
 - Calls to `cn`, `cx`, `clsx`, `cva`, `tv`, `twMerge`, `twJoin`, and
   `classNames`, including calls outside JSX. Add functions through
   `mergeFunctions` and `variantFunctions` in shared settings or rule options.

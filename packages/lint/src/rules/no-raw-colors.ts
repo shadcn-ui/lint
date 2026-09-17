@@ -16,7 +16,7 @@ import { projectClassifierFor } from "../project/namespaces"
 import {
   colorTokensFor,
   colorValuesFor,
-  knownClassesFor,
+  declaresClass,
   tailwindEntryFor,
   themeFileFor,
 } from "../project/theme"
@@ -224,22 +224,6 @@ export const noRawColors = {
       }
     }
 
-    // A class the project's own CSS declares with @utility is its
-    // vocabulary, whatever the name looks like: "not a declared theme
-    // color" is false about a name the theme declares.
-    let utilities: ReturnType<typeof knownClassesFor> | undefined
-    let utilityPrefixes: string[] | undefined
-    const isDeclaredUtility = (token: string) => {
-      utilities ??= knownClassesFor(filename)
-      if (!utilities.utilities.size) return false
-      utilityPrefixes ??= [...utilities.utilities]
-        .filter((name) => name.endsWith("*"))
-        .map((name) => name.slice(0, -1))
-      const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
-      if (utilities.utilities.has(base)) return true
-      return utilityPrefixes.some((prefix) => base.startsWith(prefix))
-    }
-
     // cn's color groups take any value, so text-smal classifies as a
     // color here. When Tailwind's nearest real class is not a color, the
     // typo belongs to no-unknown-classes and this rule stays quiet, so
@@ -283,7 +267,10 @@ export const noRawColors = {
       if (!declared) return null
       if (categoryOf(groupOf(token)) !== "color") return null
       if (!colorValue || NAMED.has(colorValue)) return null
-      if (isDeclaredUtility(token)) return null
+      // A class the project's own CSS declares is its vocabulary, whatever
+      // the name looks like: "not a declared theme color" is false about
+      // a name the theme declares.
+      if (declaresClass(filename, token)) return null
       return undeclaredVerdict(token)
     }
 

@@ -10,6 +10,7 @@ import * as path from "node:path"
 import { describe, test } from "vitest"
 
 import { noRawColors } from "../src/rules/no-raw-colors"
+import { noRestyle } from "../src/rules/no-restyle"
 import { oracleAvailable } from "../src/tailwind/client"
 import { createTester, PROJECT } from "./helpers"
 
@@ -76,5 +77,30 @@ describe("no-raw-colors and theme namespaces", () => {
         ],
       })
     }, 60_000)
+  })
+})
+
+// no-restyle reads the same classifier, so a declared --text-* token is
+// typography under a contract, not a color.
+describe("no-restyle and theme namespaces", () => {
+  test("a declared font-size token is typography", () => {
+    const button = `import { Button } from "@/components/ui/button"`
+    createTester().run("no-restyle", noRestyle as any, {
+      valid: [
+        {
+          filename: PAGE,
+          options: [{ allow: ["typography"] }],
+          code: `${button}\nexport const A = () => <Button className="text-stat-label" />`,
+        },
+      ],
+      invalid: [
+        {
+          filename: PAGE,
+          options: [{ allow: ["layout"] }],
+          code: `${button}\nexport const A = () => <Button className="text-stat-label" />`,
+          errors: [{ message: /owns its typography/ }],
+        },
+      ],
+    })
   })
 })

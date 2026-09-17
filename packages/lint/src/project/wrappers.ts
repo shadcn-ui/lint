@@ -13,7 +13,7 @@ import {
   type ComponentImport,
 } from "./component-imports"
 import { componentsFor } from "./components"
-import { mtimeOf, TTL } from "./fs"
+import { mtimeOf, NODE_MODULES, TTL } from "./fs"
 import { definingExportOf } from "./modules"
 import { parseSource } from "./parser"
 
@@ -34,8 +34,6 @@ type Entry = {
 }
 
 const cache = new Map<string, Entry>()
-
-const NODE_MODULES = /[\\/]node_modules[\\/]/
 
 function signatureOf(files: string[]) {
   return files.map((file) => `${file}:${mtimeOf(file) ?? "missing"}`).join("|")

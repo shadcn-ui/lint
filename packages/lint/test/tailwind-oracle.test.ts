@@ -37,6 +37,13 @@ describe("tailwind oracle", () => {
       "bg-(--brand)",
       // From a package that exports only a style condition.
       "shimmer",
+      // Tailwind 3 names Tailwind 4 still generates, bare and scaled.
+      "flex-grow",
+      "flex-shrink-0",
+      "flex-grow-2",
+      "flex-grow-[3]",
+      "overflow-ellipsis",
+      "decoration-clone",
     ])
     expect(answer).toEqual({
       ok: true,

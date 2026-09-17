@@ -124,7 +124,8 @@ See [message placeholders](../rules.md#your-own-words).
 The rule follows imports, re-exports, and wrappers that forward
 `className`, including a Base UI `render` prop: the classes on
 `<DialogTrigger render={<Button />} className="...">` belong to Button. A
-wrapper uses the underlying component's contract and variant suggestions.
+`render` value the rule cannot read leaves them on the trigger. A wrapper
+uses the underlying component's contract and variant suggestions.
 
 It also reads same-file values and known class helpers:
 
