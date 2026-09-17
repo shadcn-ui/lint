@@ -17,6 +17,7 @@ import {
   colorTokensFor,
   colorValuesFor,
   declaresClass,
+  scopedColorTokensFor,
   tailwindEntryFor,
   themeFileFor,
 } from "../project/theme"
@@ -77,6 +78,35 @@ export function splitColorClass(token: string) {
 
 export function colorValueOf(token: string) {
   return splitColorClass(token)?.value ?? null
+}
+
+const PREFIX_NAMESPACES: Record<string, string> = {
+  bg: "background-color",
+  text: "text-color",
+  border: "border-color",
+  divide: "divide-color",
+  ring: "ring-color",
+  outline: "outline-color",
+  accent: "accent-color",
+  caret: "caret-color",
+  placeholder: "placeholder-color",
+  decoration: "text-decoration-color",
+  "text-shadow": "text-shadow-color",
+  "drop-shadow": "drop-shadow-color",
+  fill: "fill",
+  stroke: "stroke",
+}
+
+// The @theme namespace a color utility reads before --color-*: "bg-"
+// reads --background-color-*, "border-t-" reads --border-color-*. Null
+// for a utility that reads --color-* only.
+export function colorNamespaceOf(prefix: string) {
+  const base = prefix.replace(/-$/, "")
+  return (
+    PREFIX_NAMESPACES[base] ??
+    PREFIX_NAMESPACES[base.replace(/-(?:[trblxyse]|[bi][se])$/, "")] ??
+    null
+  )
 }
 
 type Verdict = {
@@ -172,6 +202,7 @@ export const noRawColors = {
         : "your theme CSS"
       return {
         declared,
+        scoped: scopedColorTokensFor(filename),
         // The stylesheet the oracle can build: not every theme file
         // imports Tailwind.
         entry: tailwindEntryFor(filename),
@@ -235,9 +266,19 @@ export const noRawColors = {
       return !!suggestion && categoryOf(groupOf(suggestion)) !== "color"
     }
 
+    // The tokens this utility can name: --color-* plus its own namespace.
+    const tokensFor = (prefix: string) => {
+      const { declared, scoped } = themeFor()
+      const namespace = colorNamespaceOf(prefix)
+      const own = namespace ? scoped?.get(namespace) : null
+      if (!own?.size) return declared
+      return new Set([...(declared ?? []), ...own])
+    }
+
     const undeclaredVerdict = (token: string): Verdict => {
-      const { declared, file } = themeFor()
+      const { file } = themeFor()
       const parts = splitColorClass(token)
+      const declared = parts ? tokensFor(parts.prefix) : null
       const meant = parts && declared ? didYouMean(parts.value, declared) : null
       if (!meant && isTypoOfAnotherUtility(token)) return null
       if (parts && meant) {
@@ -260,9 +301,12 @@ export const noRawColors = {
     const judge = (token: string): Verdict => {
       if (isArbitraryValue(token)) return null
       const { declared } = themeFor()
-      const colorValue = colorValueOf(token)
+      const parts = splitColorClass(token)
+      const colorValue = parts?.value ?? null
       // A palette name the theme declares is one of its tokens.
       if (colorValue && declared?.has(colorValue)) return null
+      // --background-color-surface declares bg-surface, and only that.
+      if (parts && tokensFor(parts.prefix)?.has(parts.value)) return null
       if (isPaletteClass(token)) return paletteVerdict(token)
       if (!declared) return null
       if (categoryOf(groupOf(token)) !== "color") return null

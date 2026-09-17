@@ -29,6 +29,9 @@ type Declaration = { name: string; value: string; theme: boolean }
 
 type ThemeRead = {
   tokens: Set<string>
+  // Tokens a color utility reads from its own namespace before
+  // --color-*: --background-color-surface declares bg-surface only.
+  scoped: Map<string, Set<string>>
   utilities: Set<string>
   classes: Set<string>
   // Every custom property the project declares, in light mode, last
@@ -94,25 +97,59 @@ function applyColorTokens(css: string, tokens: Set<string>) {
   applyTokenDeclarations(parseDeclarations(css).declarations, tokens)
 }
 
+// The namespaces Tailwind reads a color utility from before --color-*,
+// verified against Tailwind 4.3.3. Shadows, inset rings and gradient
+// stops read --color-* only.
+export const COLOR_NAMESPACES = [
+  "background-color",
+  "text-color",
+  "border-color",
+  "divide-color",
+  "ring-color",
+  "outline-color",
+  "accent-color",
+  "caret-color",
+  "placeholder-color",
+  "text-decoration-color",
+  "text-shadow-color",
+  "drop-shadow-color",
+  "fill",
+  "stroke",
+]
+
 // In cascade order: `--color-x: initial` drops x, `--color-*: initial`
-// and `--*: initial` drop everything declared so far.
+// and `--*: initial` drop everything declared so far. A scoped
+// namespace resets on its own.
 function applyTokenDeclarations(
   declarations: Declaration[],
-  tokens: Set<string>
+  tokens: Set<string>,
+  scoped?: Map<string, Set<string>>
 ) {
   for (const { name, value, theme } of declarations) {
     if (!theme) continue
     const reset = value.trim() === "initial"
     if (name === "*") {
-      if (reset) tokens.clear()
+      if (reset) {
+        tokens.clear()
+        scoped?.clear()
+      }
       continue
     }
-    if (!name.startsWith("color-")) continue
-    const token = name.slice("color-".length)
+    const namespace = name.startsWith("color-")
+      ? "color"
+      : COLOR_NAMESPACES.find((candidate) => name.startsWith(`${candidate}-`))
+    if (!namespace) continue
+    const token = name.slice(namespace.length + 1)
+    let set = tokens
+    if (namespace !== "color") {
+      if (!scoped) continue
+      set = scoped.get(namespace) ?? new Set()
+      scoped.set(namespace, set)
+    }
     if (token === "*") {
-      if (reset) tokens.clear()
-    } else if (reset) tokens.delete(token)
-    else tokens.add(token)
+      if (reset) set.clear()
+    } else if (reset) set.delete(token)
+    else set.add(token)
   }
 }
 
@@ -256,7 +293,7 @@ function readTheme(
   }
   if (!fromPackage) {
     const { values, themeNames, declarations } = parseDeclarations(css)
-    applyTokenDeclarations(declarations, read.tokens)
+    applyTokenDeclarations(declarations, read.tokens, read.scoped)
     for (const [name, value] of values) read.values.set(name, value)
     for (const name of themeNames) read.themeNames.add(name)
     read.declarations.push(...declarations)
@@ -283,6 +320,7 @@ function themeAt(cssFile: string) {
   }
   const read: ThemeRead = {
     tokens: new Set(),
+    scoped: new Map(),
     utilities: new Set(),
     classes: new Set(),
     values: new Map(),
@@ -426,6 +464,14 @@ export function colorTokensFor(fromFile: string) {
   if (!cssFile) return null
   const { tokens } = themeAt(cssFile)
   return tokens.size ? tokens : null
+}
+
+// Tokens declared under a color utility's own namespace, by namespace.
+// Null outside a theme.
+export function scopedColorTokensFor(fromFile: string) {
+  const cssFile = themeFileFor(fromFile)
+  if (!cssFile) return null
+  return themeAt(cssFile).scoped
 }
 
 // Empty when the values cannot be read (color-mix, JS-set variables).

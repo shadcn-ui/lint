@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Semantic colors declared under the namespaces Tailwind reads before
+   --color-*: bg-surface comes from --background-color-surface and is not
+   a text color. */
+@theme static {
+  --color-*: initial;
+  --color-gray-500: #6b7280;
+}
+
+:root {
+  --surface: var(--color-gray-500);
+}
+
+@theme inline {
+  --background-color-surface: var(--surface);
+  --text-color-ink: #111;
+  --border-color-edge: #ddd;
+  --fill-brand: #f00;
+  --background-color-old: #000;
+  --background-color-old: initial;
+}
