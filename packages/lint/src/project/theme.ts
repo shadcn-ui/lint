@@ -53,6 +53,37 @@ const cache = new Map<
   { signature: string; checkedAt: number; read: ThemeRead }
 >()
 
+// Removes /* */ comments the way a CSS tokenizer would: a "/*" inside a
+// string or an unquoted url() is text, so an @source glob such as
+// "dist/*.js" does not swallow the theme declared after it.
+export function stripComments(css: string) {
+  const parts: string[] = []
+  let start = 0
+  let i = 0
+  while (i < css.length) {
+    const char = css[i]
+    if (char === "/" && css[i + 1] === "*") {
+      parts.push(css.slice(start, i))
+      const end = css.indexOf("*/", i + 2)
+      i = end === -1 ? css.length : end + 2
+      start = i
+    } else if (char === '"' || char === "'") {
+      i++
+      while (i < css.length && css[i] !== char) {
+        i += css[i] === "\\" ? 2 : 1
+      }
+      i++
+    } else if (css.startsWith("url(", i)) {
+      const end = css.indexOf(")", i + 4)
+      i = end === -1 ? css.length : end + 1
+    } else {
+      i++
+    }
+  }
+  parts.push(css.slice(start))
+  return parts.join("")
+}
+
 export function parseColorTokens(css: string) {
   const tokens = new Set<string>()
   applyColorTokens(css, tokens)
@@ -94,7 +125,7 @@ export function parseDeclarations(css: string) {
   const values = new Map<string, string>()
   const themeNames = new Set<string>()
   const declarations: { name: string; value: string; theme: boolean }[] = []
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "")
+  const stripped = stripComments(css)
   const stack: { theme: boolean; dark: boolean }[] = []
   let start = 0
   for (let i = 0; i < stripped.length; i++) {
@@ -172,7 +203,11 @@ export function parseUtilities(css: string) {
 // A class that exists in CSS (.legacy-card) is not an unknown class.
 export function parseClassSelectors(css: string) {
   const out = new Set<string>()
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "")
+  // A "dist/*.js" in a string is a glob, not a .js selector.
+  const stripped = stripComments(css).replace(
+    /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+    '""'
+  )
   for (const match of stripped.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
     out.add(match[1])
   }

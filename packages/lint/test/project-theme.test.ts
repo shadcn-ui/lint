@@ -3,9 +3,11 @@ import { describe, expect, test } from "vitest"
 
 import {
   colorTokensFor,
+  parseClassSelectors,
   parseDeclarations,
   scaleFor,
   spacingBaseFor,
+  stripComments,
   themeFileFor,
 } from "../src/project/theme"
 import { noArbitraryValues } from "../src/rules/no-arbitrary-values"
@@ -92,6 +94,36 @@ describe("a plain Vite project has a theme too", () => {
       })
     }
   )
+})
+
+// The comment stripper reads strings and url() as text, so a "/*" in
+// an @source glob does not open a comment that eats the theme.
+describe("comments are stripped without reading into strings", () => {
+  test("an @source glob does not swallow the declarations after it", () => {
+    const { declarations } = parseDeclarations(
+      `@source "../node_modules/streamdown/dist/*.js";
+@theme inline { --radius-lg: var(--radius); }
+:root { --radius: 0.375rem; /* 6px */ }
+.a { --other: 1px; }`
+    )
+    expect(declarations.map((d) => d.name)).toEqual([
+      "radius-lg",
+      "radius",
+      "other",
+    ])
+  })
+
+  test("strings, escapes, url() and real comments", () => {
+    expect(
+      stripComments(
+        `a: "/*"; /* gone */ b: '\\'/*'; c: url(/x/*.css); /* also gone */ d`
+      )
+    ).toBe(`a: "/*";  b: '\\'/*'; c: url(/x/*.css);  d`)
+    expect(stripComments("a /* open")).toBe("a ")
+    expect(
+      parseClassSelectors(`@source "dist/*.js"; .card {} /* .not */`)
+    ).toEqual(new Set(["card"]))
+  })
 })
 
 describe("dark-mode blocks are skipped by selector, not by prefix", () => {
