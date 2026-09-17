@@ -25,6 +25,8 @@ export function importNameOf(
   }
 }
 
+const NODE_MODULES = /[\\/]node_modules[\\/]/
+
 // One the ui index owns, or any export of a componentImports source.
 export function componentFromImport(
   index: ComponentIndex,
@@ -34,7 +36,16 @@ export function componentFromImport(
 ) {
   if (binding && index.owns(binding.file)) {
     const component = `${binding.name}${importedName.suffix}`
-    return { component, file: index.files.get(component) ?? binding.file }
+    const indexed = index.files.get(component)
+    // A ui file that re-exports one name from a package pulls that whole
+    // package into the export closure. Only a name the ui directory
+    // exports is the project's component; the package's other exports,
+    // whose bundled locals are the minifier's (`er`), are not.
+    if (!NODE_MODULES.test(binding.file) || indexed) {
+      const file = indexed ?? binding.file
+      // No message sends anyone into a package to add a variant.
+      return { component, file: NODE_MODULES.test(file) ? null : file }
+    }
   }
   if (patterns.some((pattern) => pattern.test(importedName.source))) {
     return { component: importedName.name, file: binding?.file ?? null }

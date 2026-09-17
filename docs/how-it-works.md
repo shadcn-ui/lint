@@ -33,6 +33,13 @@ component just because it has the same name. Name matching is a fallback
 only when an import cannot be resolved. An unresolved UI alias produces
 a warning with the configuration to fix.
 
+A UI file may re-export a name from a package, which makes the linter
+read that package's file. Only the names your UI directory exports are
+its components; the rest of that package is not, whatever its bundled
+locals are called. A component you do re-export from your UI directory
+is checked, and its finding names no file: there is no variant to add
+inside `node_modules`.
+
 Without `components.json`, the linter uses the nearest `package.json`
 and looks in `components/ui` or `src/components/ui`. For another import
 location, set `settings.shadcn.ui`, such as `"@/ds"`. This recognizes
