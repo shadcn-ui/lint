@@ -52,6 +52,29 @@ describe("parser", () => {
     useParser(null)
   })
 
+  test("both parsers read an alias, a lookup object and a props union", () => {
+    const source = `
+      const VARIANTS = { primary: "", secondary: "" } as const
+      type ButtonVariant = keyof typeof VARIANTS
+      type Base = { variant?: ButtonVariant }
+      type ButtonProps = (Base & { href: string }) | (Base & { href?: undefined })
+      export function Button(props: ButtonProps) { return <button /> }
+    `
+    const results = KINDS.map((kind) => {
+      useParser(kind)
+      return extractVariantDefinitions(source, "button.tsx")
+    })
+    expect(results[0]).toEqual([
+      {
+        name: "Button",
+        axes: { variant: ["primary", "secondary"] },
+        source: "props",
+      },
+    ])
+    for (const result of results.slice(1)) expect(result).toEqual(results[0])
+    useParser(null)
+  })
+
   test("both parsers find the same wrappers", () => {
     const saveButton = path.join(PROJECT, "components/save-button.tsx")
     const cases: [string, string][] = [
