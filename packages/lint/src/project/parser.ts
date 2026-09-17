@@ -7,6 +7,8 @@
 import { createRequire } from "node:module"
 import * as path from "node:path"
 
+import { warnOnce } from "./warn"
+
 const require = createRequire(import.meta.url)
 
 export type ParserKind = "oxc" | "typescript"
@@ -61,8 +63,18 @@ function loadOxc(): Parser | null {
 }
 
 function loadTypeScript(): Parser {
-  const ts = require("@typescript-eslint/parser") as {
-    parse: (source: string, options: object) => any
+  let ts: { parse: (source: string, options: object) => any }
+  try {
+    ts = require("@typescript-eslint/parser")
+  } catch {
+    // Both parsers are optional installs; without either, component
+    // files cannot be read and every caller degrades quietly, so say
+    // so once.
+    warnOnce(
+      "parser:none",
+      "Neither oxc-parser nor @typescript-eslint/parser is installed, so component files cannot be read: variants and wrappers are unknown until one is."
+    )
+    throw new Error("no parser is installed")
   }
   return {
     kind: "typescript",

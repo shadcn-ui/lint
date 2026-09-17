@@ -53,19 +53,23 @@
   ],
   "dependencies": {
     "@eslint/core": "^0.17.0",
-    "@typescript-eslint/parser": "^8.40.0",
     "cn": "0.2.6"
   },
   "peerDependencies": {
+    "@typescript-eslint/parser": ">=8.40.0",
     "eslint": ">=9.30.0"
   },
   "peerDependenciesMeta": {
+    "@typescript-eslint/parser": {
+      "optional": true
+    },
     "eslint": {
       "optional": true
     }
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "@typescript-eslint/parser": "^8.40.0",
     "eslint": "^9.33.0",
     "oxlint": "^1.80.0",
     "tailwind-merge": "^3.6.0",

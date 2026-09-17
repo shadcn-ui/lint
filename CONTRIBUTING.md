@@ -139,8 +139,10 @@ the built plugin. Time `oxlint .` with and without the plugin. Set
 bridge builds an AST for each file visited by a JavaScript rule.
 
 Project analysis uses the optional `oxc-parser`, falling back to
-`@typescript-eslint/parser`. With `oxc-parser` installed, this analysis
-does not load TypeScript under Oxlint. Same-file wrapper analysis
+`@typescript-eslint/parser`, an optional peer so that an Oxlint project
+on a TypeScript the parser does not yet support sees no peer warning.
+With `oxc-parser` installed, this analysis does not load TypeScript
+under Oxlint. Same-file wrapper analysis
 reuses the linter's AST. Measure `no-unknown-classes` separately when
 cold-start cost matters: its first query also loads Tailwind.
 
