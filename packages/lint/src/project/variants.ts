@@ -49,42 +49,114 @@ function axesOf(config: any) {
   return axes
 }
 
-const MAY_DEFINE_VARIANTS = /\b(?:cva|tv)\s*\(|\|\s*["']/
+const MAY_DEFINE_VARIANTS = /\b(?:cva|tv)\s*\(|\|\s*["']|\bkeyof\s+typeof\b/
 
-// Null unless every member is a string literal (or undefined, for `?:`).
-function literalValues(type: any) {
-  if (!type) return null
-  const members = type.type === "TSUnionType" ? type.types : [type]
-  const values: string[] = []
-  for (const member of members) {
-    if (member.type === "TSUndefinedKeyword") continue
-    if (
-      member.type === "TSLiteralType" &&
-      member.literal?.type === "Literal" &&
-      typeof member.literal.value === "string"
-    ) {
-      values.push(member.literal.value)
-      continue
-    }
-    return null
+// oxc keeps parentheses in the type AST; @typescript-eslint drops them.
+function unwrapType(type: any) {
+  let out = type
+  for (
+    let depth = 0;
+    out?.type === "TSParenthesizedType" && depth < 8;
+    depth++
+  ) {
+    out = out.typeAnnotation
   }
-  return values.length ? values : null
+  return out
 }
 
-// Follows intersections and same-file aliases, so
+// The keys of `const VARIANTS = { ... } as const`, the axis a lookup
+// object declares. Null when a spread or a computed key hides one: a
+// partial list of variants is worse than none.
+function objectKeys(object: any) {
+  if (object?.type !== "ObjectExpression") return null
+  const keys: string[] = []
+  for (const property of object.properties) {
+    if (property.type !== "Property" || property.computed) return null
+    const key = keyName(property.key)
+    if (!key) return null
+    keys.push(key)
+  }
+  return keys.length ? keys : null
+}
+
+// Null unless every member is a string literal (or undefined, for `?:`).
+// A same-file alias and `keyof typeof` a lookup object name the same axis
+// as an inline union, which is how a design system without cva writes it.
+function literalValues(
+  input: any,
+  declared: { types: Map<string, any>; objects: Map<string, any> },
+  depth = 0
+): string[] | null {
+  const type = unwrapType(input)
+  if (!type || depth > 8) return null
+  if (type.type === "TSTypeReference" && type.typeName?.type === "Identifier") {
+    return literalValues(
+      declared.types.get(type.typeName.name),
+      declared,
+      depth + 1
+    )
+  }
+  if (
+    type.type === "TSTypeOperator" &&
+    type.operator === "keyof" &&
+    type.typeAnnotation?.type === "TSTypeQuery" &&
+    type.typeAnnotation.exprName?.type === "Identifier"
+  ) {
+    return objectKeys(declared.objects.get(type.typeAnnotation.exprName.name))
+  }
+  if (type.type === "TSUnionType") {
+    const values: string[] = []
+    for (const member of type.types) {
+      if (member.type === "TSUndefinedKeyword") continue
+      const nested = literalValues(member, declared, depth + 1)
+      if (!nested) return null
+      values.push(...nested)
+    }
+    return values.length ? values : null
+  }
+  if (
+    type.type === "TSLiteralType" &&
+    type.literal?.type === "Literal" &&
+    typeof type.literal.value === "string"
+  ) {
+    return [type.literal.value]
+  }
+  return null
+}
+
+// Follows intersections, unions and same-file aliases, so
 // `React.ComponentProps<"div"> & Props` resolves.
-function axesOfPropsType(type: any, declared: Map<string, any>, depth = 0) {
+function axesOfPropsType(
+  input: any,
+  declared: { types: Map<string, any>; objects: Map<string, any> },
+  depth = 0
+) {
   const axes: Record<string, string[]> = {}
-  if (!type || depth > 4) return axes
+  const type = unwrapType(input)
+  if (!type || depth > 8) return axes
   if (type.type === "TSIntersectionType") {
     for (const member of type.types) {
       Object.assign(axes, axesOfPropsType(member, declared, depth + 1))
     }
     return axes
   }
+  // A props union (an anchor or a button, one set of variants): only what
+  // every member accepts is a variant of the component.
+  if (type.type === "TSUnionType") {
+    const [first, ...rest]: Record<string, string[]>[] = type.types.map(
+      (member: any) => axesOfPropsType(member, declared, depth + 1)
+    )
+    for (const [name, values] of Object.entries(first ?? {})) {
+      const shared = values.filter((value) =>
+        rest.every((other) => other[name]?.includes(value))
+      )
+      if (shared.length) axes[name] = shared
+    }
+    return axes
+  }
   if (type.type === "TSTypeReference" && type.typeName?.type === "Identifier") {
     return axesOfPropsType(
-      declared.get(type.typeName.name),
+      declared.types.get(type.typeName.name),
       declared,
       depth + 1
     )
@@ -99,28 +171,44 @@ function axesOfPropsType(type: any, declared: Map<string, any>, depth = 0) {
   for (const member of members) {
     if (member.type !== "TSPropertySignature") continue
     const key = keyName(member.key)
-    const values = literalValues(member.typeAnnotation?.typeAnnotation)
+    const values = literalValues(
+      member.typeAnnotation?.typeAnnotation,
+      declared
+    )
     if (key && values) axes[key] = values
   }
   return axes
 }
 
-function declaredTypes(ast: any) {
-  const declared = new Map<string, any>()
+// The file's aliases and interfaces, plus the object literals a
+// `keyof typeof` can name. `as const` and `satisfies` wrap the object.
+function declarationsIn(ast: any) {
+  const types = new Map<string, any>()
+  const objects = new Map<string, any>()
   walk(ast, (node) => {
     if (
       node.type === "TSTypeAliasDeclaration" &&
       node.id?.type === "Identifier"
     ) {
-      declared.set(node.id.name, node.typeAnnotation)
+      types.set(node.id.name, node.typeAnnotation)
     } else if (
       node.type === "TSInterfaceDeclaration" &&
       node.id?.type === "Identifier"
     ) {
-      declared.set(node.id.name, node.body)
+      types.set(node.id.name, node.body)
+    } else if (
+      node.type === "VariableDeclarator" &&
+      node.id?.type === "Identifier"
+    ) {
+      const init =
+        node.init?.type === "TSAsExpression" ||
+        node.init?.type === "TSSatisfiesExpression"
+          ? node.init.expression
+          : node.init
+      if (init?.type === "ObjectExpression") objects.set(node.id.name, init)
     }
   })
-  return declared
+  return { types, objects }
 }
 
 // A component's first parameter and its name, for function declarations
@@ -149,7 +237,7 @@ export function extractVariantDefinitions(source: string, file = "x.tsx") {
   } catch {
     return definitions
   }
-  const declared = declaredTypes(ast)
+  const declared = declarationsIn(ast)
   walk(ast, (node, parent) => {
     if (node.type === "CallExpression") {
       if (node.callee?.type !== "Identifier") return

@@ -62,6 +62,66 @@ describe("variants from props", () => {
     ])
   })
 
+  test("an alias on the prop, and keyof typeof a lookup object", () => {
+    const source = `
+      const VARIANTS = { primary: "bg-accent", secondary: "bg-accent-soft" } as const
+      type ButtonVariant = keyof typeof VARIANTS
+      type ButtonSize = "sm" | "lg"
+      type ButtonProps = { variant?: ButtonVariant; size?: ButtonSize; className?: string }
+      export function Button({ variant = "primary", className }: ButtonProps) {
+        return <button className={cn(VARIANTS[variant], className)} />
+      }
+    `
+    expect(extractVariantDefinitions(source)).toEqual([
+      {
+        name: "Button",
+        axes: { variant: ["primary", "secondary"], size: ["sm", "lg"] },
+        source: "props",
+      },
+    ])
+  })
+
+  test("a lookup object a spread or a computed key hides is not a list", () => {
+    const source = `
+      const VARIANTS = { ...BASE, primary: "bg-accent" } as const
+      type Props = { variant?: keyof typeof VARIANTS }
+      export function Tag(props: Props) { return <span /> }
+    `
+    expect(extractVariantDefinitions(source)).toEqual([])
+  })
+
+  // A component that renders as an anchor or a button declares its props
+  // as a union: the variants it accepts are the ones every member does.
+  test("a props union keeps the variants every member accepts", () => {
+    const source = `
+      type Base = { variant?: "primary" | "secondary"; className?: string }
+      type AsLink = Base & Omit<ComponentProps<typeof Link>, keyof Base>
+      type AsButton = Base &
+        Omit<ComponentProps<"button">, keyof Base> & { href?: undefined }
+      type ButtonProps = AsLink | AsButton
+      export function Button(props: ButtonProps) { return <button /> }
+    `
+    expect(extractVariantDefinitions(source)).toEqual([
+      {
+        name: "Button",
+        axes: { variant: ["primary", "secondary"] },
+        source: "props",
+      },
+    ])
+  })
+
+  test("a variant one member of the union does not accept is left out", () => {
+    const source = `
+      type AsLink = { variant?: "primary" | "ghost" }
+      type AsButton = { variant?: "primary" }
+      type ChipProps = AsLink | AsButton
+      export function Chip(props: ChipProps) { return <span /> }
+    `
+    expect(extractVariantDefinitions(source)).toEqual([
+      { name: "Chip", axes: { variant: ["primary"] }, source: "props" },
+    ])
+  })
+
   test("non-literal unions and plain strings are not axes", () => {
     const source = `
       export function Field({ label, kind, width }: { label: string; kind?: Kind | "auto"; width?: number | "full" }) {
@@ -92,6 +152,18 @@ describe("variants from props", () => {
     )
     expect(sizeNamesFor(file, "Card")).toEqual(["default", "sm"])
     expect(sizeNamesFor(file, "CardTitle")).toBeNull()
+  })
+
+  test("variantNamesFor reads an alias and a lookup object from the file", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    const file = path.join(dir, "button.tsx")
+    fs.writeFileSync(
+      file,
+      `const VARIANTS = { primary: "", secondary: "" } as const
+       type ButtonVariant = keyof typeof VARIANTS
+       export function Button({ variant }: { variant?: ButtonVariant }) { return <button /> }`
+    )
+    expect(variantNamesFor(file, "Button")).toEqual(["primary", "secondary"])
   })
 
   test("variantNamesFor and sizeNamesFor read the component's props", () => {
