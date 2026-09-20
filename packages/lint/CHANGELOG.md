@@ -1,5 +1,11 @@
 # @shadcn/lint
 
+## 0.1.3
+
+### Patch Changes
+
+- [#42](https://github.com/shadcn-ui/lint/pull/42) [`505a37d`](https://github.com/shadcn-ui/lint/commit/505a37d3ff1a0e156d3171dc173519ac35f3db9f) Thanks [@shadcn](https://github.com/shadcn)! - Read a destructured binding's own slot of its initializer, and resolve a ui package's alias to its own name.
+
 ## 0.1.2
 
 ### Patch Changes
