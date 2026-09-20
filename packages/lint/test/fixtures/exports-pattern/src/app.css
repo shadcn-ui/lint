@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "demo-widgets/styles.css";
+
+@theme {
+  --spacing-card: 1.25rem;
+}

@@ -29,6 +29,9 @@ type Declaration = { name: string; value: string; theme: boolean }
 
 type ThemeRead = {
   tokens: Set<string>
+  // Tokens a color utility reads from its own namespace before
+  // --color-*: --background-color-surface declares bg-surface only.
+  scoped: Map<string, Set<string>>
   utilities: Set<string>
   classes: Set<string>
   // Every custom property the project declares, in light mode, last
@@ -53,6 +56,37 @@ const cache = new Map<
   { signature: string; checkedAt: number; read: ThemeRead }
 >()
 
+// Removes /* */ comments the way a CSS tokenizer would: a "/*" inside a
+// string or an unquoted url() is text, so an @source glob such as
+// "dist/*.js" does not swallow the theme declared after it.
+export function stripComments(css: string) {
+  const parts: string[] = []
+  let start = 0
+  let i = 0
+  while (i < css.length) {
+    const char = css[i]
+    if (char === "/" && css[i + 1] === "*") {
+      parts.push(css.slice(start, i))
+      const end = css.indexOf("*/", i + 2)
+      i = end === -1 ? css.length : end + 2
+      start = i
+    } else if (char === '"' || char === "'") {
+      i++
+      while (i < css.length && css[i] !== char) {
+        i += css[i] === "\\" ? 2 : 1
+      }
+      i++
+    } else if (css.startsWith("url(", i)) {
+      const end = css.indexOf(")", i + 4)
+      i = end === -1 ? css.length : end + 1
+    } else {
+      i++
+    }
+  }
+  parts.push(css.slice(start))
+  return parts.join("")
+}
+
 export function parseColorTokens(css: string) {
   const tokens = new Set<string>()
   applyColorTokens(css, tokens)
@@ -63,25 +97,59 @@ function applyColorTokens(css: string, tokens: Set<string>) {
   applyTokenDeclarations(parseDeclarations(css).declarations, tokens)
 }
 
+// The namespaces Tailwind reads a color utility from before --color-*,
+// verified against Tailwind 4.3.3. Shadows, inset rings and gradient
+// stops read --color-* only.
+export const COLOR_NAMESPACES = [
+  "background-color",
+  "text-color",
+  "border-color",
+  "divide-color",
+  "ring-color",
+  "outline-color",
+  "accent-color",
+  "caret-color",
+  "placeholder-color",
+  "text-decoration-color",
+  "text-shadow-color",
+  "drop-shadow-color",
+  "fill",
+  "stroke",
+]
+
 // In cascade order: `--color-x: initial` drops x, `--color-*: initial`
-// and `--*: initial` drop everything declared so far.
+// and `--*: initial` drop everything declared so far. A scoped
+// namespace resets on its own.
 function applyTokenDeclarations(
   declarations: Declaration[],
-  tokens: Set<string>
+  tokens: Set<string>,
+  scoped?: Map<string, Set<string>>
 ) {
   for (const { name, value, theme } of declarations) {
     if (!theme) continue
     const reset = value.trim() === "initial"
     if (name === "*") {
-      if (reset) tokens.clear()
+      if (reset) {
+        tokens.clear()
+        scoped?.clear()
+      }
       continue
     }
-    if (!name.startsWith("color-")) continue
-    const token = name.slice("color-".length)
+    const namespace = name.startsWith("color-")
+      ? "color"
+      : COLOR_NAMESPACES.find((candidate) => name.startsWith(`${candidate}-`))
+    if (!namespace) continue
+    const token = name.slice(namespace.length + 1)
+    let set = tokens
+    if (namespace !== "color") {
+      if (!scoped) continue
+      set = scoped.get(namespace) ?? new Set()
+      scoped.set(namespace, set)
+    }
     if (token === "*") {
-      if (reset) tokens.clear()
-    } else if (reset) tokens.delete(token)
-    else tokens.add(token)
+      if (reset) set.clear()
+    } else if (reset) set.delete(token)
+    else set.add(token)
   }
 }
 
@@ -94,7 +162,7 @@ export function parseDeclarations(css: string) {
   const values = new Map<string, string>()
   const themeNames = new Set<string>()
   const declarations: { name: string; value: string; theme: boolean }[] = []
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "")
+  const stripped = stripComments(css)
   const stack: { theme: boolean; dark: boolean }[] = []
   let start = 0
   for (let i = 0; i < stripped.length; i++) {
@@ -154,10 +222,12 @@ export function resolveVariables(
   return failed ? null : out
 }
 
+// Comments go first: a partial whose comment spells out the consumer's
+// `@import "tailwindcss"` does not import Tailwind.
 export function parseImports(css: string) {
   const out: string[] = []
   const re = /@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?[^;]*;/g
-  for (const match of css.matchAll(re)) out.push(match[1])
+  for (const match of stripComments(css).matchAll(re)) out.push(match[1])
   return out
 }
 
@@ -172,7 +242,11 @@ export function parseUtilities(css: string) {
 // A class that exists in CSS (.legacy-card) is not an unknown class.
 export function parseClassSelectors(css: string) {
   const out = new Set<string>()
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "")
+  // A "dist/*.js" in a string is a glob, not a .js selector.
+  const stripped = stripComments(css).replace(
+    /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+    '""'
+  )
   for (const match of stripped.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
     out.add(match[1])
   }
@@ -221,7 +295,7 @@ function readTheme(
   }
   if (!fromPackage) {
     const { values, themeNames, declarations } = parseDeclarations(css)
-    applyTokenDeclarations(declarations, read.tokens)
+    applyTokenDeclarations(declarations, read.tokens, read.scoped)
     for (const [name, value] of values) read.values.set(name, value)
     for (const name of themeNames) read.themeNames.add(name)
     read.declarations.push(...declarations)
@@ -248,6 +322,7 @@ function themeAt(cssFile: string) {
   }
   const read: ThemeRead = {
     tokens: new Set(),
+    scoped: new Map(),
     utilities: new Set(),
     classes: new Set(),
     values: new Map(),
@@ -393,6 +468,14 @@ export function colorTokensFor(fromFile: string) {
   return tokens.size ? tokens : null
 }
 
+// Tokens declared under a color utility's own namespace, by namespace.
+// Null outside a theme.
+export function scopedColorTokensFor(fromFile: string) {
+  const cssFile = themeFileFor(fromFile)
+  if (!cssFile) return null
+  return themeAt(cssFile).scoped
+}
+
 // Empty when the values cannot be read (color-mix, JS-set variables).
 function colorsOf(read: ThemeRead) {
   if (read.colors) return read.colors
@@ -523,15 +606,25 @@ export function utilityPrefixesOf(utilities: Set<string>) {
   return list
 }
 
-// Whether the project's own CSS declares this class: an @utility name,
-// an @utility prefix, or a class selector. Tailwind generates such a
-// class, so a rule must not report it as a misspelling.
-export function declaresClass(fromFile: string, token: string) {
+// Whether the project's CSS declares this class with @utility, by name
+// or by prefix: Tailwind generates it, so it is the project's vocabulary
+// whatever the name looks like. A plain selector is not: `.text-danger
+// { color: #f00 }` is the raw color no-raw-colors exists to report.
+export function declaresUtility(fromFile: string, token: string) {
   const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
   if (!base) return false
-  const { utilities, classes } = knownClassesFor(fromFile)
-  if (utilities.has(base) || classes.has(base)) return true
+  const { utilities } = knownClassesFor(fromFile)
+  if (utilities.has(base)) return true
   return utilityPrefixesOf(utilities).some((prefix) => base.startsWith(prefix))
+}
+
+// Whether the project's own CSS declares this class: an @utility name,
+// an @utility prefix, or a class selector. Tailwind generates such a
+// class, so no-restyle must not report it as a misspelling.
+export function declaresClass(fromFile: string, token: string) {
+  if (declaresUtility(fromFile, token)) return true
+  const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
+  return !!base && knownClassesFor(fromFile).classes.has(base)
 }
 
 // What a project's CSS declares beyond Tailwind's own.

@@ -48,13 +48,26 @@ describe("no-raw-colors and theme namespaces", () => {
           filename: PAGE,
           code: `export const A = () => <p className="text-callout" />`,
         },
+        // With a variant and an opacity, still the same @utility.
+        {
+          filename: PAGE,
+          code: `export const A = () => <p className="hover:text-callout/50" />`,
+        },
         // The declared color still reads as a color.
         {
           filename: PAGE,
           code: `export const A = () => <div className="bg-primary text-primary" />`,
         },
       ],
-      invalid: [],
+      invalid: [
+        // A plain `.text-legacy { color: #f00 }` selector is not vocabulary:
+        // the color behind it is exactly the raw color to report.
+        {
+          filename: PAGE,
+          code: `export const A = () => <p className="text-legacy" />`,
+          errors: [{ messageId: "undeclaredToken" }],
+        },
+      ],
     })
   })
 
