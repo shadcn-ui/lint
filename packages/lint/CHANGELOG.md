@@ -1,5 +1,11 @@
 # @shadcn/lint
 
+## 0.1.2
+
+### Patch Changes
+
+- [#35](https://github.com/shadcn-ui/lint/pull/35) [`28f102c`](https://github.com/shadcn-ui/lint/commit/28f102c533396cefb63bffa0119e2cfc5ccc6b6a) Thanks [@shadcn](https://github.com/shadcn)! - Fix theme reading past comments, scoped color namespaces, `exports` patterns, plain selectors hiding raw colors, and the TypeScript parser peer warning.
+
 ## 0.1.1
 
 ### Patch Changes
