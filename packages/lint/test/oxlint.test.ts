@@ -6,6 +6,7 @@
 
 import { spawnSync } from "node:child_process"
 import * as fs from "node:fs"
+import { createRequire } from "node:module"
 import * as os from "node:os"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -13,6 +14,23 @@ import { stripVTControlCharacters } from "node:util"
 import { describe, expect, test } from "vitest"
 
 const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+
+// Oxlint's own entry, run with this Node: `npx` resolved it through a
+// cmd.exe shim on Windows, where the resolution alone could take longer
+// than a run and time the test out on a slow runner.
+const OXLINT = (() => {
+  const require = createRequire(import.meta.url)
+  const manifest = require.resolve("oxlint/package.json")
+  const bin = require(manifest).bin
+  return path.join(
+    path.dirname(manifest),
+    typeof bin === "string" ? bin : bin.oxlint
+  )
+})()
+
+// A run starts Oxlint, loads the plugin, and on the first call also
+// starts the Tailwind worker cold; a shared CI runner takes its time.
+const RUN_TIMEOUT = 60_000
 const FIXTURES = path.join(PKG_DIR, "test/fixtures")
 const plugin = process.env.SHADCN_LINT_PLUGIN
   ? path.resolve(process.env.SHADCN_LINT_PLUGIN)
@@ -74,25 +92,10 @@ function oxlint(
   )
   try {
     const result = spawnSync(
-      "npx",
+      process.execPath,
       // Keep message assertions independent of CI's automatic GitHub reporter.
-      [
-        "--prefix",
-        PKG_DIR,
-        "oxlint",
-        "--format",
-        "default",
-        "-c",
-        config,
-        file,
-      ],
-      // npx is a .cmd shim on Windows and needs a shell there.
-      {
-        cwd,
-        encoding: "utf-8",
-        shell: process.platform === "win32",
-        timeout: 10_000,
-      }
+      [OXLINT, "--format", "default", "-c", config, file],
+      { cwd, encoding: "utf-8", timeout: RUN_TIMEOUT }
     )
     if (result.error) throw result.error
     return stripVTControlCharacters(result.stdout + result.stderr)
@@ -109,7 +112,7 @@ if (!buildUsable && process.env.CI) {
   )
 }
 
-describe.skipIf(!buildUsable)("oxlint", () => {
+describe.skipIf(!buildUsable)("oxlint", { timeout: RUN_TIMEOUT }, () => {
   // The first run also starts the Tailwind worker cold on shared CI runners.
   test("shadcn project: every rule reports, with variants, file paths, wrappers, SVG, unknown classes", () => {
     const out = oxlint(
