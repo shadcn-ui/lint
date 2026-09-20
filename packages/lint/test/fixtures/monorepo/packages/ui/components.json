@@ -1,0 +1,8 @@
+{
+  "aliases": {
+    "components": "@workspace/ui/components",
+    "ui": "@workspace/ui/components",
+    "lib": "@workspace/ui/lib"
+  },
+  "tailwind": { "css": "src/styles/globals.css" }
+}
