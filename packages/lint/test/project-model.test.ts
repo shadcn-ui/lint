@@ -152,6 +152,20 @@ describe("monorepo", () => {
     expect(componentsFor(ADMIN_PAGE).files.get("Button")).toBe(UI_BUTTON)
   })
 
+  // The ui package's own components.json names the package itself, the
+  // way the official monorepo template does; from inside the package
+  // there is no node_modules entry to find, only the package.json above.
+  test("ui alias through the package's own name, from inside it", () => {
+    const warnings: string[] = []
+    setWarningSink((message) => warnings.push(message))
+    const ui = path.join(MONO, "packages/ui")
+    expect(
+      resolveDirectory("@workspace/ui/components", UI_COMPONENTS, ui)
+    ).toBe(UI_COMPONENTS)
+    expect(componentsFor(UI_BUTTON).files.get("Button")).toBe(UI_BUTTON)
+    expect(warnings).toEqual([])
+  })
+
   test("theme through a workspace @import, not through tailwindcss itself", () => {
     const tokens = colorTokensFor(WEB_PAGE)!
     expect(tokens.has("brand")).toBe(true)

@@ -221,6 +221,16 @@ function packageDirectory(name: string, fromDir: string) {
   return found ? realpath(found) : null
 }
 
+// A package that refers to itself by name, the way a monorepo's ui
+// package points aliases.ui at "@workspace/ui/components": Node reads
+// that through the enclosing package.json, so the linter does too.
+function selfPackageDirectory(name: string, fromDir: string) {
+  const manifest = findUp(fromDir, "package.json")
+  if (!manifest) return null
+  const dir = path.dirname(manifest)
+  return readPackageJson(dir)?.name === name ? realpath(dir) : null
+}
+
 function splitPackageSpecifier(spec: string) {
   const parts = spec.split("/")
   const nameLength = spec.startsWith("@") ? 2 : 1
@@ -284,7 +294,10 @@ export function candidatesFor(
   const pkg = splitPackageSpecifier(spec)
   if (!pkg) return out
   const dir =
-    packageDirectory(pkg.name, rootDir) ?? packageDirectory(pkg.name, fromDir)
+    selfPackageDirectory(pkg.name, rootDir) ??
+    selfPackageDirectory(pkg.name, fromDir) ??
+    packageDirectory(pkg.name, rootDir) ??
+    packageDirectory(pkg.name, fromDir)
   if (!dir) return out
   const subpath = pkg.subpath ? `./${pkg.subpath}` : "."
   const exportsMap = readPackageJson(dir)?.exports
