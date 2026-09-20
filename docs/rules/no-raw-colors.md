@@ -44,7 +44,9 @@ Some theme namespaces share a prefix with a color utility. Declaring
 color, and neither is reported as one; the same holds for
 `--inset-shadow-*`, `--drop-shadow-*`, `--text-shadow-*`, and
 `--background-image-*`. Classes your CSS declares with `@utility` are
-your vocabulary too.
+your vocabulary too. A plain selector is not: with
+`.text-danger { color: #f00 }` in your CSS, `text-danger` is still
+reported, since the color behind it is raw.
 
 Tailwind also reads a color from the utility's own namespace before
 `--color-*`. `--background-color-surface` declares `bg-surface`,

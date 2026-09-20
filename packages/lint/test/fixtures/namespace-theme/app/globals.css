@@ -15,3 +15,8 @@
   font-size: 15px;
   line-height: 1.4;
 }
+
+/* A plain selector is not vocabulary: the color behind it is raw. */
+.text-legacy {
+  color: #f00;
+}

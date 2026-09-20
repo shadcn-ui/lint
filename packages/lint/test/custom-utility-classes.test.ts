@@ -4,7 +4,7 @@
 
 import { describe, expect, test } from "vitest"
 
-import { declaresClass } from "../src/project/theme"
+import { declaresClass, declaresUtility } from "../src/project/theme"
 import { noRestyle } from "../src/rules/no-restyle"
 import { button, createTester, OUTSIDE, PAGE } from "./helpers"
 
@@ -14,6 +14,10 @@ describe("declaresClass", () => {
     expect(declaresClass(PAGE, "hover:tap-target")).toBe(true)
     expect(declaresClass(PAGE, "tab-4")).toBe(true)
     expect(declaresClass(PAGE, "legacy-card")).toBe(true)
+    // A plain selector is a class, not an @utility.
+    expect(declaresUtility(PAGE, "legacy-card")).toBe(false)
+    expect(declaresUtility(PAGE, "tap-target")).toBe(true)
+    expect(declaresUtility(PAGE, "hover:tab-4/50")).toBe(true)
     // The reporter's case: an @utility from an imported package's CSS.
     expect(declaresClass(PAGE, "shimmer")).toBe(true)
     expect(declaresClass(PAGE, "flex-cols")).toBe(false)

@@ -5,6 +5,7 @@ import {
   colorTokensFor,
   parseClassSelectors,
   parseDeclarations,
+  parseImports,
   scaleFor,
   spacingBaseFor,
   stripComments,
@@ -123,6 +124,15 @@ describe("comments are stripped without reading into strings", () => {
     expect(
       parseClassSelectors(`@source "dist/*.js"; .card {} /* .not */`)
     ).toEqual(new Set(["card"]))
+  })
+
+  test("an @import mentioned in a comment is not an import", () => {
+    expect(
+      parseImports(`/* Consumers own the \`@import 'tailwindcss'\` entry point and
+ * must import this file alongside it. */
+@theme inline { --color-brand: #123456; }
+@import "./tokens.css";`)
+    ).toEqual(["./tokens.css"])
   })
 })
 

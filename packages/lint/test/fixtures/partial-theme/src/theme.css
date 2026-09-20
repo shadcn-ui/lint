@@ -1,4 +1,5 @@
-/* Tokens only: the consumer imports Tailwind, so this one does not. */
+/* Tokens only. Consumers own the `@import 'tailwindcss'` entry point and
+ * must import this file alongside it; this one does not. */
 @theme inline {
   --color-brand: #123456;
 }

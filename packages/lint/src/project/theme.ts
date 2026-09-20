@@ -222,10 +222,12 @@ export function resolveVariables(
   return failed ? null : out
 }
 
+// Comments go first: a partial whose comment spells out the consumer's
+// `@import "tailwindcss"` does not import Tailwind.
 export function parseImports(css: string) {
   const out: string[] = []
   const re = /@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?[^;]*;/g
-  for (const match of css.matchAll(re)) out.push(match[1])
+  for (const match of stripComments(css).matchAll(re)) out.push(match[1])
   return out
 }
 
@@ -604,15 +606,25 @@ export function utilityPrefixesOf(utilities: Set<string>) {
   return list
 }
 
-// Whether the project's own CSS declares this class: an @utility name,
-// an @utility prefix, or a class selector. Tailwind generates such a
-// class, so a rule must not report it as a misspelling.
-export function declaresClass(fromFile: string, token: string) {
+// Whether the project's CSS declares this class with @utility, by name
+// or by prefix: Tailwind generates it, so it is the project's vocabulary
+// whatever the name looks like. A plain selector is not: `.text-danger
+// { color: #f00 }` is the raw color no-raw-colors exists to report.
+export function declaresUtility(fromFile: string, token: string) {
   const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
   if (!base) return false
-  const { utilities, classes } = knownClassesFor(fromFile)
-  if (utilities.has(base) || classes.has(base)) return true
+  const { utilities } = knownClassesFor(fromFile)
+  if (utilities.has(base)) return true
   return utilityPrefixesOf(utilities).some((prefix) => base.startsWith(prefix))
+}
+
+// Whether the project's own CSS declares this class: an @utility name,
+// an @utility prefix, or a class selector. Tailwind generates such a
+// class, so no-restyle must not report it as a misspelling.
+export function declaresClass(fromFile: string, token: string) {
+  if (declaresUtility(fromFile, token)) return true
+  const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
+  return !!base && knownClassesFor(fromFile).classes.has(base)
 }
 
 // What a project's CSS declares beyond Tailwind's own.

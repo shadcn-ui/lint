@@ -16,7 +16,7 @@ import { projectClassifierFor } from "../project/namespaces"
 import {
   colorTokensFor,
   colorValuesFor,
-  declaresClass,
+  declaresUtility,
   scopedColorTokensFor,
   tailwindEntryFor,
   themeFileFor,
@@ -311,10 +311,11 @@ export const noRawColors = {
       if (!declared) return null
       if (categoryOf(groupOf(token)) !== "color") return null
       if (!colorValue || NAMED.has(colorValue)) return null
-      // A class the project's own CSS declares is its vocabulary, whatever
-      // the name looks like: "not a declared theme color" is false about
-      // a name the theme declares.
-      if (declaresClass(filename, token)) return null
+      // A class the project's CSS declares with @utility is its
+      // vocabulary, whatever the name looks like: "not a declared theme
+      // color" is false about a name the theme declares. A plain class
+      // selector is not, so a raw color behind `.text-danger` still reports.
+      if (declaresUtility(filename, token)) return null
       return undeclaredVerdict(token)
     }
 
