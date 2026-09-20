@@ -408,21 +408,86 @@ function isWritten(variable: any) {
   )
 }
 
+// The slot a destructured binding reads from its initializer: `cls` in
+// `const [dot, text, cls] = init` is element 2, `colorCls` in
+// `const { Icon, colorCls } = init` is that property.
+export type PatternStep = { index: number } | { key: string }
+
+// The steps from a binding up to its declarator's pattern, outermost
+// first. Null for a rest or a default, whose value no one slot holds.
+function patternStepsOf(binding: any, pattern: any) {
+  const steps: PatternStep[] = []
+  let node = binding
+  while (node !== pattern) {
+    const parent = node?.parent
+    if (parent?.type === "ArrayPattern") {
+      steps.unshift({ index: parent.elements.indexOf(node) })
+      node = parent
+    } else if (
+      parent?.type === "Property" &&
+      parent.value === node &&
+      parent.parent?.type === "ObjectPattern"
+    ) {
+      const key = keyName(parent)
+      if (key === null) return null
+      steps.unshift({ key })
+      node = parent.parent
+    } else {
+      return null
+    }
+  }
+  return steps
+}
+
+// Follows the steps into a literal initializer as far as the shape is
+// plain: an array without a spread before the slot, an object without
+// spreads. What remains is for the reader to follow through branches.
+function projectStatic(init: any, steps: PatternStep[]) {
+  let node = init
+  let i = 0
+  for (; i < steps.length; i++) {
+    const value = unwrapTs(node)
+    const step = steps[i]
+    if ("index" in step && value?.type === "ArrayExpression") {
+      const before = value.elements.slice(0, step.index + 1)
+      if (before.some((el: any) => el?.type === "SpreadElement")) break
+      const element = value.elements[step.index]
+      if (!element) break
+      node = element
+    } else if ("key" in step && value?.type === "ObjectExpression") {
+      if (value.properties.some((p: any) => p.type !== "Property")) break
+      const found = value.properties.filter((p: any) => keyName(p) === step.key)
+      if (!found.length) break
+      node = found[found.length - 1].value
+    } else break
+  }
+  return { init: node, steps: steps.slice(i) }
+}
+
 // One hop to a same-file const's initializer. `path` holds the variables
 // on the current route, so a self-reference stops while the same variable
-// read from both branches of a ternary resolves twice.
+// read from both branches of a ternary resolves twice. A destructured
+// binding gets its own slot of the initializer, and any steps a reader
+// still has to follow through a conditional.
 export function resolveIdentifier(node: any, context: any, path: Set<any>) {
   const variable = variableOf(node, context)
   if (!variable || path.has(variable)) return null
   const def = variable.defs?.[0]
   if (!def || def.type !== "Variable" || !def.node?.init) return null
   if (isWritten(variable)) return null
+  let init = def.node.init
+  let steps: PatternStep[] = []
+  if (def.name !== def.node.id) {
+    const route = patternStepsOf(def.name, def.node.id)
+    if (!route) return null
+    ;({ init, steps } = projectStatic(init, route))
+  }
   if (
-    unwrapTs(def.node.init)?.type === "ObjectExpression" &&
+    unwrapTs(init)?.type === "ObjectExpression" &&
     isEscaped(variable, context)
   )
     return null
-  return { init: def.node.init, variable }
+  return { init, variable, steps }
 }
 
 // A props parameter or a property destructured from it. A nested data
@@ -667,6 +732,57 @@ export function collectClassStrings(
     if (resolvedCalls === 0) vocabularyStrings.push(string)
   }
 
+  // The slot a destructured binding reads, followed through the branches
+  // of its initializer: `const [, , cls] = ok ? a : b` reads element 2 of
+  // a and of b. A shape the steps cannot enter is unresolved, not read
+  // whole: its other slots were never classes.
+  const visitThrough = (
+    node: any,
+    steps: PatternStep[],
+    valuesMode: boolean
+  ): void => {
+    if (!steps.length) {
+      visit(node, valuesMode)
+      return
+    }
+    const value = unwrapTs(node)
+    switch (value?.type) {
+      case "ConditionalExpression":
+        visitThrough(value.consequent, steps, valuesMode)
+        visitThrough(value.alternate, steps, valuesMode)
+        return
+      case "LogicalExpression":
+        if (value.operator !== "&&") visitThrough(value.left, steps, valuesMode)
+        visitThrough(value.right, steps, valuesMode)
+        return
+      case "Identifier": {
+        const resolved = resolve
+          ? resolveIdentifier(value, context, path)
+          : null
+        if (!resolved) {
+          unresolved.push(value)
+          return
+        }
+        path.add(resolved.variable)
+        visitThrough(resolved.init, [...resolved.steps, ...steps], valuesMode)
+        path.delete(resolved.variable)
+        return
+      }
+      case "ArrayExpression":
+      case "ObjectExpression": {
+        const projected = projectStatic(value, steps)
+        if (projected.steps.length === steps.length) {
+          unresolved.push(value)
+          return
+        }
+        visitThrough(projected.init, projected.steps, valuesMode)
+        return
+      }
+      default:
+        unresolved.push(node)
+    }
+  }
+
   const visit = (node: any, valuesMode: boolean) => {
     if (!node) return
     const forwarded = resolve
@@ -765,7 +881,7 @@ export function collectClassStrings(
           return
         }
         path.add(resolved.variable)
-        visit(resolved.init, valuesMode)
+        visitThrough(resolved.init, resolved.steps, valuesMode)
         path.delete(resolved.variable)
         return
       }
