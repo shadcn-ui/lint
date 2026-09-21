@@ -1,5 +1,11 @@
 # @shadcn/lint
 
+## 0.1.5
+
+### Patch Changes
+
+- [#47](https://github.com/shadcn-ui/lint/pull/47) [`7638587`](https://github.com/shadcn-ui/lint/commit/7638587e93ebff5bd7c8a7f9a8c42f236bb73c8e) Thanks [@shadcn](https://github.com/shadcn)! - Update the bundled cn grammar to 0.3.2. Axis utilities such as `px-2` now conflict with the logical sides they cover, and only Tailwind's own `animate-*` names share the `animate` group.
+
 ## 0.1.4
 
 ### Patch Changes

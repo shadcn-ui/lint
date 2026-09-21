@@ -1,6 +1,6 @@
 {
   "name": "@shadcn/lint",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A programmable agent-first linter for Tailwind design systems.",
   "license": "MIT",
   "author": {
