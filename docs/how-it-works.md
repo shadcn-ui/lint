@@ -130,7 +130,7 @@ layout. `allow: ["layout"]` permits layout classes. A contract that
 replaces `allow` must include `layout` to keep that allowance. See the
 [category table](./rules.md#categories).
 
-The linter uses your project's `cn` when it is at least version 0.2.6.
+The linter uses your project's `cn` when it is at least version 0.3.2.
 Otherwise, it uses the bundled grammar and warns if an older copy was
 found. A class with no recognized group is `unclassified` and is not
 allowed by `layout`. A recognized group with no appearance category is

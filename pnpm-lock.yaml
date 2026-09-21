@@ -97,8 +97,8 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
       cn:
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.3.2
+        version: 0.3.2
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -1661,8 +1661,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  cn@0.2.6:
-    resolution: {integrity: sha512-+i4L0zUGgRcEnhsxueVrP7iBGxBx5iD0WOTYg1MwFEu2ZyCmH5Ov2V1cul2Ht5UchRQQgftCf4be/RxspuW6QQ==}
+  cn@0.3.2:
+    resolution: {integrity: sha512-RKzY5Edavc8B2Ka6tjJecKFC4nm0p7lADY72xzICmiJSf4TkaxWXt0fHsib2P2G4FkFyXfSDi9oDtIBuCZvY2g==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4618,7 +4618,7 @@ snapshots:
 
   cn@0.2.5: {}
 
-  cn@0.2.6: {}
+  cn@0.3.2: {}
 
   code-block-writer@13.0.3: {}
 

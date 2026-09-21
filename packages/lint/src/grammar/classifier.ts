@@ -15,7 +15,7 @@ import * as cnValidators from "./validators"
 
 // The grammar this package is written against. An older cn in the project
 // is linted with the bundled copy instead, with a one-time warning.
-export const BUNDLED_CN = "0.2.6"
+export const BUNDLED_CN = "0.3.2"
 
 function cnVersionAt(resolvedConfigPath: string) {
   let dir = path.dirname(resolvedConfigPath)
