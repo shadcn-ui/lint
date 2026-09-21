@@ -10,19 +10,49 @@ import {
   groupOf,
   resolveCnConfig,
 } from "../src/grammar/classifier"
+import {
+  animationGroupFor,
+  projectClassifierFor,
+} from "../src/project/namespaces"
 import { resetWarnings, setWarningSink } from "../src/project/warn"
 
 describe("animate values, from cn's grammar", () => {
+  test.each(["animate-spin", "animate-none", "hover:animate-pulse"])(
+    "%s classifies as animate (motion)",
+    (token) => {
+      expect(groupOf(token)).toBe("animate")
+      expect(categoryOf(groupOf(token))).toBe("motion")
+    }
+  )
+})
+
+// cn groups only Tailwind's own animations, so a project's animation is
+// read from its CSS. These hold whichever cn grammar is installed.
+describe("animate values, from the project's CSS", () => {
+  const PAGE = path.join(__dirname, "fixtures/namespace-theme/app/page.tsx")
+
   test.each([
+    "animate-shimmer",
     "animate-in",
-    "animate-out",
-    "animate-accordion-down",
-    "animate-caret-blink",
-    "data-[state=open]:animate-accordion-down",
-    "animate-spin",
+    "data-[state=open]:animate-in",
+    "animate-in!",
+    "animate-duration-500",
   ])("%s classifies as animate (motion)", (token) => {
-    expect(groupOf(token)).toBe("animate")
-    expect(categoryOf(groupOf(token))).toBe("motion")
+    expect(animationGroupFor(PAGE, token)).toBe("animate")
+    const group = projectClassifierFor(PAGE).groupOf(token)
+    expect(group).toBe("animate")
+    expect(categoryOf(group)).toBe("motion")
+  })
+
+  test.each(["animate-wiggle", "animate-[spin_1s]", "fade-in", "text-sm"])(
+    "%s is not a project animation",
+    (token) => {
+      expect(animationGroupFor(PAGE, token)).toBeNull()
+    }
+  )
+
+  test("no file means no project to read", () => {
+    expect(animationGroupFor(undefined, "animate-shimmer")).toBeNull()
   })
 })
 

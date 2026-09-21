@@ -20,3 +20,17 @@
 .text-legacy {
   color: #f00;
 }
+
+/* Animations the project declares: a theme value, and the @utility shape
+   tw-animate-css uses for animate-in. */
+@theme inline {
+  --animate-shimmer: shimmer 2s linear infinite;
+}
+
+@utility animate-in {
+  animation: enter 150ms ease;
+}
+
+@utility animate-duration-* {
+  animation-duration: calc(--value(integer) * 1ms);
+}
