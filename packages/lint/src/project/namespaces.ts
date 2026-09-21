@@ -7,7 +7,11 @@
 import { categoryOf } from "../grammar/categories"
 import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
 import { classifierFor } from "../grammar/classifier"
-import { themeVocabularyFor, type ThemeVocabulary } from "./theme"
+import {
+  declaresClass,
+  themeVocabularyFor,
+  type ThemeVocabulary,
+} from "./theme"
 
 // Longest prefix first: text-shadow-crisp is a text-shadow, not text
 // "shadow-crisp".
@@ -51,6 +55,8 @@ const NAMESPACES: {
     overColor: false,
   },
 ]
+
+const ANIMATE_PREFIX = "animate-"
 
 const memos = new WeakMap<ThemeVocabulary, Map<string, string | null>>()
 
@@ -99,15 +105,29 @@ export function themeGroupFor(fromFile: string | undefined, token: string) {
   return group
 }
 
+// cn groups only Tailwind's own animations, so that merging never drops a
+// plugin's animate-once. A project's animation is one its CSS declares:
+// --animate-shimmer in @theme, or animate-in from an @utility or selector.
+export function animationGroupFor(fromFile: string | undefined, token: string) {
+  if (!fromFile) return null
+  const base = normalizeClass(token)
+  if (!base.startsWith(ANIMATE_PREFIX)) return null
+  const value = valueOf(base, ANIMATE_PREFIX)
+  if (!value) return null
+  if (themeVocabularyFor(fromFile)?.names.has(base)) return "animate"
+  return declaresClass(fromFile, token) ? "animate" : null
+}
+
 // The classifier the rules use: cn's grammar, then the project's theme
 // wherever the grammar's answer was a color it could not have known was
-// something else. Nothing but a color can be shadowed this way, so the
-// grammar answers first and the theme is read only when it could change
-// the verdict.
+// something else, or no answer for an animation the project declares.
+// Nothing else can be shadowed this way, so the grammar answers first and
+// the theme is read only when it could change the verdict.
 export function projectClassifierFor(fromFile?: string) {
   const { groupOf: grammarGroupOf } = classifierFor(fromFile)
   const groupOf = (token: string) => {
     const group = grammarGroupOf(token)
+    if (!group) return animationGroupFor(fromFile, token)
     if (categoryOf(group) !== "color") return group
     return themeGroupFor(fromFile, token) ?? group
   }
