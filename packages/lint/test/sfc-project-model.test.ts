@@ -80,6 +80,21 @@ describe("single-file components in the project model", () => {
     )
   })
 
+  it("resolves an extensionless import of a single-file component", () => {
+    expect(
+      definingExportOf("$lib/components/save-button", "default", SVELTE_PAGE)
+    ).toEqual({
+      file: path.join(SVELTE, "src/lib/components/save-button.svelte"),
+      name: "SaveButton",
+    })
+    expect(
+      definingExportOf("@/components/SaveButton", "default", VUE_PAGE)
+    ).toEqual({
+      file: path.join(VUE, "src/components/SaveButton.vue"),
+      name: "SaveButton",
+    })
+  })
+
   it("resolves a short barrel name to the component its file names", () => {
     expect(
       definingExportOf("$lib/components/ui/card", "Title", SVELTE_PAGE)

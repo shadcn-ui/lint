@@ -144,6 +144,14 @@ describe("Vue templates", () => {
     )
   })
 
+  it("knows the classes its own style block declares", () => {
+    const rules = { "shadcn/no-unknown-classes": "error" }
+    const code = `<template><div class="box flex-cols" /></template>\n<style scoped>\n.box { color: red }\n</style>\n`
+    expect(
+      lintSfc(code, VUE_PAGE, rules).map((m) => m.message.split(" ")[0])
+    ).toEqual([`"flex-cols"`])
+  })
+
   it("still lints the script block, once", () => {
     expect(found("<div />", `const chip = cn("bg-red-500")`)).toEqual([
       `shadcn/no-raw-colors: "bg-red-500" uses the raw Tailwind palette`,

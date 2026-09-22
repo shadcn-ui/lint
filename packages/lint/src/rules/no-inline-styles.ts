@@ -226,6 +226,33 @@ function carriesRawColor(
   }
 }
 
+// Declarations of a style attribute. A `;` inside quotes or parentheses
+// (`--label: 'a; b'`, `url(data:...;base64,...)`) is part of the value.
+function splitDeclarations(css: string) {
+  const out: string[] = []
+  let start = 0
+  let depth = 0
+  let quote = ""
+  for (let i = 0; i < css.length; i++) {
+    const char = css[i]
+    if (quote) {
+      if (char === "\\") i++
+      else if (char === quote) quote = ""
+    } else if (char === '"' || char === "'") {
+      quote = char
+    } else if (char === "(") {
+      depth++
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1)
+    } else if (char === ";" && depth === 0) {
+      out.push(css.slice(start, i))
+      start = i + 1
+    }
+  }
+  out.push(css.slice(start))
+  return out
+}
+
 // A style written as CSS text: a string, or a template whose holes are
 // kept as holes so no color is read across one.
 function cssTextOf(node: any) {
@@ -321,7 +348,7 @@ export const noInlineStyles = {
       reportAt: any,
       component: string
     ) => {
-      for (const declaration of css.split(";")) {
+      for (const declaration of splitDeclarations(css)) {
         const colon = declaration.indexOf(":")
         if (colon === -1) continue
         const property = declaration.slice(0, colon).trim()

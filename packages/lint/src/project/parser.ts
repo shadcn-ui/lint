@@ -7,6 +7,7 @@
 import { createRequire } from "node:module"
 import * as path from "node:path"
 
+import { parseClassSelectors } from "./theme"
 import { warnOnce } from "./warn"
 
 const require = createRequire(import.meta.url)
@@ -48,6 +49,17 @@ export function sfcNameOf(file: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join("")
+}
+
+const STYLE_RE = /<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi
+
+// The classes an SFC's own <style> blocks select.
+export function styleClassesOf(source: string) {
+  const out = new Set<string>()
+  for (const match of source.matchAll(STYLE_RE)) {
+    for (const name of parseClassSelectors(match[1])) out.add(name)
+  }
+  return out
 }
 
 // The script blocks of an SFC with everything else blanked, so every

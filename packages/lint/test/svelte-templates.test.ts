@@ -113,6 +113,17 @@ describe("Svelte templates", () => {
     ])
   })
 
+  it("keeps a ; inside a quoted or parenthesized style value", () => {
+    expect(
+      found(
+        `<div style="--label: 'x; color: red'; background: url(data:image/png;base64,AAAA); --tone: #fff"></div>`
+      )
+    ).toEqual([
+      "shadcn/no-inline-styles: Inline style sets background",
+      "shadcn/no-inline-styles: Custom property --tone hardcodes a color",
+    ])
+  })
+
   it("accepts the received class prop and a forwarded spread", () => {
     expect(
       found(`<Button class={cn("mt-2", className)} {...restProps}>x</Button>`)
@@ -145,6 +156,14 @@ describe("Svelte templates", () => {
     expect(line.slice(message.column - 1, message.endColumn! - 1)).toBe(
       "text-2xl"
     )
+  })
+
+  it("knows the classes its own style block declares", () => {
+    const rules = { "shadcn/no-unknown-classes": "error" }
+    const code = `<div class="box flex-cols"></div>\n<style>\n.box { color: red }\n</style>\n`
+    expect(
+      lintSfc(code, SVELTE_PAGE, rules).map((m) => m.message.split(" ")[0])
+    ).toEqual([`"flex-cols"`])
   })
 
   it("still lints the script block", () => {
