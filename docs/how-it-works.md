@@ -135,11 +135,19 @@ layout. `allow: ["layout"]` permits layout classes. A contract that
 replaces `allow` must include `layout` to keep that allowance. See the
 [category table](./rules.md#categories).
 
-The linter uses your project's `cn` when it is at least version 0.3.2.
+The linter uses your project's `cn` when it is at least version 0.4.0.
 Otherwise, it uses the bundled grammar and warns if an older copy was
 found. A class with no recognized group is `unclassified` and is not
 allowed by `layout`. A recognized group with no appearance category is
 treated as layout; newly unmapped groups produce a warning.
+
+The grammar reads the scales your theme declares, the way `cn build`
+registers them. A `--radius-card` in `@theme` makes `rounded-card` a
+shape class, `--text-display` makes `text-display` typography, and
+`--spacing-gutter` makes `p-gutter` spacing. A `--radius-*: initial`
+reset replaces the default names with the declared ones, so `rounded-lg`
+is unclassified until the theme declares it again. Only `@theme` blocks
+count, and relative `@import`s are followed.
 
 Utilities Tailwind still generates under their Tailwind 3 names read as
 the utilities they are: `flex-grow` and `flex-shrink-0` classify with
