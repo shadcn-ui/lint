@@ -7,6 +7,7 @@ import * as path from "node:path"
 import { projectFor, uiDirectory } from "./components-json"
 import { isFile, mtimeOf, realpath, TTL } from "./fs"
 import { exportsOf } from "./modules"
+import { isSfc } from "./parser"
 
 export type ComponentIndex = {
   dir: string | null
@@ -33,7 +34,25 @@ const cache = new Map<
   }
 >()
 
-const SOURCE_RE = /\.(tsx|jsx|ts|js)$/
+const BARRELS = ["index.tsx", "index.ts", "index.jsx"]
+
+const SOURCE_RE = /\.(tsx|jsx|ts|js|svelte|vue)$/
+
+// A directory of single-file components may keep its barrel in plain
+// JavaScript; elsewhere `index.js` was never read and still is not.
+export function barrelOf(dir: string) {
+  for (const index of BARRELS) {
+    const candidate = path.join(dir, index)
+    if (isFile(candidate)) return candidate
+  }
+  const candidate = path.join(dir, "index.js")
+  if (!isFile(candidate)) return null
+  try {
+    return fs.readdirSync(dir).some(isSfc) ? candidate : null
+  } catch {
+    return null
+  }
+}
 
 function componentFiles(dir: string) {
   const files: string[] = []
@@ -48,13 +67,8 @@ function componentFiles(dir: string) {
     if (entry.isFile() && SOURCE_RE.test(entry.name)) {
       files.push(full)
     } else if (entry.isDirectory()) {
-      for (const index of ["index.tsx", "index.ts", "index.jsx"]) {
-        const candidate = path.join(full, index)
-        if (isFile(candidate)) {
-          files.push(candidate)
-          break
-        }
-      }
+      const barrel = barrelOf(full)
+      if (barrel) files.push(barrel)
     }
   }
   return files.sort()

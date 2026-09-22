@@ -8,6 +8,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 
 import { memoize, mtimeOf } from "./fs"
+import { isSfc, scriptOf, sfcNameOf } from "./parser"
 import { packageRoot, resolveFile } from "./resolve"
 
 export type ExportBinding = {
@@ -23,6 +24,8 @@ type ParsedModule = {
   // Local name -> specifier and imported name.
   imports: Map<string, { spec: string; name: string }>
   defaultName: string | null
+  // A .svelte or .vue file: the default export is the component itself.
+  sfc: boolean
   named: { exported: string; local: string; spec: string }[]
   namedIndices: Map<string, number[]>
   stars: string[]
@@ -44,9 +47,13 @@ const STAR_RE = /export\s*\*\s*(?:as\s+([\w$]+)\s+)?from\s*["']([^"']+)["']/g
 const IMPORT_RE =
   /import\s+(?!type\s)(?:([\w$]+)\s*,?\s*)?(?:\*\s*as\s+([\w$]+)|\{([^}]*)\})?\s*from\s*["']([^"']+)["']/g
 
+// A list may carry comments: a barrel may separate its short names
+// from its long ones with a bare `//`.
+const COMMENT_RE = /\/\*[\s\S]*?\*\/|\/\/[^\n\r]*/g
+
 function parseNamed(list: string) {
   const out: { exported: string; local: string }[] = []
-  for (const raw of list.split(",")) {
+  for (const raw of list.replace(COMMENT_RE, "").split(",")) {
     const item = raw.trim()
     if (!item || item.startsWith("type ")) continue
     const [local, exported] = item.split(/\s+as\s+/).map((s) => s.trim())
@@ -61,6 +68,7 @@ function parseModule(file: string): ParsedModule {
     local: new Set(),
     imports: new Map(),
     defaultName: null,
+    sfc: isSfc(file),
     named: [],
     namedIndices: new Map(),
     stars: [],
@@ -71,6 +79,7 @@ function parseModule(file: string): ParsedModule {
   } catch {
     return module
   }
+  if (module.sfc) source = scriptOf(source)
   for (const match of source.matchAll(IMPORT_RE)) {
     const [, defaultLocal, namespaceLocal, list, spec] = match
     if (defaultLocal)
@@ -90,6 +99,7 @@ function parseModule(file: string): ParsedModule {
     module.defaultName = defaultIdentifier[1]
     module.local.add(defaultIdentifier[1])
   }
+  if (module.sfc) module.defaultName = sfcNameOf(file)
   for (const match of source.matchAll(NAMED_RE)) {
     if (match[1]) continue
     // No `from` clause: the empty specifier means this file's own name.
@@ -186,7 +196,9 @@ function collectExports(
   if (!module) return exports
   visiting.add(file)
   for (const name of module.local) exports.set(name, { file, name })
-  if (module.defaultName) {
+  if (module.sfc && module.defaultName) {
+    exports.set("default", { file, name: module.defaultName })
+  } else if (module.defaultName) {
     const imported = module.imports.get(module.defaultName)
     const target =
       imported && imported.name !== "*"
@@ -279,7 +291,9 @@ function exportRoute(module: ParsedModule, file: string, name: string) {
       continue
     }
     if (name === "default" && module.defaultName) {
-      return importedRoute(module.defaultName)
+      return module.sfc
+        ? { binding: { file, name: module.defaultName }, follow: false }
+        : importedRoute(module.defaultName)
     }
     const binding = module.local.has(name) ? { file, name } : fallback
     return binding ? { binding, follow: false } : null

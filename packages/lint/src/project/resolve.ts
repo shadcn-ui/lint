@@ -14,7 +14,19 @@ import {
   realpath,
 } from "./fs"
 
-const EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".css"]
+// Single-file components last: an extensionless import of one is rare
+// (Svelte and Vite want the extension) and never shadows a script.
+const EXTENSIONS = [
+  ".tsx",
+  ".ts",
+  ".jsx",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".css",
+  ".svelte",
+  ".vue",
+]
 
 // nodenext and bundler resolution import "./button.js" for button.tsx.
 const SOURCE_FOR_JS: Record<string, string[]> = {
@@ -289,6 +301,12 @@ export function candidatesFor(
   if (convention) {
     out.push(path.join(rootDir, convention[1]))
     out.push(path.join(rootDir, "src", convention[1]))
+    return out
+  }
+  // SvelteKit's `$lib`, when no generated tsconfig maps it.
+  const kit = spec.match(/^\$lib(?:\/(.*))?$/)
+  if (kit) {
+    out.push(path.join(rootDir, "src/lib", kit[1] ?? ""))
     return out
   }
   const pkg = splitPackageSpecifier(spec)

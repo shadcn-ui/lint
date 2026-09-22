@@ -7,14 +7,15 @@ import { noRawColors } from "./rules/no-raw-colors"
 import { noRestyle } from "./rules/no-restyle"
 import { noUnknownClasses } from "./rules/no-unknown-classes"
 import { requireStaticClasses } from "./rules/require-static-classes"
+import { withTemplates } from "./sites/readers"
 
 export const rules = {
-  "no-restyle": noRestyle,
-  "no-raw-colors": noRawColors,
-  "no-arbitrary-values": noArbitraryValues,
-  "no-inline-styles": noInlineStyles,
-  "require-static-classes": requireStaticClasses,
-  "no-unknown-classes": noUnknownClasses,
+  "no-restyle": withTemplates(noRestyle),
+  "no-raw-colors": withTemplates(noRawColors),
+  "no-arbitrary-values": withTemplates(noArbitraryValues),
+  "no-inline-styles": withTemplates(noInlineStyles),
+  "require-static-classes": withTemplates(requireStaticClasses),
+  "no-unknown-classes": withTemplates(noUnknownClasses),
 }
 
 export const plugin = {

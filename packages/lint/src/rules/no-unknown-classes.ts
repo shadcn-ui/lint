@@ -7,6 +7,7 @@ import { categoryOf } from "../grammar/categories"
 import { isMarkerClass, normalizeClass, splitClasses } from "../grammar/classes"
 import { didYouMean } from "../grammar/similar"
 import { projectClassifierFor } from "../project/namespaces"
+import { isSfc, styleClassesOf } from "../project/parser"
 import {
   colorTokensFor,
   knownClassesFor,
@@ -72,6 +73,11 @@ export const noUnknownClasses = {
     }
     const { groupOf } = projectClassifierFor(filename)
     const known = knownClassesFor(filename)
+    // A single-file component's own <style> block declares classes for
+    // its template the way the theme CSS does for everything.
+    const ownClasses = isSfc(filename)
+      ? styleClassesOf(context.sourceCode?.text ?? "")
+      : new Set<string>()
     const themeFile = themeFileFor(filename)
     const file = themeFile ? displayPath(themeFile, context) : "your theme CSS"
     // A theme file that does not import Tailwind knows no base utilities,
@@ -85,7 +91,8 @@ export const noUnknownClasses = {
       if (!base) return true
       if (base.startsWith("[")) return true
       if (isMarkerClass(token)) return true
-      return known.classes.has(base.replace(/\/[\w.%]+$/, ""))
+      const bare = base.replace(/\/[\w.%]+$/, "")
+      return known.classes.has(bare) || ownClasses.has(bare)
     }
 
     // Without Tailwind: the cn grammar plus @utility names.

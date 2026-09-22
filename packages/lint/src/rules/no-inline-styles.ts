@@ -14,6 +14,13 @@ import {
   resolveProperty,
 } from "../sites/collect"
 import {
+  addVisitor,
+  isContainer,
+  isMarkupLiteral,
+  readerFor,
+  type Visitors,
+} from "../sites/readers"
+import {
   allowListOf,
   configErrorVisitors,
   ContractConfigError,
@@ -219,6 +226,50 @@ function carriesRawColor(
   }
 }
 
+// Declarations of a style attribute. A `;` inside quotes or parentheses
+// (`--label: 'a; b'`, `url(data:...;base64,...)`) is part of the value.
+function splitDeclarations(css: string) {
+  const out: string[] = []
+  let start = 0
+  let depth = 0
+  let quote = ""
+  for (let i = 0; i < css.length; i++) {
+    const char = css[i]
+    if (quote) {
+      if (char === "\\") i++
+      else if (char === quote) quote = ""
+    } else if (char === '"' || char === "'") {
+      quote = char
+    } else if (char === "(") {
+      depth++
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1)
+    } else if (char === ";" && depth === 0) {
+      out.push(css.slice(start, i))
+      start = i + 1
+    }
+  }
+  out.push(css.slice(start))
+  return out
+}
+
+// A style written as CSS text: a string, or a template whose holes are
+// kept as holes so no color is read across one.
+function cssTextOf(node: any) {
+  if (
+    (node?.type === "Literal" || isMarkupLiteral(node)) &&
+    typeof node.value === "string"
+  ) {
+    return node.value as string
+  }
+  if (node?.type === "TemplateLiteral") {
+    return node.quasis
+      .map((q: any) => q.value?.cooked ?? "")
+      .join("\uFFFC") as string
+  }
+  return null
+}
+
 const MESSAGES = {
   inlineStyle:
     "Inline style sets {{property}}. Style through classes; use CSS custom properties for dynamic values.",
@@ -261,21 +312,49 @@ export const noInlineStyles = {
     }
     // The tag as written (Text, motion.div, UI.Button). A lowercase
     // identifier is intrinsic and takes the top-level policy.
-    const elementName = (attribute: any): string => {
-      const name = attribute?.parent?.name
-      if (name?.type === "JSXIdentifier") {
-        return /^[A-Z]/.test(name.name) ? name.name : ""
+    const reader = readerFor(context)
+    const elementName = (attribute: any) => {
+      const name = reader.nameOf(reader.elementOf(attribute))
+      return name?.component ? name.text : ""
+    }
+    // One property against the policy. `text` is the value when it was
+    // written as CSS rather than as an expression.
+    const judge = (
+      key: string,
+      value: any,
+      component: string,
+      text?: string
+    ) => {
+      const verdict = policy.decide(component, key)
+      if (verdict.exempt) return
+      const messageId = !key.startsWith("--")
+        ? "inlineStyle"
+        : (
+              text === undefined
+                ? carriesRawColor(value, context)
+                : hasRawColor(text)
+            )
+          ? "customPropColor"
+          : null
+      if (!messageId) return
+      emit(
+        { node: value, messageId, data: { property: key, component } },
+        verdict.message
+      )
+    }
+    // `style="color: red; --tone: #fff"`, the way markup writes a style.
+    const judgeDeclarations = (
+      css: string,
+      reportAt: any,
+      component: string
+    ) => {
+      for (const declaration of splitDeclarations(css)) {
+        const colon = declaration.indexOf(":")
+        if (colon === -1) continue
+        const property = declaration.slice(0, colon).trim()
+        if (!property) continue
+        judge(property, reportAt, component, declaration.slice(colon + 1))
       }
-      if (name?.type === "JSXMemberExpression") {
-        const parts: string[] = []
-        for (let n = name; n; n = n.object) {
-          if (n.type === "JSXMemberExpression") parts.unshift(n.property.name)
-          else if (n.type === "JSXIdentifier") parts.unshift(n.name)
-          else return ""
-        }
-        return parts.join(".")
-      }
-      return ""
     }
     // `reportAt` is the node diagnostics attach to.
     const check = (
@@ -311,6 +390,10 @@ export const noInlineStyles = {
         (expr.type === "Literal" && expr.value === null)
       ) {
         return
+      }
+      if (reader.staticStyles) {
+        const css = cssTextOf(expr)
+        if (css !== null) return judgeDeclarations(css, reportAt, component)
       }
       // Each branch is a style value of its own. The left of && is the
       // condition, not a value; both sides of || and ?? are values.
@@ -365,47 +448,57 @@ export const noInlineStyles = {
         }
         properties.set(entry.key, entry.value)
       }
-      for (const [key, value] of properties) {
-        const verdict = policy.decide(component, key)
-        if (verdict.exempt) continue
-        if (!key.startsWith("--")) {
-          emit(
-            {
-              node: value,
-              messageId: "inlineStyle",
-              data: { property: key, component },
-            },
-            verdict.message
-          )
-        } else if (carriesRawColor(value, context)) {
-          emit(
-            {
-              node: value,
-              messageId: "customPropColor",
-              data: { property: key, component },
-            },
-            verdict.message
-          )
-        }
-      }
+      for (const [key, value] of properties) judge(key, value, component)
     }
 
-    return {
+    const visitors: Visitors = {
       JSXOpeningElement(node: any) {
         if (node.name?.type === "JSXIdentifier" && node.name.name === "style") {
           emit({ node, messageId: "styleElement" })
         }
       },
-      JSXAttribute(node: any) {
-        if (node.name?.name !== "style") return
-        const value = node.value
-        if (value?.type !== "JSXExpressionContainer") return
-        check(value.expression, value.expression, new Set(), elementName(node))
-      },
-      // {...{ style }} and {...props}: the style property is judged like
-      // the attribute.
-      JSXSpreadAttribute(node: any) {
-        const object = resolveObject(node.argument, context, new Set())
+    }
+    for (const type of reader.attributes) {
+      addVisitor(visitors, type, (node: any) => {
+        if (reader.attributeName(node) !== "style") return
+        const value = reader.attributeValue(node)
+        if (isContainer(value)) {
+          check(
+            value.expression,
+            value.expression,
+            new Set(),
+            elementName(node)
+          )
+        } else if (reader.staticStyles && value) {
+          check(value, value, new Set(), elementName(node))
+        }
+      })
+    }
+    for (const [type, read] of Object.entries(reader.styleProperties ?? {})) {
+      visitors[type] = (node: any) => {
+        const style = read(node)
+        if (!style) return
+        const value = isContainer(style.value)
+          ? style.value.expression
+          : style.value
+        const text = cssTextOf(value)
+        judge(
+          style.property,
+          text === null ? value : node,
+          elementName(node),
+          text ?? undefined
+        )
+      }
+    }
+    // {...{ style }} and {...props}: the style property is judged like
+    // the attribute.
+    for (const type of reader.spreads) {
+      addVisitor(visitors, type, (node: any) => {
+        const object = resolveObject(
+          reader.spreadArgument(node),
+          context,
+          new Set()
+        )
         if (!object) return
         const { value, uncertain } = resolveProperty(
           object,
@@ -423,7 +516,8 @@ export const noInlineStyles = {
         } else {
           check(value, value, new Set(), component)
         }
-      },
+      })
     }
+    return visitors
   },
 }

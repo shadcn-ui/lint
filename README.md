@@ -10,7 +10,7 @@ You define what’s allowed. When an agent breaks a rule, the error explains wha
 
 **Works with your existing design system. No rewrite required.**
 
-`@shadcn/lint` works with Tailwind v4 projects (**shadcn/ui not required**). Available for both **ESLint and Oxlint**.
+`@shadcn/lint` works with Tailwind v4 projects (**shadcn/ui not required**). Available for both **ESLint and Oxlint**. Works with **React, Svelte, and Vue**.
 
 ## Table of contents
 
@@ -19,6 +19,7 @@ You define what’s allowed. When an agent breaks a rule, the error explains wha
 - [Built for agents](#built-for-agents)
 - [Get started](#get-started)
 - [Rules](#rules)
+- [Frameworks](#frameworks)
 - [Configuration](#settings)
 
 ## Quickstart
@@ -287,40 +288,11 @@ See [contracts and custom messages](https://github.com/shadcn-ui/lint/blob/main/
 
 ## Get started
 
-Choose Oxlint or ESLint. The examples below enable `no-restyle` and
-allow layout classes such as `mt-4` and `w-full`.
-
 Requires Node.js 20.19 or later and a version supported by your linter.
 
-### Oxlint
+### React
 
-Requires Oxlint 1.80 or later. Its [JS plugin API](https://oxc.rs/docs/guide/usage/linter/js-plugins) is currently in alpha.
-
-```bash
-npm install -D @shadcn/lint oxlint
-```
-
-Create `.oxlintrc.json`:
-
-```json
-{
-  "jsPlugins": ["@shadcn/lint"],
-  "rules": {
-    "shadcn/no-restyle": [
-      "error",
-      {
-        "allow": ["layout"]
-      }
-    ]
-  }
-}
-```
-
-```bash
-npx oxlint
-```
-
-### ESLint
+#### ESLint
 
 Requires ESLint 9.30 or later.
 
@@ -345,12 +317,7 @@ export default defineConfig([
     },
     plugins: { shadcn },
     rules: {
-      "shadcn/no-restyle": [
-        "error",
-        {
-          allow: ["layout"],
-        },
-      ],
+      "shadcn/no-arbitrary-values": "error",
     },
   },
 ])
@@ -360,12 +327,166 @@ export default defineConfig([
 npx eslint .
 ```
 
-Add your chosen command (`oxlint` or `eslint .`) as the `lint` script in
+#### Oxlint
+
+Requires Oxlint 1.80 or later.
+
+```bash
+npm install -D @shadcn/lint oxlint
+```
+
+Create `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["@shadcn/lint"],
+  "rules": {
+    "shadcn/no-arbitrary-values": "error"
+  }
+}
+```
+
+```bash
+npx oxlint
+```
+
+### Vue
+
+#### ESLint
+
+Requires ESLint 9.30 or later.
+
+```bash
+npm install -D @shadcn/lint eslint @typescript-eslint/parser vue-eslint-parser
+```
+
+Create `eslint.config.mjs`. If you already use `eslint-plugin-vue`, keep
+its parser setup and add the plugin and rule to that block.
+
+```js
+import { plugin as shadcn } from "@shadcn/lint"
+import tsParser from "@typescript-eslint/parser"
+import { defineConfig } from "eslint/config"
+import vueParser from "vue-eslint-parser"
+
+export default defineConfig([
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: { parser: tsParser },
+    },
+    plugins: { shadcn },
+    rules: {
+      "shadcn/no-arbitrary-values": "error",
+    },
+  },
+])
+```
+
+```bash
+npx eslint .
+```
+
+#### Oxlint
+
+Requires Oxlint 1.80 or later. Oxlint reads the `<script>` blocks of
+`.vue` files, not the template. See [the Oxlint limitation](https://github.com/shadcn-ui/lint/blob/main/docs/vue.md#oxlint).
+
+```bash
+npm install -D @shadcn/lint oxlint
+```
+
+Create `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["@shadcn/lint"],
+  "rules": {
+    "shadcn/no-arbitrary-values": "error"
+  }
+}
+```
+
+```bash
+npx oxlint
+```
+
+### Svelte
+
+#### ESLint
+
+Requires ESLint 9.30 or later.
+
+```bash
+npm install -D @shadcn/lint eslint @typescript-eslint/parser svelte-eslint-parser
+```
+
+Create `eslint.config.mjs`. If you already use `eslint-plugin-svelte`,
+keep its parser setup and add the plugin and rule to that block.
+
+```js
+import { plugin as shadcn } from "@shadcn/lint"
+import tsParser from "@typescript-eslint/parser"
+import { defineConfig } from "eslint/config"
+import svelteParser from "svelte-eslint-parser"
+
+export default defineConfig([
+  {
+    files: ["**/*.svelte"],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: { parser: tsParser },
+    },
+    plugins: { shadcn },
+    rules: {
+      "shadcn/no-arbitrary-values": "error",
+    },
+  },
+])
+```
+
+```bash
+npx eslint .
+```
+
+#### Oxlint
+
+Requires Oxlint 1.80 or later. Oxlint reads the `<script>` blocks of
+`.svelte` files, not the markup. See [the Oxlint limitation](https://github.com/shadcn-ui/lint/blob/main/docs/svelte.md#oxlint).
+
+```bash
+npm install -D @shadcn/lint oxlint
+```
+
+Create `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["@shadcn/lint"],
+  "rules": {
+    "shadcn/no-arbitrary-values": "error"
+  }
+}
+```
+
+```bash
+npx oxlint
+```
+
+### After setup
+
+Add your chosen command (`eslint .` or `oxlint`) as the `lint` script in
 `package.json`. Then put this in `AGENTS.md`:
 
 ```md
 After making changes, run `npm run lint` and fix all errors.
 ```
+
+Each framework has its own page with the full setup and what is read:
+[React](https://github.com/shadcn-ui/lint/blob/main/docs/react.md),
+[Vue](https://github.com/shadcn-ui/lint/blob/main/docs/vue.md),
+[Svelte](https://github.com/shadcn-ui/lint/blob/main/docs/svelte.md).
 
 ## Rules
 
@@ -383,6 +504,42 @@ agents follow your design system.
 | [`require-static-classes`](https://github.com/shadcn-ui/lint/blob/main/docs/rules/require-static-classes.md) | Component classes the linter cannot read, such as `` `bg-${color}` ``. |
 
 See [rule options](https://github.com/shadcn-ui/lint/blob/main/docs/rules.md) and [how to add more rules](https://github.com/shadcn-ui/lint/blob/main/docs/adoption.md#add-more-rules).
+
+## Frameworks
+
+The same rules, options, contracts, and messages run on React, Vue, and Svelte. See also [Vue](#vue) and [Svelte](#svelte) docs.
+
+| Feature                               | React (JSX)                 | Vue                                                       | Svelte                                  |
+| ------------------------------------- | --------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| Static class string                   | `className="p-4"`           | `class="p-4"`                                             | `class="p-4"`                           |
+| Expression class                      | `className={...}`           | `:class="..."`                                            | `class={...}`                           |
+| Text and expression mixed             | template literal            | `class` + `:class` on one element                         | `class="p-4 {expr}"`                    |
+| Arrays and objects (`clsx` shape)     | yes                         | `:class="[...]"`, `:class="{...}"`                        | `class={[...]}`, `class={{...}}`        |
+| Helper calls (`cn`, `cva`, `tv`, ...) | yes                         | yes, in script and template                               | yes, in script and template             |
+| One-hop variable resolution           | yes                         | yes, template to `<script setup>`                         | yes                                     |
+| Spread with a class                   | `{...{ className }}`        | `v-bind="{ class }"`                                      | `{...{ class }}`                        |
+| Class directive                       | n/a                         | n/a                                                       | `class:name={cond}`                     |
+| Style as CSS text                     | no, JSX has no string style | `style="color: red"`                                      | `style="color: red"`                    |
+| Style object                          | `style={{ ... }}`           | `:style="{ ... }"`                                        | n/a                                     |
+| Style directive                       | n/a                         | n/a                                                       | `style:prop={value}`                    |
+| `<style>` element or block            | reported                    | not read                                                  | not read                                |
+| SVG color attributes                  | `fill`, `stroke`, ...       | same                                                      | same                                    |
+| Component identity                    | export name                 | file name, `<CardTitle>` or `<card-title>`                | file name, `<Card.Title>` or `<Title>`  |
+| Contracts                             | by component name           | same names as React                                       | same names as React                     |
+| Variants from `cva` / `tv`            | component file              | component file, or the barrel beside it                   | component file, incl. `<script module>` |
+| Variants from typed props             | yes                         | no                                                        | no                                      |
+| Received class prop accepted          | `className` param           | `props.class` from `defineProps()`                        | `class` from `$props()`                 |
+| Wrappers across files                 | `className` forwarding      | `props.class`, `v-bind="$attrs"`, single-root fallthrough | `className` and `{...rest}` forwarding  |
+| Base UI `render` prop                 | yes                         | n/a                                                       | n/a                                     |
+| Dynamic element                       | `<Comp>` from a variable    | `<component :is>`                                         | `<svelte:element>`                      |
+| Suggestions rewrite source            | yes                         | yes                                                       | yes                                     |
+| `require-static-classes`              | yes                         | yes                                                       | yes                                     |
+| `no-unknown-classes`                  | yes                         | yes                                                       | yes                                     |
+| Project without `components.json`     | yes, `componentImports`     | yes, `componentImports`                                   | yes, `componentImports`                 |
+| ESLint                                | yes                         | yes, `vue-eslint-parser`                                  | yes, `svelte-eslint-parser`             |
+| Oxlint                                | yes                         | script blocks only, warns once                            | script blocks only, warns once          |
+
+Dynamic elements get the token rules but not `no-restyle`. `<style>` blocks in `.vue` and `.svelte` files are plain CSS; use a CSS linter for them.
 
 ## Settings
 

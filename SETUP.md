@@ -15,7 +15,8 @@ and parser setup without adding those rules.
   Find the apps, shared UI packages, lint configs, and task runner.
 - Use the existing ESLint or Oxlint setup. If both are present, register
   the plugin with the one that checks UI files, without duplicating it.
-  If neither is present, set up Oxlint. Check Node.js and linter version
+  If neither is present, set up Oxlint, or ESLint when the UI files are
+  `.svelte` or `.vue`. Check Node.js and linter version
   compatibility against the documentation.
 - Find the component directories, import aliases, and Tailwind v4 themes.
   Use `components.json` where available. For custom setups, consult the
@@ -32,6 +33,13 @@ Preserve existing rules, parsers, scripts, and ignores. Register the
 plugin through `plugins` for ESLint or `jsPlugins` for Oxlint. Keep the
 framework's parser configuration; add a JSX/TSX parser setup if needed.
 Do not add rule presets, enable new rules, or add rule overrides.
+
+In a Svelte or Vue project, templates are linted under ESLint only, with
+`svelte-eslint-parser` or `vue-eslint-parser`. Register the plugin in the
+ESLint block that covers `.svelte` or `.vue` files. If the project has
+only Oxlint, keep it and tell the user that Oxlint checks the `<script>`
+blocks and that templates need ESLint. See the
+[Vue](https://github.com/shadcn-ui/lint/blob/main/docs/vue.md) and [Svelte](https://github.com/shadcn-ui/lint/blob/main/docs/svelte.md) documentation.
 
 In a workspace, account for shared component imports and each app's
 theme. Scope any discovery settings to the relevant apps and packages.

@@ -87,8 +87,9 @@ Outside Badge, amber classes pass except `bg-amber-500`. On Badge,
 only amber-500 classes are exempt. `deny: []` clears the inherited denial,
 so `bg-amber-500` passes there. Declared theme colors pass in both cases.
 
-For `no-inline-styles`, contracts match the JSX component name as written,
-without resolving wrappers. Lowercase elements use the top-level policy.
+For `no-inline-styles`, contracts match the component name as written
+(`Card.Title` in Svelte, `CardTitle` or `card-title` in Vue), without
+resolving wrappers. Lowercase elements use the top-level policy.
 
 Class rules accept these entries in `allow` and `deny`:
 

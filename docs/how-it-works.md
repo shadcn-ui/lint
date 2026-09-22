@@ -121,6 +121,11 @@ the same file. Spacing findings suggest values from the `size` axis.
 The file can come from the UI directory or a resolved import, including
 a barrel. Variant suggestions work without `components.json`.
 
+In a `.svelte` or `.vue` component the scripts are read, including
+Svelte's `<script module>`. When the component's own file has no
+definition, the barrel beside it is read for the one named after the
+component: `buttonVariants` in `button/index.ts` for `Button.vue`.
+
 ## Class categories
 
 The linter uses `cn`'s class groups to distinguish classes such as
@@ -216,11 +221,17 @@ in the design system and is not reported. When the value cannot be
 read, a variable or a function that renders without spreading its
 props, the classes stay on the trigger and its own contract decides.
 
+Svelte and Vue components forward `class` the same way. See
+[Vue](./vue.md#what-is-read) and [Svelte](./svelte.md#what-is-read).
+
 ## Where it looks
 
 - `className` and similar props, including `wrapperClassName`,
   `classNames={{ day: "..." }}`, and Astro's `class:list` with a string,
   array, object, or Set.
+- Svelte and Vue templates under ESLint: `class`, `:class`, `class:name`,
+  `style`, `:style`, `style:property`, and spreads. See
+  [Vue](./vue.md) and [Svelte](./svelte.md).
 - Calls to `cn`, `cx`, `clsx`, `cva`, `tv`, `twMerge`, `twJoin`, and
   `classNames`, including calls outside JSX. Add functions through
   `mergeFunctions` and `variantFunctions` in shared settings or rule options.
@@ -245,7 +256,11 @@ A clean lint result does not mean every styling path was checked:
 - **Imported values.** Class values are followed within a file, not
   across imports. Wrapper tracing only follows `className` forwarding.
 - **Plain CSS.** Stylesheet declarations and `@apply` are outside these
-  rules. Use a CSS linter for them.
+  rules. Use a CSS linter for them. That includes `<style>` blocks in
+  `.svelte` and `.vue` files.
+- **Templates under Oxlint.** Oxlint gives a plugin the `<script>` blocks
+  of `.svelte` and `.vue` files and no template. The run warns once. Use
+  ESLint for those files.
 - **Locally rebuilt components.** Token rules still apply, but
   `no-restyle` needs a recognized design-system component.
 - **New tokens and disabled rules.** New `@theme` declarations are

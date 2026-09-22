@@ -258,4 +258,18 @@ describe.skipIf(!buildUsable)("oxlint", { timeout: RUN_TIMEOUT }, () => {
       /"bg-highlight" is not allowed on <Card>: <Card> owns its color/
     )
   })
+
+  // Oxlint hands a plugin the script blocks of an SFC and no template.
+  test.each([
+    ["svelte-project", "src/routes/oxlint.svelte"],
+    ["vue-project", "src/Oxlint.vue"],
+  ])("%s: lints the script and says the template was not read", (dir, file) => {
+    const out = oxlint(path.join(FIXTURES, dir), file, {
+      "shadcn/no-raw-colors": "error",
+    })
+    expect(out).toContain('"bg-red-500" uses the raw Tailwind palette')
+    expect(out).not.toContain("bg-blue-500")
+    expect(out).toContain("only their script blocks are linted")
+    expect(out).toContain("Found 0 warnings and 1 error")
+  })
 })

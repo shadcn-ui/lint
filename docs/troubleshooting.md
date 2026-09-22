@@ -46,6 +46,26 @@ included in your lint command and that a config override has not disabled
 the rule for it. See [Settings](../README.md#settings) and
 [component discovery](./how-it-works.md#your-components-from-imports).
 
+## A .svelte or .vue file reports nothing
+
+Templates are read under ESLint with `svelte-eslint-parser` or
+`vue-eslint-parser`. Check that a config block matches the file and sets
+the parser:
+
+```js
+{
+  files: ["**/*.svelte"],
+  languageOptions: {
+    parser: svelteParser,
+    parserOptions: { parser: tsParser },
+  },
+  plugins: { shadcn },
+}
+```
+
+Under Oxlint only the `<script>` blocks are linted, and the run prints a
+warning that says so. See [Vue](./vue.md) and [Svelte](./svelte.md).
+
 ## The linter cannot load the theme
 
 Check the stylesheet path in `components.json`, its imports, and any
