@@ -83,6 +83,23 @@ describe("Vue templates", () => {
     ])
   })
 
+  it("does not read a script variable through a template name that shadows it", () => {
+    const body = `const base = "text-lg"\nconst items = ["mt-2"]`
+    expect(
+      found(`<Card v-for="base in items" :key="base" :class="base" />`, body)
+    ).toEqual([
+      "shadcn/require-static-classes: Dynamically built className on <Card> cannot be checked",
+    ])
+    expect(
+      found(
+        `<Card><template #default="{ base }"><Card :class="base" /></template></Card>`,
+        body
+      )
+    ).toEqual([
+      "shadcn/require-static-classes: Dynamically built className on <Card> cannot be checked",
+    ])
+  })
+
   it("reads a helper call in the template", () => {
     expect(found(`<Card :class="cn('mt-2', 'bg-primary')" />`)).toEqual([
       `shadcn/no-restyle: "bg-primary" is not allowed on <Card>: <Card> owns its color`,

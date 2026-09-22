@@ -66,7 +66,16 @@ export const vueReader: TemplateReader = {
     }
     return null
   },
+  // A name a `v-for` alias or a slot prop declares belongs to the
+  // template, and its value is not one hop away: it stays unresolved
+  // rather than reading a script variable of the same name.
   variableOf(node, context) {
+    let container = node
+    while (container && container.type !== "VExpressionContainer") {
+      container = container.parent
+    }
+    const reference = container?.references?.find((r: any) => r.id === node)
+    if (reference?.variable) return null
     const scopes: any[] = context.sourceCode?.scopeManager?.scopes ?? []
     const scope = scopes.find((s) => s.type === "module") ?? scopes[0]
     return scope?.set?.get(node.name) ?? null
