@@ -1,5 +1,15 @@
 # @shadcn/lint
 
+## 0.2.0
+
+### Minor Changes
+
+- [#50](https://github.com/shadcn-ui/lint/pull/50) [`b9572a8`](https://github.com/shadcn-ui/lint/commit/b9572a87ad3da8c6341b5d3d283b0e5c3a01323d) Thanks [@shadcn](https://github.com/shadcn)! - Add support for Vue and Svelte.
+
+### Patch Changes
+
+- [#50](https://github.com/shadcn-ui/lint/pull/50) [`b9572a8`](https://github.com/shadcn-ui/lint/commit/b9572a87ad3da8c6341b5d3d283b0e5c3a01323d) Thanks [@shadcn](https://github.com/shadcn)! - Read a barrel whose export list carries comments.
+
 ## 0.1.5
 
 ### Patch Changes
