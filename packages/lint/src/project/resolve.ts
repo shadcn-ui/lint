@@ -291,6 +291,12 @@ export function candidatesFor(
     out.push(path.join(rootDir, "src", convention[1]))
     return out
   }
+  // SvelteKit's `$lib`, when no generated tsconfig maps it.
+  const kit = spec.match(/^\$lib(?:\/(.*))?$/)
+  if (kit) {
+    out.push(path.join(rootDir, "src/lib", kit[1] ?? ""))
+    return out
+  }
   const pkg = splitPackageSpecifier(spec)
   if (!pkg) return out
   const dir =

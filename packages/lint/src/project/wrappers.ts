@@ -15,7 +15,8 @@ import {
 import { componentsFor } from "./components"
 import { mtimeOf, NODE_MODULES, TTL } from "./fs"
 import { definingExportOf } from "./modules"
-import { parseSource } from "./parser"
+import { isSfc, parseSource, sfcNameOf } from "./parser"
+import { templateTags, type TemplateTag } from "./sfc-template"
 
 export { walk }
 
@@ -159,6 +160,114 @@ function forwardsClassName(
   return found
 }
 
+// A single-file component receives its props from a call in its script:
+// `let { class: className, ...rest } = $props()` in Svelte, `const props
+// = defineProps()` in Vue. Same split as `classNameBindings`.
+function sfcClassBindings(ast: any, vue: boolean) {
+  const names = new Set<string>()
+  const propsNames = new Set<string>(vue ? ["$props", "$attrs"] : [])
+  // Vue hands `class` to a lone root element unless a prop claims it.
+  let declaresClass = false
+  const isPropsCall = (node: any): boolean => {
+    while (node?.type?.startsWith("TS") && node.expression) {
+      node = node.expression
+    }
+    if (node?.type !== "CallExpression" || node.callee?.type !== "Identifier") {
+      return false
+    }
+    if (node.callee.name === "withDefaults") {
+      return isPropsCall(node.arguments[0])
+    }
+    return node.callee.name === "$props" || node.callee.name === "defineProps"
+  }
+  walk(ast, (node) => {
+    if (node.type === "CallExpression" && isPropsCall(node)) {
+      walk(node, (inner) => {
+        const key = inner.key?.name ?? inner.key?.value
+        if (
+          (inner.type === "TSPropertySignature" || inner.type === "Property") &&
+          key === "class"
+        ) {
+          declaresClass = true
+        }
+      })
+    }
+    if (node.type !== "VariableDeclarator" || !isPropsCall(node.init)) return
+    if (node.id.type === "Identifier") {
+      propsNames.add(node.id.name)
+      return
+    }
+    if (node.id.type !== "ObjectPattern") return
+    const rests: string[] = []
+    for (const prop of node.id.properties) {
+      if (prop.type === "RestElement" && prop.argument?.type === "Identifier") {
+        rests.push(prop.argument.name)
+      }
+      if (prop.type !== "Property") continue
+      if ((prop.key?.name ?? prop.key?.value) !== "class") continue
+      const value =
+        prop.value?.type === "AssignmentPattern" ? prop.value.left : prop.value
+      if (value?.type === "Identifier") names.add(value.name)
+    }
+    // Once class is destructured out, the rest no longer carries it.
+    if (!names.size) for (const rest of rests) propsNames.add(rest)
+  })
+  return { names, propsNames, declaresClass }
+}
+
+const escapeName = (name: string) => name.replace(/[$]/g, "\\$&")
+
+// Whether the received class reaches this tag: named in its class value,
+// or carried by a spread of the props it arrived in.
+function tagForwardsClass(
+  tag: TemplateTag,
+  names: Set<string>,
+  propsNames: Set<string>
+) {
+  const mentions = (value: string) =>
+    [...names].some((name) =>
+      new RegExp(`(?<![\\w$.])${escapeName(name)}(?![\\w$])`).test(value)
+    ) ||
+    [...propsNames].some((name) =>
+      new RegExp(`(?<![\\w$.])${escapeName(name)}\\.class(?![\\w$])`).test(
+        value
+      )
+    )
+  return tag.attributes.some(({ name, value }) => {
+    if (name === "class" || name === ":class" || name === "v-bind:class") {
+      return mentions(value)
+    }
+    const spread =
+      name === ""
+        ? value.match(/^\{\s*\.\.\.\s*([\w$]+)\s*\}$/)?.[1]
+        : name === "v-bind"
+          ? value.replace(/^["']|["']$/g, "").trim()
+          : undefined
+    return spread !== undefined && propsNames.has(spread)
+  })
+}
+
+// The tags of an SFC the received class lands on, in source order.
+function sfcForwardingTags(source: string, file: string, ast: any) {
+  const vue = /\.vue$/i.test(file)
+  const { names, propsNames, declaresClass } = sfcClassBindings(ast, vue)
+  const tags = templateTags(source, file)
+  const forwarding = tags.filter((tag) =>
+    tagForwardsClass(tag, names, propsNames)
+  )
+  const roots = tags.filter((tag) => tag.depth === 0)
+  if (
+    vue &&
+    !declaresClass &&
+    roots.length === 1 &&
+    !/inheritAttrs\s*:\s*false/.test(source) &&
+    !forwarding.includes(roots[0])
+  ) {
+    forwarding.unshift(roots[0])
+  }
+  return forwarding
+}
+
 function jsxElementName(node: any) {
   const name = node.name
   if (name?.type === "JSXIdentifier") return { root: name.name, property: null }
@@ -184,16 +293,19 @@ function build(
   const wrappers: FileWrappers = new Map()
   let complete = true
   deps.add(file)
-  let ast: any = parsedAst
+  const sfc = isSfc(file)
+  // A linter's AST of an SFC is the framework's own; the scripts are
+  // read from disk the way every other component file is.
+  let ast: any = sfc ? undefined : parsedAst
+  let source = ""
   if (!ast) {
-    let source: string
     try {
       source = fs.readFileSync(file, "utf-8")
     } catch {
       return { wrappers, complete }
     }
     // A file with neither is not a wrapper and is not worth parsing.
-    if (!source.includes("className") && !source.includes("...")) {
+    if (!sfc && !source.includes("className") && !source.includes("...")) {
       return { wrappers, complete }
     }
     try {
@@ -227,8 +339,11 @@ function build(
   const { bindings, candidates } = indexLocalBindings(ast)
   const localVisiting = new Set<string>()
 
-  const targetOf = (element: any): WrapperTarget | null => {
-    const name = jsxElementName(element)
+  const targetOf = (element: any) => targetOfName(jsxElementName(element))
+
+  const targetOfName = (
+    name: { root?: string; property: string | null } | null
+  ): WrapperTarget | null => {
     if (!name?.root) return null
     const imported = imports.get(name.root)
     if (!imported) {
@@ -313,6 +428,21 @@ function build(
 
   for (const name of candidates) {
     if (name === "default" || /^[A-Z]/.test(name)) resolveDeclared(name)
+  }
+  if (sfc) {
+    // The file is the component: the first forwarding tag that is a
+    // design-system component is what it wraps.
+    let target: WrapperTarget | null = null
+    for (const tag of sfcForwardingTags(source, file, ast)) {
+      const [root, ...rest] = tag.name.split(".")
+      const pascal = root.includes("-") ? sfcNameOf(root) : root
+      target = targetOfName({
+        root: imports.has(root) ? root : pascal,
+        property: rest.length ? rest.join(".") : null,
+      })
+      if (target) break
+    }
+    wrappers.set(sfcNameOf(file), target)
   }
   return { wrappers, complete }
 }

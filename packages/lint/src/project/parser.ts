@@ -30,6 +30,41 @@ function langOf(file: string) {
   }
 }
 
+const SFC_RE = /\.(svelte|vue)$/i
+const SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi
+
+// A single-file component: its scripts are the module, its file the
+// component.
+export function isSfc(file: string) {
+  return SFC_RE.test(file)
+}
+
+// `card-title.svelte` and `CardTitle.vue` are both CardTitle: an SFC is
+// its file's default export, and the file is the only name it has.
+export function sfcNameOf(file: string) {
+  return path
+    .basename(file, path.extname(file))
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("")
+}
+
+// The script blocks of an SFC with everything else blanked, so every
+// range still points at the file's own offsets.
+export function scriptOf(source: string) {
+  let out = ""
+  let last = 0
+  const blank = (text: string) => text.replace(/[^\n\r]/g, " ")
+  for (const match of source.matchAll(SCRIPT_RE)) {
+    const start = match.index + match[0].indexOf(">") + 1
+    const end = start + match[1].length
+    out += blank(source.slice(last, start)) + source.slice(start, end)
+    last = end
+  }
+  return out + blank(source.slice(last))
+}
+
 function loadOxc(): Parser | null {
   try {
     const oxc = require("oxc-parser") as {
@@ -98,7 +133,10 @@ let active: Parser | null = null
 // parsed, the way the underlying parsers do.
 export function parseSource(source: string, file: string) {
   active ??= createParser()
-  return active.parse(source, file)
+  // An SFC's scripts are TypeScript or a subset of it.
+  return isSfc(file)
+    ? active.parse(scriptOf(source), `${file}.ts`)
+    : active.parse(source, file)
 }
 
 // The parser in use, for tests and diagnostics.

@@ -22,6 +22,7 @@ import {
   themeFileFor,
 } from "../project/theme"
 import { classSiteVisitors } from "../sites/collect"
+import { readerFor, staticStringOf, type Visitors } from "../sites/readers"
 import { unknownClasses } from "../tailwind/client"
 import { compileVocabularyPolicy, configErrorVisitors } from "./contracts"
 import { classSuggestions } from "./fixes"
@@ -358,35 +359,34 @@ export const noRawColors = {
       }
     })
 
-    const classAttribute = visitors.JSXAttribute
-    return {
-      ...visitors,
-      JSXAttribute(node: any) {
-        classAttribute?.(node)
-        const name = node.name?.name
-        if (typeof name !== "string" || !COLOR_ATTRIBUTES.has(name)) return
-        // On a component, color="red" is an enum prop.
-        const tag = node.parent?.name
-        if (tag?.type !== "JSXIdentifier" || !/^[a-z]/.test(tag.name)) return
-        const value =
-          node.value?.type === "Literal"
-            ? node.value.value
-            : node.value?.type === "JSXExpressionContainer" &&
-                node.value.expression?.type === "Literal"
-              ? node.value.expression.value
-              : null
-        if (typeof value !== "string" || !isRawColorValue(value)) return
-        const values = suggestionColors()
-        const lab = values?.size ? parseColor(value) : null
-        const [suggestion] = lab
-          ? nearestColorTokens(lab, values!, "text", 1)
-          : []
-        emit({
-          node,
-          messageId: suggestion ? "rawColorAttributeNear" : "rawColorAttribute",
-          data: { attribute: name, value, suggestion: suggestion ?? "" },
-        })
-      },
+    // On a component, color="red" is an enum prop.
+    const reader = readerFor(context)
+    const colorAttribute = (node: any) => {
+      const name = reader.attributeName(node)
+      if (!COLOR_ATTRIBUTES.has(name)) return
+      const tag = reader.nameOf(reader.elementOf(node))
+      if (!tag || tag.component || !/^[a-z]/.test(tag.root)) return
+      const value = staticStringOf(reader.attributeValue(node))
+      if (value === null || !isRawColorValue(value)) return
+      const values = suggestionColors()
+      const lab = values?.size ? parseColor(value) : null
+      const [suggestion] = lab
+        ? nearestColorTokens(lab, values!, "text", 1)
+        : []
+      emit({
+        node,
+        messageId: suggestion ? "rawColorAttributeNear" : "rawColorAttribute",
+        data: { attribute: name, value, suggestion: suggestion ?? "" },
+      })
     }
+    const merged: Visitors = { ...visitors }
+    for (const type of reader.attributes) {
+      const classAttribute = visitors[type]
+      merged[type] = (node: any) => {
+        classAttribute?.(node)
+        colorAttribute(node)
+      }
+    }
+    return merged
   },
 }

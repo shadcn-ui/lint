@@ -15,6 +15,18 @@ import { definingExportOf, type ExportBinding } from "../project/modules"
 import { wrapperTargetOf, type WrapperTarget } from "../project/wrappers"
 import { fileOf } from "../rules/messages"
 import { withSettings } from "../rules/settings"
+import {
+  addVisitor,
+  attributeNameIn,
+  attributeOfContainer,
+  isContainer,
+  readerFor,
+  type ElementName,
+  type Visitors,
+} from "./readers"
+import { jsxElementNameOf } from "./readers/jsx"
+
+export { attributeNameOf, jsxRootOf } from "./readers/jsx"
 
 export type ClassString = {
   value: string
@@ -62,34 +74,11 @@ export function isClassAttribute(name: string) {
   return CLASS_ATTRIBUTE.test(name)
 }
 
-// Astro's `class:list` parses as a namespaced name.
-export function attributeNameOf(attribute: any) {
-  const name = attribute?.name
-  if (name?.type === "JSXNamespacedName") {
-    return `${name.namespace?.name}:${name.name?.name}`
-  }
-  return typeof name?.name === "string" ? name.name : ""
-}
-
 export type TrackerOptions = {
   componentImports?: string[]
   // Left alone even when the name matches: a raw Radix primitive
   // imported next to its shadcn wrapper.
   ignoreImports?: string[]
-}
-
-function jsxNameText(jsxName: any): string {
-  if (jsxName?.type === "JSXMemberExpression") {
-    return `${jsxNameText(jsxName.object)}.${jsxName.property?.name ?? ""}`
-  }
-  return jsxName?.name ?? ""
-}
-
-// The `Dialog` of `<Dialog.Content>`.
-export function jsxRootOf(jsxName: any) {
-  return jsxName?.type === "JSXMemberExpression"
-    ? jsxName.object?.name
-    : jsxName?.name
 }
 
 export type ResolvedElement = {
@@ -162,13 +151,15 @@ export function createComponentTracker(
   // that component whatever it was renamed to, and one into a package is
   // not, however familiar. Only an unresolvable import falls back to the
   // name, so a broken alias degrades rather than going silent.
-  const resolve = (jsxName: any): ResolvedElement | null => {
-    const root = jsxRootOf(jsxName)
+  const resolveName = (element: ElementName | null): ResolvedElement | null => {
+    if (!element) return null
+    // Vue writes an imported CardTitle as `<card-title>` too.
+    const root =
+      element.alias && !imports.has(element.root) && imports.has(element.alias)
+        ? element.alias
+        : element.root
     if (!root || skipped.has(root)) return null
-    const property =
-      jsxName?.type === "JSXMemberExpression"
-        ? (jsxName.property?.name ?? "")
-        : null
+    const property = element.property
     const imported = imports.get(root)
     if (imported) {
       const importedName = importNameOf(imported, root, property)
@@ -239,7 +230,9 @@ export function createComponentTracker(
         if (matchesIgnore) skipped.add(local)
       }
     },
-    resolve,
+    // By JSX name node.
+    resolve: (jsxName: any) => resolveName(jsxElementNameOf(jsxName)),
+    resolveName,
   }
 }
 
@@ -253,7 +246,8 @@ function findVariable(scope: any, name: string) {
 
 function variableOf(node: any, context: any) {
   const scope = context.sourceCode?.getScope?.(node)
-  return scope ? findVariable(scope, node.name) : null
+  const variable = scope ? findVariable(scope, node.name) : null
+  return variable ?? readerFor(context).variableOf?.(node, context) ?? null
 }
 
 function referenceExpression(node: any) {
@@ -351,12 +345,11 @@ function isEscaped(variable: any, context?: any) {
     }
     // Reading the contents at a styling site hands nothing over.
     if (context) {
-      const attribute =
-        parent?.type === "JSXExpressionContainer" ? parent.parent : null
+      const attribute = attributeOfContainer(parent)
       if (
-        attribute?.type === "JSXAttribute" &&
-        (attribute.name?.name === "style" ||
-          isClassAttribute(attributeNameOf(attribute)))
+        attribute &&
+        (attributeNameIn(attribute) === "style" ||
+          isClassAttribute(attributeNameIn(attribute)))
       )
         return false
       // A helper reads its arguments and never keeps them, directly or
@@ -395,8 +388,7 @@ function isEscaped(variable: any, context?: any) {
         parent.value === value &&
         parent.parent?.type === "ObjectExpression") ||
       parent?.type === "ArrayExpression" ||
-      (parent?.type === "JSXExpressionContainer" &&
-        parent.parent?.type === "JSXAttribute")
+      attributeOfContainer(parent) !== null
     )
   })
 }
@@ -490,12 +482,25 @@ export function resolveIdentifier(node: any, context: any, path: Set<any>) {
   return { init, variable, steps }
 }
 
+// A single-file component receives its props from a call, not a
+// parameter: Svelte's `$props()`, Vue's `defineProps()`.
+function isPropsCall(node: any): boolean {
+  const call = unwrapTs(node)
+  if (call?.type !== "CallExpression" || call.callee?.type !== "Identifier") {
+    return false
+  }
+  if (call.callee.name === "withDefaults") return isPropsCall(call.arguments[0])
+  return call.callee.name === "$props" || call.callee.name === "defineProps"
+}
+
 // A props parameter or a property destructured from it. A nested data
 // property is not the component's received prop.
 function parameterOf(node: any, context: any) {
   const variable = variableOf(node, context)
   const def = variable?.defs?.[0]
-  if (!def || def.type !== "Parameter") return null
+  if (!def) return null
+  const received = def.type === "Variable" && isPropsCall(def.node?.init)
+  if (def.type !== "Parameter" && !received) return null
   let binding = def.name
   let fallback: any = null
   if (binding.parent?.type === "AssignmentPattern") {
@@ -512,7 +517,11 @@ function parameterOf(node: any, context: any) {
   }
   const parameter =
     pattern.parent?.type === "AssignmentPattern" ? pattern.parent : pattern
-  if (!def.node.params?.includes(parameter)) return null
+  if (
+    received ? parameter !== def.node.id : !def.node.params?.includes(parameter)
+  ) {
+    return null
+  }
   const objectDefault =
     parameter.type === "AssignmentPattern" ? parameter : null
   return {
@@ -520,24 +529,42 @@ function parameterOf(node: any, context: any) {
     key,
     fallback: key === "*" ? null : fallback,
     objectDefault,
+    received,
   }
+}
+
+// An SFC spells the prop `class`, and it is the same prop.
+function namesProp(
+  parameter: { received: boolean },
+  key: string | null | undefined,
+  name: string
+) {
+  return (
+    key === name ||
+    (parameter.received && name === "className" && key === "class")
+  )
 }
 
 function forwardedPropOf(node: any, context: any, name: string) {
   if (node?.type === "Identifier") {
     const parameter = parameterOf(node, context)
-    return parameter?.key === name && !isWritten(parameter.variable)
+    return parameter &&
+      namesProp(parameter, parameter.key, name) &&
+      !isWritten(parameter.variable)
       ? parameter
       : null
   }
   if (node?.type !== "MemberExpression") return null
   const key = node.computed ? staticKey(node.property) : node.property?.name
   const object = unwrapTs(node.object)
-  if (key !== name || object?.type !== "Identifier") return null
+  if (object?.type !== "Identifier") return null
+  if (key !== name && !(name === "className" && key === "class")) return null
   const parameter = parameterOf(object, context)
+  // Props from a call are read-only: handing them on changes nothing.
   return parameter?.key === "*" &&
+    namesProp(parameter, key, name) &&
     !isWritten(parameter.variable) &&
-    !isEscaped(parameter.variable)
+    (parameter.received || !isEscaped(parameter.variable))
     ? parameter
     : null
 }
@@ -601,7 +628,7 @@ function unwrapTs(node: any) {
     (node.type === "TSAsExpression" ||
       node.type === "TSNonNullExpression" ||
       node.type === "TSSatisfiesExpression" ||
-      node.type === "JSXExpressionContainer")
+      isContainer(node))
   ) {
     node = node.expression
   }
@@ -801,6 +828,8 @@ export function collectClassStrings(
     }
     switch (node.type) {
       case "Literal":
+      case "SvelteLiteral":
+      case "VLiteral":
         if (typeof node.value === "string") push(node.value, node)
         return
       case "TemplateLiteral":
@@ -897,6 +926,8 @@ export function collectClassStrings(
         return
       }
       case "JSXExpressionContainer":
+      case "SvelteMustacheTag":
+      case "VExpressionContainer":
         visit(node.expression, valuesMode)
         return
       case "TSAsExpression":
@@ -1012,15 +1043,7 @@ type Shared = {
 
 const sharedByProgram = new WeakMap<object, Map<string, Shared>>()
 
-type Visitor = (node: any) => void
-
-const NO_VISITORS: {
-  ImportDeclaration?: Visitor
-  JSXAttribute?: Visitor
-  JSXSpreadAttribute?: Visitor
-  CallExpression?: Visitor
-  Literal?: Visitor
-} = {}
+const NO_VISITORS: Visitors = {}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -1098,47 +1121,6 @@ function sharedFor(context: any, options: SiteOptions): Shared {
   return shared
 }
 
-// The name a spread of the function's own props would carry: `props` in
-// `(props) => ...`, `rest` in `({ className, ...rest }) => ...`.
-function propsSpreadNameOf(fn: any) {
-  const param = fn.params?.[0]
-  if (param?.type === "Identifier") return param.name
-  if (param?.type === "ObjectPattern") {
-    const rest = param.properties.find((p: any) => p.type === "RestElement")
-    if (rest?.argument?.type === "Identifier") return rest.argument.name
-  }
-  return null
-}
-
-// Base UI renders another element in a component's place through
-// `render`, and the className goes with it: `<DialogTrigger
-// render={<Button />} className="bg-primary" />` is a Button. Returns
-// the opening element the classes reach, or undefined when the element
-// itself wears them: no render prop, a value that cannot be read, or a
-// function that renders without spreading its props, the way a list
-// renders an item. The element's own contract is the nearest judge then.
-function renderedOpeningOf(element: any) {
-  const attribute = (element.attributes ?? []).find(
-    (candidate: any) =>
-      candidate.type === "JSXAttribute" && candidate.name?.name === "render"
-  )
-  const expression = attribute?.value?.expression
-  if (expression?.type === "JSXElement") return expression.openingElement
-  if (expression?.type !== "ArrowFunctionExpression") return undefined
-  // `render={(props) => <Button {...props} />}` hands the classes to the
-  // same component the element form does, through the spread.
-  const body = expression.body
-  const spread = propsSpreadNameOf(expression)
-  if (body?.type !== "JSXElement" || !spread) return undefined
-  const forwards = (body.openingElement.attributes ?? []).some(
-    (candidate: any) =>
-      candidate.type === "JSXSpreadAttribute" &&
-      candidate.argument?.type === "Identifier" &&
-      candidate.argument.name === spread
-  )
-  return forwards ? body.openingElement : undefined
-}
-
 // Calls `onSite` for every class site in the file.
 export function classSiteVisitors(
   context: any,
@@ -1148,6 +1130,7 @@ export function classSiteVisitors(
   const shared = sharedFor(context, options)
   if (!shared.hasSites && !options.scanAllStrings) return NO_VISITORS
   const tracker = (shared.tracker ??= createComponentTracker(context, options))
+  const reader = readerFor(context)
   const { helpers, collectOptions, consumedCalls, sites } = shared
   const reportedStrings = new WeakSet<any>()
   // A literal several sites reach is one vocabulary check, owned by the
@@ -1171,31 +1154,32 @@ export function classSiteVisitors(
 
   // A render prop replaces the element, and the className lands on what
   // it renders, so that is the component wearing the classes.
-  const elementOf = (node: any) => {
-    const element = node.parent
-    if (element?.type !== "JSXOpeningElement") return null
-    const rendered = renderedOpeningOf(element)
-    if (!rendered) return tracker.resolve(element.name)
-    const resolved = tracker.resolve(rendered.name)
+  const resolvedOf = (element: any) => {
+    if (!element) return null
+    const rendered = reader.renderedElementOf?.(element)
+    if (!rendered) return tracker.resolveName(reader.nameOf(element))
+    const resolved = tracker.resolveName(reader.nameOf(rendered))
     if (!resolved) return null
     return {
       ...resolved,
-      wrapper: resolved.wrapper ?? jsxNameText(element.name),
+      wrapper: resolved.wrapper ?? reader.nameOf(element)?.text ?? "",
     }
   }
 
-  // Fragments and expression containers are not layout parents.
   const enclosingOf = (
     element: any,
     accepts: (component: string) => boolean
   ) => {
     let direct = true
-    for (let node = element?.parent; node; node = node.parent) {
-      if (node.type !== "JSXElement") continue
-      const name = node.openingElement?.name
-      const resolved = tracker.resolve(name)
+    for (
+      let node = reader.parentElementOf(element);
+      node;
+      node = reader.parentElementOf(node)
+    ) {
+      const name = reader.nameOf(node)
+      const resolved = tracker.resolveName(name)
       if (resolved && accepts(resolved.component)) {
-        return { name: jsxNameText(name), direct }
+        return { name: name?.text ?? "", direct }
       }
       direct = false
     }
@@ -1206,13 +1190,11 @@ export function classSiteVisitors(
     element: any,
     accepts: (component: string) => boolean
   ) => {
-    for (let node = element?.parent; node; node = node.parent) {
-      if (node.type !== "JSXElement") continue
-      const name = node.openingElement?.name
-      const resolved = tracker.resolve(name)
-      return resolved && !accepts(resolved.component) ? jsxNameText(name) : null
-    }
-    return null
+    const parent = reader.parentElementOf(element)
+    if (!parent) return null
+    const name = reader.nameOf(parent)
+    const resolved = tracker.resolveName(name)
+    return resolved && !accepts(resolved.component) ? (name?.text ?? "") : null
   }
 
   const siteFor = (
@@ -1222,9 +1204,13 @@ export function classSiteVisitors(
     resolved: ResolvedElement | null,
     element: any = null
   ): ClassSite => {
-    const classes = value
-      ? collectFromValue(value, context, collectOptions)
-      : collectClassStrings(node, context, collectOptions)
+    // Markup's own `class` takes an object the way clsx does, keys as
+    // classes. Anywhere else an object is a classNames map.
+    const keyed = reader.classObjects === true && attribute === "class"
+    const classes =
+      value && !keyed
+        ? collectFromValue(value, context, collectOptions)
+        : collectClassStrings(value ?? node, context, collectOptions)
     return {
       ...classes,
       component: resolved?.component ?? null,
@@ -1239,21 +1225,17 @@ export function classSiteVisitors(
     }
   }
 
-  const jsxElementOf = (node: any) => {
-    const opening = node?.parent
-    return opening?.type === "JSXOpeningElement" ? opening.parent : null
-  }
-
   const attributeSites = (node: any) => {
     let list = sites.get(node)
     if (list) return list
+    const element = reader.elementOf(node)
     list = [
       siteFor(
         node,
-        node.value,
-        attributeNameOf(node),
-        elementOf(node),
-        jsxElementOf(node)
+        reader.attributeValue(node),
+        reader.attributeName(node),
+        resolvedOf(element),
+        element
       ),
     ]
     sites.set(node, list)
@@ -1266,10 +1248,14 @@ export function classSiteVisitors(
     let list = sites.get(node)
     if (list) return list
     list = []
-    const object = resolveObject(node.argument, context, new Set())
+    const object = resolveObject(
+      reader.spreadArgument(node),
+      context,
+      new Set()
+    )
     if (object) {
-      const resolved = elementOf(node)
-      const element = jsxElementOf(node)
+      const element = reader.elementOf(node)
+      const resolved = resolvedOf(element)
       const finals = new Map<string, any>()
       for (const entry of objectEntries(object, context, new Set())) {
         if ("key" in entry && isClassAttribute(entry.key)) {
@@ -1292,19 +1278,47 @@ export function classSiteVisitors(
     return list
   }
 
+  const visitors: Visitors = {}
+  for (const type of reader.attributes) {
+    addVisitor(visitors, type, (node: any) => {
+      if (!isClassAttribute(reader.attributeName(node))) return
+      for (const site of attributeSites(node)) emit(site)
+    })
+  }
+  for (const type of reader.spreads) {
+    addVisitor(visitors, type, (node: any) => {
+      if (!reader.spreadArgument(node)) return
+      for (const site of spreadSites(node)) emit(site)
+    })
+  }
+  for (const [type, read] of Object.entries(reader.extraSites ?? {})) {
+    addVisitor(visitors, type, (node: any) => {
+      let list = sites.get(node)
+      if (!list) {
+        const extra = read(node)
+        list = []
+        if (extra) {
+          const element = reader.elementOf(extra.anchor)
+          list.push({
+            ...siteFor(node, null, "class", resolvedOf(element), element),
+            contextualStrings: extra.names,
+            vocabularyStrings: extra.names,
+            unresolved: [],
+          })
+        }
+        sites.set(node, list)
+      }
+      for (const site of list) emit(site)
+    })
+  }
+
   return {
     ImportDeclaration(node: any) {
       if (shared.imports.has(node)) return
       shared.imports.add(node)
       tracker.collectImport(node)
     },
-    JSXAttribute(node: any) {
-      if (!isClassAttribute(attributeNameOf(node))) return
-      for (const site of attributeSites(node)) emit(site)
-    },
-    JSXSpreadAttribute(node: any) {
-      for (const site of spreadSites(node)) emit(site)
-    },
+    ...visitors,
     CallExpression(node: any) {
       if (consumedCalls.has(node)) return
       const callee =

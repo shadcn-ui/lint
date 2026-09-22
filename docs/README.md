@@ -1,6 +1,12 @@
 # Documentation
 
-Start with [Get started](../README.md#get-started) to set up Oxlint or ESLint.
+Start with [Get started](../README.md#get-started) to set up ESLint or Oxlint.
+
+## Frameworks
+
+- [React](./react.md): Oxlint or ESLint, shadcn/ui or your own components.
+- [Vue](./vue.md): ESLint with `vue-eslint-parser`, and what Oxlint can and cannot read.
+- [Svelte](./svelte.md): ESLint with `svelte-eslint-parser`, and what Oxlint can and cannot read.
 
 ## Guides
 

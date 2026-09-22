@@ -148,7 +148,7 @@ In `.oxlintrc.json`:
 }
 ```
 
-In the [ESLint setup](../README.md#eslint), import the policy and use
+In the [ESLint setup](../README.md#react), import the policy and use
 `policy.rules` for the main config object's rules. Replace the component
 override with `...policy.overrides`:
 

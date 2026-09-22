@@ -4,6 +4,23 @@
 // one.
 
 import { replaceClass } from "../grammar/classes"
+import { isMarkupLiteral } from "../sites/readers"
+
+// Markup text is its own source: nothing is escaped, and the quotes, if
+// the node has them at all, stay where they are.
+function replaceInMarkup(
+  node: any,
+  context: any,
+  token: string,
+  replacement: string
+) {
+  const raw: string = context.sourceCode?.getText?.(node) ?? ""
+  const quote = raw[0] === '"' || raw[0] === "'" ? raw[0] : ""
+  const inner = quote ? raw.slice(1, -1) : raw
+  if (quote && raw[raw.length - 1] !== quote) return null
+  const replaced = replaceClass(inner, token, replacement)
+  return replaced === inner ? null : `${quote}${replaced}${quote}`
+}
 
 export function replaceInLiteral(
   node: any,
@@ -11,6 +28,9 @@ export function replaceInLiteral(
   token: string,
   replacement: string
 ) {
+  if (isMarkupLiteral(node) && typeof node.value === "string") {
+    return replaceInMarkup(node, context, token, replacement)
+  }
   if (node?.type !== "Literal" || typeof node.value !== "string") return null
   const raw: string = node.raw ?? context.sourceCode?.getText?.(node) ?? ""
   const quote = raw[0]
