@@ -5,9 +5,12 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import * as path from "node:path"
+import { mergeConfigs } from "cn/compiler"
 import { defaultConfig, type ClassGroupDef, type CnConfig } from "cn/config"
 
-import { dirOf } from "../project/fs"
+import { dirOf, mtimeOf, TTL } from "../project/fs"
+import { themeFileFor } from "../project/theme"
+import { themeScalesFromCss } from "../project/theme-scales"
 import { warnOnce } from "../project/warn"
 import { GROUP_CATEGORY } from "./categories"
 import { splitVariants } from "./classes"
@@ -15,7 +18,7 @@ import * as cnValidators from "./validators"
 
 // The grammar this package is written against. An older cn in the project
 // is linted with the bundled copy instead, with a one-time warning.
-export const BUNDLED_CN = "0.3.2"
+export const BUNDLED_CN = "0.4.0"
 
 function cnVersionAt(resolvedConfigPath: string) {
   let dir = path.dirname(resolvedConfigPath)
@@ -90,6 +93,62 @@ export function resolveCnConfig(fromFile?: string) {
   }
   configCache.set(dir, config)
   return config
+}
+
+type ThemedConfig = {
+  config: CnConfig
+  files: string[]
+  signature: string
+  checkedAt: number
+}
+
+const themedByConfig = new WeakMap<CnConfig, Map<string, ThemedConfig>>()
+
+function signatureOf(files: string[]) {
+  return files.map((file) => `${file}:${mtimeOf(file) ?? "missing"}`).join("|")
+}
+
+// The grammar with the project's theme scales applied, the way `cn build`
+// registers them: a declared --radius-card makes rounded-card a radius,
+// and --radius-*: initial replaces the default names. One config per
+// grammar and theme file, so every file in a project shares one
+// classifier, re-read when a stylesheet changes so a watcher run sees an
+// edited theme. A stylesheet that cannot be read leaves the grammar alone.
+export function themedCnConfig(fromFile?: string) {
+  const config = resolveCnConfig(fromFile)
+  const themeFile = fromFile ? themeFileFor(fromFile) : null
+  if (!themeFile) return config
+  let byFile = themedByConfig.get(config)
+  if (!byFile) {
+    byFile = new Map()
+    themedByConfig.set(config, byFile)
+  }
+  const cached = byFile.get(themeFile)
+  const now = Date.now()
+  if (cached && now - cached.checkedAt < TTL) return cached.config
+  if (cached && signatureOf(cached.files) === cached.signature) {
+    cached.checkedAt = now
+    return cached.config
+  }
+  let themed = config
+  let files = [themeFile]
+  try {
+    const theme = themeScalesFromCss([themeFile])
+    files = theme.files
+    themed = mergeConfigs(config, theme.extension)
+  } catch (error) {
+    warnOnce(
+      `theme-scales:${themeFile}`,
+      `The theme scales in ${themeFile} could not be read (${(error as Error).message}), so classes such as rounded-card that it declares are unclassified until the stylesheet is fixed.`
+    )
+  }
+  byFile.set(themeFile, {
+    config: themed,
+    files,
+    signature: signatureOf(files),
+    checkedAt: now,
+  })
+  return themed
 }
 
 type Node = {
@@ -318,7 +377,7 @@ export function unknownGroups(config: CnConfig) {
 
 // One trie per distinct config, built lazily.
 export function classifierFor(fromFile?: string) {
-  const config = resolveCnConfig(fromFile)
+  const config = themedCnConfig(fromFile)
   let classifier = classifierByConfig.get(config)
   if (!classifier) {
     try {

@@ -116,4 +116,27 @@ describe("no-restyle and theme namespaces", () => {
       ],
     })
   })
+
+  // A scale the theme declares is read the way cn merges it: rounded-card
+  // is a radius, so a contract that allows shape accepts it.
+  test("a declared radius is shape", () => {
+    const button = `import { Button } from "@/components/ui/button"`
+    createTester().run("no-restyle", noRestyle as any, {
+      valid: [
+        {
+          filename: PAGE,
+          options: [{ allow: ["shape"] }],
+          code: `${button}\nexport const A = () => <Button className="rounded-card" />`,
+        },
+      ],
+      invalid: [
+        {
+          filename: PAGE,
+          options: [{ allow: ["layout"] }],
+          code: `${button}\nexport const A = () => <Button className="rounded-card" />`,
+          errors: [{ message: /owns its shape/ }],
+        },
+      ],
+    })
+  })
 })

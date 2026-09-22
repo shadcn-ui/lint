@@ -3,7 +3,7 @@
 
 import { CATEGORIES, categoryOf } from "../grammar/categories"
 import { isMarkerClass, normalizeClass } from "../grammar/classes"
-import { resolveCnConfig } from "../grammar/classifier"
+import { resolveCnConfig, themedCnConfig } from "../grammar/classifier"
 import { didYouMean } from "../grammar/similar"
 import { projectClassifierFor } from "../project/namespaces"
 import { knownClassesFor } from "../project/theme"
@@ -113,7 +113,8 @@ function groupIdsFor(config: object & { classGroups: object }) {
   return ids
 }
 
-// Per grammar and option value, so a thousand files compile once.
+// Per grammar and option value, so a thousand files compile once. The
+// themed grammar, so a project's own scales and an edited theme are read.
 const compiledByConfig = new WeakMap<object, Map<string, unknown>>()
 
 function compiledOnce<T>(
@@ -121,7 +122,7 @@ function compiledOnce<T>(
   key: string,
   build: () => T
 ) {
-  const config = resolveCnConfig(fromFile)
+  const config = themedCnConfig(fromFile)
   let byKey = compiledByConfig.get(config)
   if (!byKey) {
     byKey = new Map()
