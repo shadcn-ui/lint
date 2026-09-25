@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest"
 
 import { plugin } from "../src/index"
 
-function messages(code: string) {
+function messages(code: string, options?: Record<string, unknown>) {
   const linter = new Linter()
   return linter
     .verify(
@@ -16,7 +16,9 @@ function messages(code: string) {
           parserOptions: { ecmaFeatures: { jsx: true } },
         },
         plugins: { shadcn: plugin },
-        rules: { "shadcn/no-inline-styles": "error" },
+        rules: {
+          "shadcn/no-inline-styles": options ? ["error", options] : "error",
+        },
       },
       { filename: "page.tsx" }
     )
@@ -29,6 +31,24 @@ describe("final inline-style properties", () => {
       name: "a local style binding is checked",
       code: `const style = { color: "red" }; <div style={style} />`,
       expected: ["inlineStyle"],
+    },
+    {
+      name: "an explicitly allowed dynamic identifier is exempt",
+      code: `<div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: [],
+    },
+    {
+      name: "an unlisted dynamic identifier remains reported",
+      code: `<div style={otherStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["dynamicStyle"],
+    },
+    {
+      name: "an allowed identifier bypasses same-file resolution by intent",
+      code: `const floatingStyles = { color: "red" }; <div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: [],
     },
     {
       name: "ordinary custom properties in a local object remain readable",
@@ -210,8 +230,8 @@ describe("final inline-style properties", () => {
       code: `function View({ style }: { style: object }) { return <div style={{ "--gap": "4px", ...style }} /> }`,
       expected: [],
     },
-  ])("$name", ({ code, expected }) => {
-    expect(messages(code)).toEqual(expected)
+  ])("$name", ({ code, options, expected }) => {
+    expect(messages(code, options)).toEqual(expected)
   })
 })
 

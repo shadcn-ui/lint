@@ -26,7 +26,7 @@ import {
   ContractConfigError,
 } from "./contracts"
 import { reporter } from "./messages"
-import { policySchema } from "./policy-schema"
+import { entriesSchema, policySchema } from "./policy-schema"
 
 const COLOR_FUNCTION =
   /#[0-9a-f]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|hwb|oklch|oklab|lab|lch|color|color-mix|light-dark)\(/i
@@ -292,7 +292,10 @@ export const noInlineStyles = {
     schema: [
       {
         type: "object",
-        properties: policySchema,
+        properties: {
+          ...policySchema,
+          allowDynamicIdentifiers: entriesSchema,
+        },
         additionalProperties: false,
       },
     ],
@@ -300,6 +303,9 @@ export const noInlineStyles = {
   },
   create(context: any) {
     const options = context.options?.[0] ?? {}
+    const allowDynamicIdentifiers = new Set<string>(
+      options.allowDynamicIdentifiers ?? []
+    )
     const emit = reporter(context, MESSAGES, {
       rule: "shadcn/no-inline-styles",
       message: options.message,
@@ -408,6 +414,7 @@ export const noInlineStyles = {
         return
       }
       if (expr.type === "Identifier") {
+        if (allowDynamicIdentifiers.has(expr.name)) return
         const init = resolveIdentifier(expr, context, seen)?.init
         if (init) return check(init, reportAt, seen, component)
         emit(

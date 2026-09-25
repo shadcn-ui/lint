@@ -121,6 +121,21 @@ Use CSS property names, not Tailwind classes. `backgroundColor` and
 An allowed property is not checked further, including for hardcoded
 colors. Use narrow exceptions when possible.
 
+### Dynamic style identifiers
+
+Some libraries expose computed style objects that cannot be inspected statically.
+You can allow specific identifiers for those integrations:
+
+```js
+"shadcn/no-inline-styles": ["error", {
+  allowDynamicIdentifiers: ["floatingStyles"],
+}]
+```
+
+This exempts only the named identifier. Other dynamic identifiers remain
+reported, and inline object literals are still checked normally. Use narrow,
+library-specific names rather than broad names such as `style` or `props`.
+
 ### Contracts
 
 A contract can allow a property on one component:
@@ -165,12 +180,13 @@ a fallback. `{{component}}` is empty on lowercase elements.
 
 ## Options
 
-| Option      | Default           | What it does                                                       |
-| ----------- | ----------------- | ------------------------------------------------------------------ |
-| `allow`     | Not set           | Exempts CSS properties from inline-style checks.                   |
-| `deny`      | Not set           | Removes exemptions. Without `allow`, exempts every other property. |
-| `contracts` | `[]`              | Sets property exceptions and messages for matching components.     |
-| `message`   | Built-in guidance | Replaces error text.                                               |
+| Option                    | Default           | What it does                                                       |
+| ------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `allow`                   | Not set           | Exempts CSS properties from inline-style checks.                   |
+| `deny`                    | Not set           | Removes exemptions. Without `allow`, exempts every other property. |
+| `contracts`               | `[]`              | Sets property exceptions and messages for matching components.     |
+| `allowDynamicIdentifiers` | Not set           | Exempts named dynamic style identifiers from static analysis.      |
+| `message`                 | Built-in guidance | Replaces error text.                                               |
 
 A `deny` list can also report custom properties that would otherwise
 pass. Invalid entries such as `bg-red-500` produce a configuration error.
