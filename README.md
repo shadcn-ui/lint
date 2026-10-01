@@ -562,6 +562,7 @@ Include only the settings you need:
       "ui": "@/ds",
       "componentImports": ["^@acme/ui(/|$)"],
       "ignoreImports": ["^@acme/ui/internal(/|$)"],
+      "themeImports": ["^@acme/ui/"],
       "mergeFunctions": ["customMerge"],
       "variantFunctions": ["variants"],
       "note": "See DESIGN.md for design rules and approved exceptions."
@@ -580,10 +581,18 @@ your rules.
 | `ignoreImports`    | Skips component recognition for imports matching these regex patterns. Takes precedence over recognition. |
 | `mergeFunctions`   | Adds functions whose arguments contain classes, such as `customMerge("mt-4", "w-full")`.                  |
 | `variantFunctions` | Adds functions whose object values contain classes.                                                       |
+| `themeImports`     | Counts tokens from stylesheet imports matching these regex patterns, such as a design system package.     |
 | `note`             | Appends your text to every rule's error or warning.                                                       |
 
 All settings except `note` accept a string or an array of strings.
 `note` accepts a string.
+
+Tokens from stylesheets in `node_modules` do not count by default, so
+Tailwind's palette is not your vocabulary. When your theme imports a
+design system package, such as `@import "@acme/ui/theme.css"`, name it in
+`themeImports`. Its tokens then count as your own, including
+stylesheets it imports from the same package. `themeImports` is a
+setting only; rules do not accept it as an option.
 
 The built-in class functions are `cn`, `cx`, `clsx`, `cva`, `tv`,
 `twMerge`, `twJoin`, and `classNames`. The built-in variant functions

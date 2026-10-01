@@ -270,15 +270,47 @@ function isPackageFile(file: string) {
   return file.includes(`${path.sep}node_modules${path.sep}`)
 }
 
+// The installed package a file belongs to: the directory after the last
+// node_modules, two segments for a scope. Null outside node_modules.
+function packageDirOf(file: string) {
+  const marker = `${path.sep}node_modules${path.sep}`
+  const at = file.lastIndexOf(marker)
+  if (at === -1) return null
+  const start = at + marker.length
+  const segments = file.slice(start).split(path.sep)
+  const depth = segments[0].startsWith("@") ? 2 : 1
+  return file.slice(0, start) + segments.slice(0, depth).join(path.sep)
+}
+
+// The package whose tokens an import contributes: one settings.shadcn
+// .themeImports names, or the same package a counted file imports from
+// within. A kit's own `@import "tailwindcss"` is another package, so
+// Tailwind's palette stays out.
+function ownPackageOf(
+  spec: string,
+  target: string,
+  imports: readonly RegExp[],
+  current: string | null
+) {
+  const dir = packageDirOf(target)
+  if (!dir) return null
+  if (imports.some((pattern) => pattern.test(spec))) return dir
+  return dir === current ? dir : null
+}
+
 // Files under node_modules contribute @utility names and class selectors
 // (tw-animate-css declares animate-in that way) but not color tokens:
 // Tailwind's own palette is not the project's vocabulary. Workspace
-// packages resolve past node_modules and count as the project's own.
+// packages resolve past node_modules and count as the project's own, and
+// so does a design system published as a package once themeImports
+// names it.
 function readTheme(
   cssFile: string,
   seen: Set<string>,
   read: ThemeRead,
-  fromPackage = false
+  imports: readonly RegExp[],
+  fromPackage = false,
+  ownPackage: string | null = null
 ) {
   if (seen.has(cssFile) || seen.size > 64) return
   seen.add(cssFile)
@@ -306,7 +338,15 @@ function readTheme(
       read.missingImports.push({ spec, fromDir: dir, rootDir: root })
       continue
     }
-    readTheme(target, seen, read, fromPackage || isPackageFile(target))
+    const own = ownPackageOf(spec, target, imports, ownPackage)
+    readTheme(
+      target,
+      seen,
+      read,
+      imports,
+      own ? false : fromPackage || isPackageFile(target),
+      own
+    )
   }
   if (!fromPackage) {
     const { values, themeNames, declarations } = parseDeclarations(css)
@@ -327,8 +367,36 @@ function signatureOf(read: ThemeRead) {
   ].join("|")
 }
 
-function themeAt(cssFile: string) {
-  const cached = cache.get(cssFile)
+const NO_IMPORTS: readonly RegExp[] = []
+
+// settings.shadcn.themeImports, by project root. A theme belongs to the
+// project, not to a rule, so the rules record it as they start and every
+// read for that project's files sees it.
+const themeImports = new Map<string, readonly RegExp[]>()
+
+export function setThemeImports(fromFile: string, patterns: RegExp[]) {
+  if (!patterns.length && !themeImports.size) return
+  const root = fromFile ? projectFor(fromFile)?.root : null
+  if (!root) return
+  if (patterns.length) themeImports.set(root, patterns)
+  else themeImports.delete(root)
+}
+
+function themeImportsOf(root: string | undefined) {
+  return (root && themeImports.get(root)) || NO_IMPORTS
+}
+
+// The theme a linted file reads, with its project's themeImports.
+function themeOf(fromFile: string, cssFile: string) {
+  if (!themeImports.size) return themeAt(cssFile)
+  return themeAt(cssFile, themeImportsOf(projectFor(fromFile)?.root))
+}
+
+function themeAt(cssFile: string, imports: readonly RegExp[] = NO_IMPORTS) {
+  const key = imports.length
+    ? [cssFile, ...imports.map((pattern) => pattern.source)].join("\u0000")
+    : cssFile
+  const cached = cache.get(key)
   const now = Date.now()
   if (cached && now - cached.checkedAt < TTL) return cached.read
   if (cached && signatureOf(cached.read) === cached.signature) {
@@ -349,8 +417,8 @@ function themeAt(cssFile: string) {
     files: [],
     missingImports: [],
   }
-  readTheme(cssFile, new Set(), read)
-  cache.set(cssFile, {
+  readTheme(cssFile, new Set(), read, imports)
+  cache.set(key, {
     signature: signatureOf(read),
     checkedAt: now,
     read,
@@ -410,7 +478,7 @@ export function discoverThemeFile(root: string) {
   cssFilesUnder(root, 0, files)
   let best: { file: string; tokens: number; depth: number } | null = null
   for (const file of files.sort()) {
-    const read = themeAt(file)
+    const read = themeAt(file, themeImportsOf(root))
     if (!read.tailwind) continue
     const tokens = read.tokens.size
     const depth = path.relative(root, file).split(path.sep).length
@@ -463,7 +531,7 @@ export function themeFileFor(fromFile: string) {
 // file a token belongs in.
 export function tailwindEntryFor(fromFile: string) {
   const file = themeFileFor(fromFile)
-  if (!file || themeAt(file).tailwind) return file
+  if (!file || themeOf(fromFile, file).tailwind) return file
   const project = projectFor(fromFile)
   if (!project) return file
   const discovered = discoverThemeFile(project.root)
@@ -493,7 +561,7 @@ export function moduleThemeEntryFor(fromFile: string) {
 export function colorTokensFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return null
-  const { tokens } = themeAt(cssFile)
+  const { tokens } = themeOf(fromFile, cssFile)
   return tokens.size ? tokens : null
 }
 
@@ -502,7 +570,7 @@ export function colorTokensFor(fromFile: string) {
 export function scopedColorTokensFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return null
-  return themeAt(cssFile).scoped
+  return themeOf(fromFile, cssFile).scoped
 }
 
 // Empty when the values cannot be read (color-mix, JS-set variables).
@@ -581,7 +649,7 @@ export const DEFAULT_SCALES: Record<ScaleKind, Map<string, number>> = {
 export function colorValuesFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return null
-  const read = themeAt(cssFile)
+  const read = themeOf(fromFile, cssFile)
   return read.tokens.size ? colorsOf(read) : null
 }
 
@@ -590,7 +658,7 @@ export function colorValuesFor(fromFile: string) {
 export function spacingBaseFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return 4
-  const read = themeAt(cssFile)
+  const read = themeOf(fromFile, cssFile)
   if (read.spacing !== undefined) return read.spacing
   let raw: string | null = "0.25rem"
   for (const { name, value, theme } of read.declarations) {
@@ -606,14 +674,14 @@ export function spacingBaseFor(fromFile: string) {
 export function scaleFor(fromFile: string, kind: ScaleKind) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return DEFAULT_SCALES[kind]
-  return scaleOf(themeAt(cssFile), kind)
+  return scaleOf(themeOf(fromFile, cssFile), kind)
 }
 
 // Null when the project has no theme to read.
 export function themeVocabularyFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile) return null
-  const read = themeAt(cssFile)
+  const read = themeOf(fromFile, cssFile)
   return (read.vocabulary ??= {
     names: read.themeNames,
     tokens: read.tokens,
@@ -661,6 +729,6 @@ export function knownClassesFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
   if (!cssFile)
     return { utilities: new Set<string>(), classes: new Set<string>() }
-  const { utilities, classes } = themeAt(cssFile)
+  const { utilities, classes } = themeOf(fromFile, cssFile)
   return { utilities, classes }
 }

@@ -1,0 +1,7 @@
+{
+  "name": "package-theme-fixture",
+  "private": true,
+  "dependencies": {
+    "acme-ui": "1.0.0"
+  }
+}

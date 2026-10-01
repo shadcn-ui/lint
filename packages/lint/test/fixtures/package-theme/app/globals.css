@@ -1,0 +1,8 @@
+@import "tailwindcss";
+/* The design system ships its tokens as a package. */
+@import "acme-ui/theme.css";
+
+/* One color of the app's own. */
+@theme inline {
+  --color-spotlight: oklch(0.92 0 0);
+}
