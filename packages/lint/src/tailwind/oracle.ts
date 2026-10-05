@@ -10,6 +10,7 @@ import { pathToFileURL } from "node:url"
 
 import { splitVariants } from "../grammar/classes"
 import { didYouMean } from "../grammar/similar"
+import { parseImports } from "../project/theme"
 
 type DesignSystem = {
   theme?: { prefix?: string | null }
@@ -80,10 +81,43 @@ function resolveFrom(base: string, id: string) {
   return createRequire(path.join(base, "noop.js")).resolve(id)
 }
 
+// The directories of the stylesheets that import Tailwind, reached
+// through the entry's @imports. In a workspace the app's stylesheet may
+// import a UI package's, and only that package depends on Tailwind.
+function* tailwindImporters(cssFile: string) {
+  const seen = new Set<string>()
+  const queue = [cssFile]
+  while (queue.length) {
+    const file = queue.shift()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    let css: string
+    try {
+      css = fs.readFileSync(file, "utf-8")
+    } catch {
+      continue
+    }
+    for (const id of parseImports(css)) {
+      if (id === "tailwindcss" || id.startsWith("tailwindcss/")) {
+        yield path.dirname(file)
+        continue
+      }
+      const resolved = resolveStylesheet(path.dirname(file), id)
+      if (resolved) queue.push(realpathOf(resolved))
+    }
+  }
+}
+
+function* tailwindBases(cssFile: string) {
+  yield path.dirname(cssFile)
+  yield* tailwindImporters(cssFile)
+  yield process.cwd()
+}
+
 // Resolved from the stylesheet outward: ours is not a substitute for the
 // version that actually generates the project's CSS.
-async function loadTailwind(dir: string): Promise<Tailwind | null> {
-  for (const from of [dir, process.cwd()]) {
+async function loadTailwind(cssFile: string): Promise<Tailwind | null> {
+  for (const from of tailwindBases(cssFile)) {
     let resolved: string
     try {
       resolved = resolveFrom(from, "tailwindcss")
@@ -248,7 +282,7 @@ function signatureOf(files: string[]) {
 
 async function build(cssFile: string): Promise<Loaded> {
   const dir = path.dirname(cssFile)
-  const tailwind = await loadTailwind(dir)
+  const tailwind = await loadTailwind(cssFile)
   if (!tailwind) {
     throw new Error(`tailwindcss v4 could not be resolved from ${dir}`)
   }

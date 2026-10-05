@@ -2,9 +2,12 @@
 // classes generate CSS. Tested directly (async, no worker) here; the
 // synchronous bridge is exercised by the no-unknown-classes rule tests.
 
+import * as fs from "node:fs"
+import Module, { createRequire } from "node:module"
+import * as os from "node:os"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, test } from "vitest"
+import { afterAll, describe, expect, test, vi } from "vitest"
 
 import { query, resetOracle, resolveStylesheet } from "../src/tailwind/oracle"
 import { PROJECT } from "./helpers"
@@ -20,6 +23,37 @@ const PATTERN = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "fixtures/exports-pattern"
 )
+
+const temporary: string[] = []
+
+afterAll(() => {
+  for (const dir of temporary) fs.rmSync(dir, { recursive: true, force: true })
+})
+
+function workspace() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-"))
+  temporary.push(root)
+  const write = (file: string, content: string) => {
+    fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+    fs.writeFileSync(path.join(root, file), content)
+  }
+  const link = (target: string, file: string) => {
+    fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+    fs.symlinkSync(target, path.join(root, file), "dir")
+  }
+  write("apps/web/src/app.css", `@import "@acme/ui/styles.css";\n`)
+  write("packages/ui/package.json", `{ "name": "@acme/ui" }\n`)
+  write(
+    "packages/ui/styles.css",
+    `@import "tailwindcss";\n@utility kit-frame { display: flex; }\n`
+  )
+  link(path.join(root, "packages/ui"), "apps/web/node_modules/@acme/ui")
+  const tailwind = path.dirname(
+    createRequire(import.meta.url).resolve("tailwindcss/package.json")
+  )
+  link(tailwind, "packages/ui/node_modules/tailwindcss")
+  return path.join(root, "apps/web/src/app.css")
+}
 
 describe("tailwind oracle", () => {
   test("knows the theme, @utility rules and every variant", async () => {
@@ -123,6 +157,34 @@ describe("tailwind oracle", () => {
     expect(answer.unknown).toEqual([
       { token: "p-crad", suggestion: "p-card", baseKnown: false },
     ])
+  })
+
+  // Only the UI package depends on Tailwind, so it is installed beside
+  // that package and the app's stylesheet cannot resolve it. Built
+  // outside the repository, where nothing above it or the working
+  // directory has Tailwind either.
+  test("finds Tailwind beside the stylesheet that imports it", async () => {
+    resetOracle()
+    const css = workspace()
+    const cwd = vi.spyOn(process, "cwd").mockReturnValue(path.dirname(css))
+    // A pnpm bin shim puts the hoisted modules on NODE_PATH, which would
+    // hide the bug; editors and Vite+ start the linter without one.
+    const nodePath = process.env.NODE_PATH
+    const paths = Module as unknown as { _initPaths(): void }
+    delete process.env.NODE_PATH
+    paths._initPaths()
+    try {
+      const answer = await query(css, ["kit-frame", "flex", "kit-frmae"])
+      expect(answer.ok).toBe(true)
+      if (!answer.ok) return
+      expect(answer.unknown).toEqual([
+        { token: "kit-frmae", suggestion: "kit-frame", baseKnown: false },
+      ])
+    } finally {
+      cwd.mockRestore()
+      if (nodePath !== undefined) process.env.NODE_PATH = nodePath
+      paths._initPaths()
+    }
   })
 
   test("a theme that cannot be read is unavailable, not wrong", async () => {
