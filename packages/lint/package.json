@@ -53,7 +53,7 @@
   ],
   "dependencies": {
     "@eslint/core": "^0.17.0",
-    "cn": "0.3.2"
+    "cn": "0.4.0"
   },
   "peerDependencies": {
     "@typescript-eslint/parser": ">=8.40.0",

@@ -1,8 +1,9 @@
-// cn's grammar reads a class by its shape, so every text-* and shadow-*
-// with a name it does not know is a color. Tailwind reads the same class
-// against the project's theme, where a declared --text-stat-label makes
-// it a font-size and --shadow-card-glow a box-shadow. This is the theme's
-// half of that answer: the grammar with the project's namespaces applied.
+// cn's grammar reads a class by its shape, with the project's theme scales
+// applied: a declared --text-stat-label makes text-stat-label a font-size
+// and --shadow-card-glow a box-shadow before any lookup here. What cn
+// does not read is what this module adds: bg-stripes comes from a
+// --background-image-* the grammar has no scale for, so it reads as a
+// color, and a project's animations live in @utility as often as @theme.
 
 import { categoryOf } from "../grammar/categories"
 import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
@@ -13,46 +14,19 @@ import {
   type ThemeVocabulary,
 } from "./theme"
 
-// Longest prefix first: text-shadow-crisp is a text-shadow, not text
-// "shadow-crisp".
 const NAMESPACES: {
   // The prefix as written in the class.
   prefix: string
-  // The @theme namespace the utility reads, which is not always the
-  // prefix: bg-stripes comes from --background-image-stripes.
+  // The @theme namespace the utility reads, which is not the prefix:
+  // bg-stripes comes from --background-image-stripes.
   namespace: string
   // The cn group the class belongs to when the namespace answers.
   group: string
-  // Whether the namespace wins over a --color-* of the same name. The
-  // shadow family takes its own first; text- and bg- take the color.
-  // Verified against Tailwind 4.3.3, not inferred from the docs.
-  overColor: boolean
 }[] = [
-  {
-    prefix: "text-shadow-",
-    namespace: "text-shadow-",
-    group: "text-shadow",
-    overColor: true,
-  },
-  {
-    prefix: "inset-shadow-",
-    namespace: "inset-shadow-",
-    group: "inset-shadow",
-    overColor: true,
-  },
-  {
-    prefix: "drop-shadow-",
-    namespace: "drop-shadow-",
-    group: "drop-shadow",
-    overColor: true,
-  },
-  { prefix: "shadow-", namespace: "shadow-", group: "shadow", overColor: true },
-  { prefix: "text-", namespace: "text-", group: "font-size", overColor: false },
   {
     prefix: "bg-",
     namespace: "background-image-",
     group: "bg-image",
-    overColor: false,
   },
 ]
 
@@ -80,13 +54,15 @@ function valueOf(base: string, prefix: string) {
   return value
 }
 
+// A --color-* of the same name wins over the namespace, the way Tailwind
+// reads bg-*. Verified against Tailwind 4.3.3, not inferred from the docs.
 function lookup(vocabulary: ThemeVocabulary, token: string) {
   const base = normalizeClass(token)
   const entry = NAMESPACES.find((n) => base.startsWith(n.prefix))
   if (!entry) return null
   const value = valueOf(base, entry.prefix)
   if (!value) return null
-  if (!entry.overColor && vocabulary.tokens.has(value)) return null
+  if (vocabulary.tokens.has(value)) return null
   return vocabulary.names.has(`${entry.namespace}${value}`) ? entry.group : null
 }
 
@@ -105,9 +81,10 @@ export function themeGroupFor(fromFile: string | undefined, token: string) {
   return group
 }
 
-// cn groups only Tailwind's own animations, so that merging never drops a
-// plugin's animate-once. A project's animation is one its CSS declares:
-// --animate-shimmer in @theme, or animate-in from an @utility or selector.
+// cn groups Tailwind's own animations and the --animate-* names a theme
+// declares, so that merging never drops a plugin's animate-once. The rest
+// of a project's animations come from its CSS: animate-in from an
+// @utility or selector.
 export function animationGroupFor(fromFile: string | undefined, token: string) {
   if (!fromFile) return null
   const base = normalizeClass(token)

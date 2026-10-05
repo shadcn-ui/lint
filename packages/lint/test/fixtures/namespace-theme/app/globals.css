@@ -34,3 +34,23 @@
 @utility animate-duration-* {
   animation-duration: calc(--value(integer) * 1ms);
 }
+
+/* Scales cn reads from the theme, the way `cn build` registers them:
+   rounded-card is a radius, p-gutter a spacing step, and so on. */
+@theme inline {
+  --radius-card: 12px;
+  --spacing-gutter: 1.5rem;
+  --tracking-display: -0.02em;
+  --leading-display: 1.1;
+  --breakpoint-wide: 96rem;
+  --container-prose: 65ch;
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --blur-glass: 12px;
+  --perspective-stage: 1200px;
+  --aspect-poster: 2 / 3;
+}
+
+/* A :root variable is not a theme scale: rounded-panel is not a class. */
+:root {
+  --radius-panel: 8px;
+}
