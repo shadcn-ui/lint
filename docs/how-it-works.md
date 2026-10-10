@@ -223,11 +223,20 @@ in a trigger's place, and the `className` goes with it:
 
 The suggestion lists Button's variants, since Button is what wears the
 classes. `render={(props) => <Button {...props} />}` reads the same,
-because the spread is what carries `className` across. A trigger that
-renders a plain element, such as `render={<span />}`, restyles nothing
-in the design system and is not reported. When the value cannot be
-read, a variable or a function that renders without spreading its
-props, the classes stay on the trigger and its own contract decides.
+because the spread is what carries `className` across. A plain element,
+such as `render={<a />}`, still wears the component's own classes, so
+the component's contract decides, whether the classes are written on
+the component or on the element:
+
+```tsx
+// no-restyle reports a padding override on Button, both ways.
+<Button className="p-4" render={<a href="/" />} />
+<Button render={<a href="/" className="p-4" />} />
+```
+
+When the value cannot be read, a variable or a function that renders
+without spreading its props, the classes stay on the trigger and its
+own contract decides.
 
 Svelte and Vue components forward `class` the same way. See
 [Vue](./vue.md#what-is-read) and [Svelte](./svelte.md#what-is-read).
