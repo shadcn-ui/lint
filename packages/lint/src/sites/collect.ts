@@ -874,7 +874,11 @@ export function collectClassStrings(
       case "ObjectExpression":
         for (const entry of objectEntries(node, context, path)) {
           if ("unknown" in entry) {
-            unresolved.push(entry.unknown)
+            // { [Size.Small]: "p-2" }: in values mode the key is a name,
+            // so an unreadable one still leaves the value to check.
+            if (valuesMode && entry.unknown.type === "Property") {
+              visit(entry.unknown.value, valuesMode)
+            } else unresolved.push(entry.unknown)
           } else if (valuesMode) {
             visit(entry.value, valuesMode)
           } else {
