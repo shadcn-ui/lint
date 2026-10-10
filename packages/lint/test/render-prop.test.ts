@@ -13,16 +13,17 @@ describe("render prop", () => {
   test("classes belong to the component the render prop renders", () => {
     tester.run("no-restyle", rule, {
       valid: [
-        // The classes land on a plain element, not on the trigger.
-        {
-          filename: PAGE,
-          code: `${dialog}\nexport const A = () => <DialogTrigger render={<span />} className="bg-primary px-6" />`,
-        },
         // Layout still crosses to the rendered component when allowed.
         {
           filename: PAGE,
           options: layout,
           code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={<Button />} className="mt-4" />`,
+        },
+        // Layout allowed on Button is allowed on a plain element it renders.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button render={<a href="/" className="mt-4" />} className="w-full" />`,
         },
       ],
       invalid: [
@@ -62,6 +63,66 @@ describe("render prop", () => {
             {
               message:
                 /^"bg-primary" is not allowed on <DialogTrigger>: <DialogTrigger> owns its color\./,
+            },
+          ],
+        },
+        // A plain element in the component's place still wears the
+        // component's own classes, so the component judges them.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button className="p-4" render={<a href="/">Go</a>} />`,
+          errors: [
+            {
+              message:
+                /^"p-4" is not allowed on <Button>: <Button> owns its spacing\. Use a size \(/,
+            },
+          ],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button className="p-4" render={(props) => <a {...props} />} />`,
+          errors: [{ messageId: "spacingClassWithSizes" }],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\nexport const A = () => <DialogTrigger render={<span />} className="bg-primary" />`,
+          errors: [
+            {
+              message:
+                /^"bg-primary" is not allowed on <DialogTrigger>: <DialogTrigger> owns its color\./,
+            },
+          ],
+        },
+        // Classes on the rendered element merge with the component's.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button render={<a href="/" className="p-4" />} />`,
+          errors: [
+            {
+              message:
+                /^"p-4" is not allowed on <Button>: <Button> owns its spacing\./,
+            },
+          ],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button render={(props) => <a {...props} className="bg-primary" />} />`,
+          errors: [{ messageId: "appearanceClassWithVariants" }],
+        },
+        // A rendered component keeps its own contract.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={<Button className="bg-primary" />} />`,
+          errors: [
+            {
+              message:
+                /^"bg-primary" is not allowed on <Button>: <Button> owns its color\./,
             },
           ],
         },

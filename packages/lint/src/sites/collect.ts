@@ -1165,17 +1165,27 @@ export function classSiteVisitors(
   }
 
   // A render prop replaces the element, and the className lands on what
-  // it renders, so that is the component wearing the classes.
+  // it renders, so that is the component wearing the classes. A plain
+  // element rendered in its place still wears the component's own
+  // classes, so the component itself judges them: `<Button
+  // render={<a />} className="p-4" />` is a Button, and so is the `<a>`
+  // when the classes are written on it instead.
   const resolvedOf = (element: any) => {
     if (!element) return null
     const rendered = reader.renderedElementOf?.(element)
-    if (!rendered) return tracker.resolveName(reader.nameOf(element))
-    const resolved = tracker.resolveName(reader.nameOf(rendered))
-    if (!resolved) return null
-    return {
-      ...resolved,
-      wrapper: resolved.wrapper ?? reader.nameOf(element)?.text ?? "",
+    const resolved = rendered && tracker.resolveName(reader.nameOf(rendered))
+    if (resolved) {
+      return {
+        ...resolved,
+        wrapper: resolved.wrapper ?? reader.nameOf(element)?.text ?? "",
+      }
     }
+    const own = tracker.resolveName(reader.nameOf(element))
+    if (own) return own
+    const owner = reader.parentElementOf(element)
+    return owner && reader.renderedElementOf?.(owner) === element
+      ? tracker.resolveName(reader.nameOf(owner))
+      : null
   }
 
   const enclosingOf = (
