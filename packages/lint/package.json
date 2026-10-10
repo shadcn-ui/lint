@@ -68,6 +68,7 @@
     }
   },
   "devDependencies": {
+    "@tailwindcss/node": "^4.3.3",
     "@types/node": "^24.3.0",
     "@typescript-eslint/parser": "^8.40.0",
     "eslint": "^9.33.0",

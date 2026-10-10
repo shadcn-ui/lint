@@ -187,6 +187,54 @@ describe("tailwind oracle", () => {
     }
   })
 
+  // Tailwind loads @config and @plugin through jiti, so a config may
+  // import without an extension and use TypeScript that type stripping
+  // rejects. Native import() refuses both.
+  test("loads @config modules the way Tailwind does", async () => {
+    resetOracle()
+    const root = fs.mkdtempSync(path.join(PROJECT, ".config-modules-"))
+    temporary.push(root)
+    fs.mkdirSync(path.join(root, "src"))
+    fs.writeFileSync(path.join(root, "package.json"), `{ "type": "module" }\n`)
+    fs.writeFileSync(
+      path.join(root, "src/app.css"),
+      `@import "tailwindcss";\n@config "../tailwind.config.ts";\n`
+    )
+    fs.writeFileSync(
+      path.join(root, "tailwind.config.ts"),
+      [
+        `import { brand } from "./theme"`,
+        `export default {`,
+        `  theme: { extend: { colors: { brand } } },`,
+        `  plugins: [`,
+        `    ({ addUtilities }: { addUtilities: (u: object) => void }) =>`,
+        `      addUtilities({ ".body-2": { "font-size": "14px" } }),`,
+        `  ],`,
+        `}`,
+      ].join("\n")
+    )
+    const theme = path.join(root, "theme.ts")
+    fs.writeFileSync(
+      theme,
+      `enum Brand { Blue = "#0af" }\nexport const brand = Brand.Blue\n`
+    )
+    const css = path.join(root, "src/app.css")
+    const answer = await query(css, ["bg-brand", "body-2", "bg-brnd"])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown.map((entry) => entry.token)).toEqual(["bg-brnd"])
+
+    // An edit to a module the config imports rebuilds the theme.
+    fs.writeFileSync(theme, `export const brand = { 500: "#0af" }\n`)
+    const future = new Date(Date.now() + 5000)
+    fs.utimesSync(theme, future, future)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const edited = await query(css, ["bg-brand-500", "bg-brand"])
+    expect(edited.ok).toBe(true)
+    if (!edited.ok) return
+    expect(edited.unknown.map((entry) => entry.token)).toEqual(["bg-brand"])
+  })
+
   test("a theme that cannot be read is unavailable, not wrong", async () => {
     const answer = await query("/nonexistent/app/globals.css", ["flex"])
     expect(answer.ok).toBe(false)
