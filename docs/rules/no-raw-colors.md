@@ -34,8 +34,18 @@ The error lists theme tokens, suggests a nearby color or spelling
 correction, and names the theme file. Suggestions appear in the editor.
 Variants, opacity, and important markers are preserved in replacements.
 
-`white`, `black`, `transparent`, `current`, and `inherit` are accepted
-color names. Arbitrary colors such as `bg-[#333]` belong to
+`transparent`, `current`, and `inherit` are always accepted. `white` and
+`black` are accepted too, since Tailwind declares them in every theme,
+until `deny` names them:
+
+```js
+"shadcn/no-raw-colors": ["error", { deny: ["*-white", "*-black"] }]
+```
+
+````tsx
+// Reported. Nearest theme tokens: text-background, text-primary-foreground.
+<p className="text-white">Saved</p>
+``` Arbitrary colors such as `bg-[#333]` belong to
 [no-arbitrary-values](./no-arbitrary-values.md).
 
 Some theme namespaces share a prefix with a color utility. Declaring
@@ -67,7 +77,7 @@ Use `currentColor` with a text color class, or reference a theme variable:
 <svg fill="#ec4899" />
 <svg fill={"#ec4899"} />
 <path stroke="red" />
-```
+````
 
 The rule checks literal strings in `fill`, `stroke`, `color`,
 `stopColor`, `floodColor`, and `lightingColor` on intrinsic elements.
