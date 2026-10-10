@@ -294,6 +294,10 @@ export function candidatesFor(
       for (const target of mapSubpath(imports, spec)) {
         out.push(path.resolve(rootDir, target))
       }
+      // A directory alias against a wildcard key ("#components/*").
+      for (const target of mapSubpath(imports, `${spec}/*`)) {
+        out.push(path.dirname(path.resolve(rootDir, target)))
+      }
     }
     return out
   }
