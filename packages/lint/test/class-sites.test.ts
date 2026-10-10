@@ -148,4 +148,28 @@ describe("variant helper configs", () => {
       invalid: [],
     })
   })
+
+  test("a variant keyed by a computed name is still checked", () => {
+    const cva = `import { cva } from "class-variance-authority"\nenum Size { Small = "small" }`
+    tester.run("no-arbitrary-values", plugin.rules["no-arbitrary-values"], {
+      valid: [],
+      invalid: [
+        {
+          filename: PAGE,
+          code: `${cva}\nexport const v = cva("flex", { variants: { size: { [Size.Small]: "p-[13px]" } } })`,
+          errors: 1,
+        },
+      ],
+    })
+    tester.run("no-unknown-classes", noUnknownClasses as any, {
+      valid: [],
+      invalid: [
+        {
+          filename: PAGE,
+          code: `${cva}\nexport const v = cva("flex", { variants: { size: { [Size.Small]: "zzqq-nope" } } })`,
+          errors: 1,
+        },
+      ],
+    })
+  })
 })
