@@ -149,6 +149,13 @@ reset replaces the default names with the declared ones, so `rounded-lg`
 is unclassified until the theme declares it again. Only `@theme` blocks
 count, and relative `@import`s are followed.
 
+A class your CSS declares with `@utility` is classified by what its body
+sets, the way an arbitrary property is: `@utility heading-2xs { font-size:
+0.75rem }` is typography, and `@utility max-w-chat { max-width: 48rem }` is
+layout. A body that sets more than one thing takes the first appearance it
+carries. A class declared with a plain selector has no body to read and
+stays `unclassified`.
+
 Utilities Tailwind still generates under their Tailwind 3 names read as
 the utilities they are: `flex-grow` and `flex-shrink-0` classify with
 `grow` and `shrink`, `overflow-ellipsis` with `text-ellipsis`, and
