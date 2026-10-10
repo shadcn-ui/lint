@@ -94,6 +94,21 @@ export function SaveButton({
 Defaults authored in the wrapper are checked. An opaque whole-props
 spread is left alone because the rule cannot tell what it contains.
 
+A received prop named like a class attribute, such as `labelClass` or
+`titleClassName`, is forwarded the same way when it is handed to an
+inner part. Callers write it as a class attribute, so their classes are
+checked there:
+
+```tsx
+export function Field({ className, labelClass }: FieldProps) {
+  return (
+    <div className={className}>
+      <Label className={labelClass} />
+    </div>
+  )
+}
+```
+
 ### Variant functions
 
 The linter reads strings inside `cva()` and `tv()` definitions. It does
@@ -171,8 +186,9 @@ can be read; the other rules decide whether that value is allowed.
 
 - Only recognized components and their forwarding wrappers are checked.
   Plain elements are outside this rule.
-- Forwarding a component's received `className` is allowed. Its authored
-  defaults and local classes are still checked.
+- Forwarding a component's received `className`, or a received class
+  prop such as `labelClass`, is allowed. Its authored defaults and local
+  classes are still checked.
 
 See [wrappers](../how-it-works.md#wrappers) and
 [analysis limits](../how-it-works.md#what-it-cannot-see).

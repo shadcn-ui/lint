@@ -542,16 +542,18 @@ function parameterOf(node: any, context: any) {
   }
 }
 
-// An SFC spells the prop `class`, and it is the same prop.
+// An SFC spells the prop `class`, and it is the same prop. A received
+// labelClass handed to an inner part's class is forwarded too: callers
+// write it as a class attribute, so their classes are checked there.
 function namesProp(
   parameter: { received: boolean },
   key: string | null | undefined,
   name: string
 ) {
-  return (
-    key === name ||
-    (parameter.received && name === "className" && key === "class")
-  )
+  if (key === name) return true
+  if (name !== "className" || !key) return false
+  if (key === "class") return parameter.received
+  return isClassAttribute(key)
 }
 
 function forwardedPropOf(node: any, context: any, name: string) {
@@ -567,7 +569,7 @@ function forwardedPropOf(node: any, context: any, name: string) {
   const key = node.computed ? staticKey(node.property) : node.property?.name
   const object = unwrapTs(node.object)
   if (object?.type !== "Identifier") return null
-  if (key !== name && !(name === "className" && key === "class")) return null
+  if (!key) return null
   const parameter = parameterOf(object, context)
   // Props from a call are read-only: handing them on changes nothing.
   return parameter?.key === "*" &&
