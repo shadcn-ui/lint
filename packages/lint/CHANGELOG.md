@@ -1,5 +1,35 @@
 # @shadcn/lint
 
+## 0.2.1
+
+### Patch Changes
+
+- [#82](https://github.com/shadcn-ui/lint/pull/82) [`32b37e4`](https://github.com/shadcn-ui/lint/commit/32b37e45ce08b4b504f755deb40199cf94ed7bb1) Thanks [@shadcn](https://github.com/shadcn)! - Allow `fill-none` and `stroke-none` in `no-raw-colors`.
+
+- [#86](https://github.com/shadcn-ui/lint/pull/86) [`207c442`](https://github.com/shadcn-ui/lint/commit/207c442e713b8c6571455487b05dbd244573226e) Thanks [@shadcn](https://github.com/shadcn)! - Classify font sizes from a JavaScript `@config` or `@plugin` as typography, not color.
+
+- [#78](https://github.com/shadcn-ui/lint/pull/78) [`60836cc`](https://github.com/shadcn-ui/lint/commit/60836cc2c3862e91e4fcb0d2b27ba904546a5441) Thanks [@shadcn](https://github.com/shadcn)! - Load `@config` and `@plugin` modules the way Tailwind does, so extensionless imports and TypeScript enums build.
+
+- [#76](https://github.com/shadcn-ui/lint/pull/76) [`ab7658a`](https://github.com/shadcn-ui/lint/commit/ab7658a62333ed35f74d78594b8539644c3dc53a) Thanks [@shadcn](https://github.com/shadcn)! - Check cva and tv variant classes keyed by a computed name such as an enum member.
+
+- [#81](https://github.com/shadcn-ui/lint/pull/81) [`334ded6`](https://github.com/shadcn-ui/lint/commit/334ded64dc3a8d0304eb44e776b799d679c09c1f) Thanks [@shadcn](https://github.com/shadcn)! - Match dotted `mergeFunctions` and `variantFunctions` entries such as `Option.some` against method calls.
+
+- [#85](https://github.com/shadcn-ui/lint/pull/85) [`b16b8cf`](https://github.com/shadcn-ui/lint/commit/b16b8cff502f994c18f8a5e51c4a713652308491) Thanks [@shadcn](https://github.com/shadcn)! - Resolve a ui alias to a directory through a wildcard `package.json` imports key such as `"#components/*": "./src/components/*.tsx"`.
+
+- [#83](https://github.com/shadcn-ui/lint/pull/83) [`a38ee04`](https://github.com/shadcn-ui/lint/commit/a38ee04d93df0175356227658a3f465bbbff868c) Thanks [@shadcn](https://github.com/shadcn)! - Only suggest variants from a cva/tv factory the component actually uses.
+
+- [#77](https://github.com/shadcn-ui/lint/pull/77) [`bbe3a2a`](https://github.com/shadcn-ui/lint/commit/bbe3a2a6a7d2bf45d3568bd86e4689dca1a1a020) Thanks [@shadcn](https://github.com/shadcn)! - Under a Tailwind prefix, leave unprefixed classes to no-unknown-classes instead of reporting them as undeclared colors.
+
+- [#84](https://github.com/shadcn-ui/lint/pull/84) [`557e75e`](https://github.com/shadcn-ui/lint/commit/557e75e476fe62a86f758a552a0e0904c3c173ab) Thanks [@shadcn](https://github.com/shadcn)! - Judge classes by the component itself when its `render` prop renders a plain element.
+
+- [#80](https://github.com/shadcn-ui/lint/pull/80) [`8abc06b`](https://github.com/shadcn-ui/lint/commit/8abc06b9c83a35116f90dcb03f0958e52d7c339f) Thanks [@shadcn](https://github.com/shadcn)! - Read Svelte shorthand attributes such as `{className}` the way their long form is read.
+
+- [#68](https://github.com/shadcn-ui/lint/pull/68) [`0e91da3`](https://github.com/shadcn-ui/lint/commit/0e91da36a4841ae729e3ad57ef3e1719896d52c9) Thanks [@shadcn](https://github.com/shadcn)! - Resolve Tailwind beside the stylesheet that imports it.
+
+- [#52](https://github.com/shadcn-ui/lint/pull/52) [`ee93910`](https://github.com/shadcn-ui/lint/commit/ee9391038b5dc025f01777d8dbd0f72d5b885ab4) Thanks [@shadcn](https://github.com/shadcn)! - Classify a project's custom theme scales, such as `rounded-card`, the way cn 0.4.0 merges them.
+
+- [#79](https://github.com/shadcn-ui/lint/pull/79) [`8455c18`](https://github.com/shadcn-ui/lint/commit/8455c18bedcaaf2ab3ebf7c6a7e722a1752e8763) Thanks [@shadcn](https://github.com/shadcn)! - Resolve a bare `aliases.ui` such as `src/` against the project, as the shadcn CLI does.
+
 ## 0.2.0
 
 ### Minor Changes
