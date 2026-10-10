@@ -133,7 +133,8 @@ type ThemeMemo = {
   generation: number
   checkedAt: number
   hasModules: boolean
-  verdicts: Map<string, UnknownClass | true>
+  // True for a known class; "font-size" for a known one that sets it.
+  verdicts: Map<string, UnknownClass | true | "font-size">
 }
 
 const memos = new Map<string, ThemeMemo>()
@@ -157,10 +158,7 @@ function themeFailed(cssFile: string, reason: string) {
 
 // Null when the oracle is unavailable for this theme. Answers are
 // remembered per theme and rechecked about once a second.
-export function unknownClasses(
-  cssFile: string,
-  candidates: string[]
-): UnknownClass[] | null {
+function verdictsFor(cssFile: string, candidates: string[]) {
   if (bridge === false) return null
   const failure = failed.get(cssFile)
   if (failure) {
@@ -200,13 +198,28 @@ export function unknownClasses(
     memo.checkedAt = now
     for (const token of unseen) memo.verdicts.set(token, true)
     for (const entry of answer.unknown) memo.verdicts.set(entry.token, entry)
+    for (const token of answer.fontSizes) memo.verdicts.set(token, "font-size")
   }
+  return memo!.verdicts
+}
+
+export function unknownClasses(cssFile: string, candidates: string[]) {
+  const verdicts = verdictsFor(cssFile, candidates)
+  if (!verdicts) return null
   const out: UnknownClass[] = []
   for (const token of candidates) {
-    const verdict = memo!.verdicts.get(token)
-    if (verdict !== true && verdict !== undefined) out.push(verdict)
+    const verdict = verdicts.get(token)
+    if (typeof verdict === "object") out.push(verdict)
   }
   return out
+}
+
+// Whether the theme's Tailwind generates a font size for this class. Null
+// when the oracle is unavailable for this theme.
+export function setsFontSize(cssFile: string, token: string) {
+  const verdicts = verdictsFor(cssFile, [token])
+  if (!verdicts) return null
+  return verdicts.get(token) === "font-size"
 }
 
 export function oracleAvailable() {

@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* The type scale comes from JavaScript: nothing here names text-body. */
+@config "../tailwind.config.js";
