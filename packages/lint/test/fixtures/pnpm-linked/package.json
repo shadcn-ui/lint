@@ -1,7 +1,4 @@
 {
   "name": "pnpm-linked-fixture",
-  "private": true,
-  "dependencies": {
-    "linked-kit": "1.0.0"
-  }
+  "private": true
 }
