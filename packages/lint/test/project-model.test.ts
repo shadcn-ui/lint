@@ -1,15 +1,19 @@
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
+import parser from "@typescript-eslint/parser"
+import { Linter } from "eslint"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 import { classifierFor, groupOf } from "../src/grammar/classifier"
+import { plugin } from "../src/index"
 import { componentsFor } from "../src/project/components"
 import {
   findProject,
   projectFor,
   uiDirectory,
 } from "../src/project/components-json"
+import { resetFsMemo } from "../src/project/fs"
 import { definingFileOf, exportsOf } from "../src/project/modules"
 import {
   readJsonc,
@@ -286,5 +290,90 @@ describe("components.json with bad aliases", () => {
     expect(() => uiDirectory(project)).not.toThrow()
     uiDirectory(project)
     expect(warnings.filter((w) => w.includes("not an object"))).toHaveLength(1)
+  })
+})
+
+// The shadcn CLI reads a bare aliases.ui like "src/" against the project
+// root, for projects that import components relatively.
+describe("components.json with a bare ui alias", () => {
+  let root: string
+  function write(name: string, source: string) {
+    const file = path.join(root, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, source)
+    return file
+  }
+  const warnings: string[] = []
+  beforeEach(() => {
+    resetFsMemo()
+    warnings.length = 0
+    setWarningSink((message) => warnings.push(message))
+    root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-bare-alias-"))
+    )
+    write("package.json", "{}")
+  })
+  afterEach(() => {
+    resetWarnings()
+    setWarningSink((message) => console.warn(message))
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  function lint(file: string, code: string) {
+    return new Linter({ cwd: root }).verify(
+      code,
+      {
+        files: ["**/*.tsx"],
+        languageOptions: {
+          parser,
+          parserOptions: { ecmaFeatures: { jsx: true } },
+        },
+        plugins: { shadcn: plugin },
+        rules: { "shadcn/no-restyle": "error" },
+      } as any,
+      { filename: file }
+    )
+  }
+
+  test.each(["src/", "src", "./src"])(
+    "%s resolves against the project and recognizes relative imports",
+    (ui) => {
+      write(
+        "components.json",
+        JSON.stringify({ aliases: { ui, components: ui } })
+      )
+      const button = write(
+        "src/button.tsx",
+        "export function Button(props) { return <button {...props} /> }"
+      )
+      const page = write("src/app/page.tsx", "")
+      expect(uiDirectory(projectFor(page)!)).toBe(path.join(root, "src"))
+      expect(componentsFor(page).files.get("Button")).toBe(button)
+      const messages = lint(
+        page,
+        'import { Button } from "../button"\nexport const Page = () => <Button className="rounded-full" />'
+      )
+      expect(messages.map((m) => m.ruleId)).toEqual(["shadcn/no-restyle"])
+      expect(warnings).toEqual([])
+    }
+  )
+
+  test("a bare package name that is not a directory still warns", () => {
+    write("components.json", JSON.stringify({ aliases: { ui: "@acme/ui" } }))
+    const page = write("src/app/page.tsx", "")
+    expect(uiDirectory(projectFor(page)!)).toBeNull()
+    expect(warnings.some((w) => w.includes("does not resolve"))).toBe(true)
+  })
+
+  test("tsconfig paths win over a same-named directory", () => {
+    write("components.json", JSON.stringify({ aliases: { ui: "ui" } }))
+    write(
+      "tsconfig.json",
+      JSON.stringify({ compilerOptions: { paths: { ui: ["./lib/ui"] } } })
+    )
+    write("ui/button.tsx", "export function Button() { return null }")
+    write("lib/ui/button.tsx", "export function Button() { return null }")
+    const page = write("src/app/page.tsx", "")
+    expect(uiDirectory(projectFor(page)!)).toBe(path.join(root, "lib/ui"))
   })
 })
