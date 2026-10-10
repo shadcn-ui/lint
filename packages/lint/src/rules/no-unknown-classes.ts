@@ -12,6 +12,7 @@ import {
   colorTokensFor,
   knownClassesFor,
   tailwindEntryFor,
+  tailwindPrefixFor,
   themeFileFor,
   utilityPrefixesOf,
 } from "../project/theme"
@@ -84,6 +85,11 @@ export const noUnknownClasses = {
     // so the grammar answers instead of a half-built design system.
     const entry = tailwindEntryFor(filename)
     const utilityPrefixes = utilityPrefixesOf(known.utilities)
+    // Under prefix(tw), no-raw-colors leaves an unprefixed text-muted to
+    // this rule: it is no more a Tailwind class than flex is.
+    const prefix = tailwindPrefixFor(filename)
+    const isTailwindColor = (token: string) =>
+      (!prefix || token.startsWith(`${prefix}:`)) && isColor(token)
 
     // What the project's CSS settles without asking Tailwind.
     const settled = (token: string) => {
@@ -172,7 +178,7 @@ export const noUnknownClasses = {
         if (asked) {
           for (const { token, suggestion, baseKnown } of asked) {
             if (
-              isColor(token) &&
+              isTailwindColor(token) &&
               !baseKnown &&
               !ownsColorTypo(token, suggestion)
             )
