@@ -42,6 +42,12 @@ type Tailwind = {
   ): Promise<DesignSystem>
 }
 
+type LoadModule = (
+  id: string,
+  base: string,
+  onDependency: (file: string) => void
+) => Promise<{ path: string; base: string; module: unknown }>
+
 type Loaded = {
   ds: DesignSystem
   files: string[]
@@ -116,7 +122,7 @@ function* tailwindBases(cssFile: string) {
 
 // Resolved from the stylesheet outward: ours is not a substitute for the
 // version that actually generates the project's CSS.
-async function loadTailwind(cssFile: string): Promise<Tailwind | null> {
+async function loadTailwind(cssFile: string) {
   for (const from of tailwindBases(cssFile)) {
     let resolved: string
     try {
@@ -134,12 +140,54 @@ async function loadTailwind(cssFile: string): Promise<Tailwind | null> {
         : typeof mod.default?.__unstable__loadDesignSystem === "function"
           ? mod.default
           : null
-    if (api) return api as Tailwind
+    if (api) return { api: api as Tailwind, resolved }
     throw new Error(
       `${resolved} is not Tailwind v4 (no __unstable__loadDesignSystem)`
     )
   }
   return null
+}
+
+// The loader the CLI, Vite and PostCSS plugins use for @config and
+// @plugin. Its jiti takes what native import() refuses: extensionless
+// relative imports and TypeScript beyond type stripping. Installed
+// beside whichever of them the project uses, so it is looked for where
+// Tailwind was found and in the directory Tailwind really lives in.
+async function loadNodeLoader(cssFile: string, tailwind: string) {
+  const bases = [...tailwindBases(cssFile), path.dirname(realpathOf(tailwind))]
+  for (const from of bases) {
+    let resolved: string
+    try {
+      resolved = resolveFrom(from, "@tailwindcss/node")
+    } catch {
+      continue
+    }
+    try {
+      const mod = (await import(pathToFileURL(resolved).href)) as {
+        loadModule?: unknown
+        default?: { loadModule?: unknown }
+      }
+      const loader = mod.loadModule ?? mod.default?.loadModule
+      if (typeof loader === "function") return loader as LoadModule
+    } catch {
+      // A broken install falls back to native import().
+    }
+  }
+  return null
+}
+
+// Without @tailwindcss/node, Node's own import(). The module cache never
+// forgets: key the URL by mtime.
+async function importModule(id: string, base: string) {
+  const resolved = resolveFrom(base, id)
+  const url = pathToFileURL(resolved)
+  url.searchParams.set("mtime", String(mtimeOf(resolved)))
+  const mod = (await import(url.href)) as { default?: unknown }
+  return {
+    path: resolved,
+    base: path.dirname(resolved),
+    module: mod.default ?? mod,
+  }
 }
 
 function existingFile(candidate: string) {
@@ -286,10 +334,11 @@ async function build(cssFile: string): Promise<Loaded> {
   if (!tailwind) {
     throw new Error(`tailwindcss v4 could not be resolved from ${dir}`)
   }
+  let loader: LoadModule | null | undefined
   const files = [cssFile]
   let modules = 0
   const css = fs.readFileSync(cssFile, "utf-8")
-  const ds = await tailwind.__unstable__loadDesignSystem(css, {
+  const ds = await tailwind.api.__unstable__loadDesignSystem(css, {
     base: dir,
     async loadStylesheet(id, base) {
       if (/^(?:https?:|data:)/.test(id)) return { base, content: "" }
@@ -309,14 +358,16 @@ async function build(cssFile: string): Promise<Loaded> {
       }
     },
     async loadModule(id, base) {
-      const resolved = resolveFrom(base, id)
-      files.push(resolved)
       modules++
-      // The module cache never forgets: key the URL by mtime.
-      const url = pathToFileURL(resolved)
-      url.searchParams.set("mtime", String(mtimeOf(resolved)))
-      const mod = (await import(url.href)) as { default?: unknown }
-      return { base: path.dirname(resolved), module: mod.default ?? mod }
+      if (loader === undefined) {
+        loader = await loadNodeLoader(cssFile, tailwind.resolved)
+      }
+      // The files a config imports change its theme too.
+      const result = loader
+        ? await loader(id, base, (file) => files.push(file))
+        : await importModule(id, base)
+      files.push(result.path)
+      return { base: result.base, module: result.module }
     },
   })
   const variants = ds.getVariants()

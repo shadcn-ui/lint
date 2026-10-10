@@ -100,6 +100,9 @@ importers:
         specifier: 0.4.0
         version: 0.4.0
     devDependencies:
+      '@tailwindcss/node':
+        specifier: ^4.3.3
+        version: 4.3.3
       '@types/node':
         specifier: ^24.3.0
         version: 24.13.3
