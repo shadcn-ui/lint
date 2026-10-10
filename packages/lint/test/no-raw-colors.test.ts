@@ -47,6 +47,15 @@ describe("no-raw-colors", () => {
           filename: PAGE,
           code: `export const A = () => <div className="text-sm ring-2 border-2 shadow-lg bg-cover bg-none" />`,
         },
+        // none is an SVG paint, not a color token.
+        {
+          filename: PAGE,
+          code: `export const A = () => <svg className="fill-none stroke-none hover:fill-none" />`,
+        },
+        {
+          filename: PAGE,
+          code: `export const A = () => <div className="border-none outline-none shadow-none drop-shadow-none" />`,
+        },
         // Arbitrary values and variable references are other rules' business.
         {
           filename: PAGE,

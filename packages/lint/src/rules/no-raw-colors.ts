@@ -34,6 +34,9 @@ import { didYouMean, nearestColorTokens, paletteColor, roleOf } from "./suggest"
 
 const NAMED = new Set(["white", "black", "transparent", "current", "inherit"])
 
+// SVG paint takes none: fill-none and stroke-none paint nothing.
+const PAINT_PREFIXES = new Set(["fill-", "stroke-"])
+
 // JSX attributes that take a color directly.
 const COLOR_ATTRIBUTES = new Set([
   "fill",
@@ -317,6 +320,8 @@ export const noRawColors = {
       if (!declared) return null
       if (categoryOf(groupOf(token)) !== "color") return null
       if (!colorValue || NAMED.has(colorValue)) return null
+      if (parts?.value === "none" && PAINT_PREFIXES.has(parts.prefix))
+        return null
       // A class the project's CSS declares with @utility is its
       // vocabulary, whatever the name looks like: "not a declared theme
       // color" is false about a name the theme declares. A plain class
