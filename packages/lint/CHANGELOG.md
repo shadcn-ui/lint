@@ -1,5 +1,25 @@
 # @shadcn/lint
 
+## 0.2.2
+
+### Patch Changes
+
+- [#92](https://github.com/shadcn-ui/lint/pull/92) [`868955e`](https://github.com/shadcn-ui/lint/commit/868955e9a89fbb1886ee74e8ceae7fde547f2f78) Thanks [@shadcn](https://github.com/shadcn)! - Add `allowDynamicIdentifiers` to `no-inline-styles` for style objects a library computes, such as Floating UI's `floatingStyles`.
+
+- [#95](https://github.com/shadcn-ui/lint/pull/95) [`ea6b078`](https://github.com/shadcn-ui/lint/commit/ea6b078e178d0df0d29183ece35fc4873cfa8f47) Thanks [@shadcn](https://github.com/shadcn)! - Treat a received class prop such as `labelClass` as forwarded in `require-static-classes`, the way a received `className` is.
+
+- [#88](https://github.com/shadcn-ui/lint/pull/88) [`1561353`](https://github.com/shadcn-ui/lint/commit/15613532d328ef660c1e42c43d20073e8c891f0b) Thanks [@shadcn](https://github.com/shadcn)! - Let `deny` report `white` and `black` in `no-raw-colors`, with the nearest theme tokens suggested.
+
+- [#87](https://github.com/shadcn-ui/lint/pull/87) [`44d6cbf`](https://github.com/shadcn-ui/lint/commit/44d6cbfe30dba144bdca04f4707803e5b61d3f4f) Thanks [@shadcn](https://github.com/shadcn)! - Stop `no-restyle` naming a package file as the place to add a variant when `componentImports` recognizes a package's component.
+
+- [#91](https://github.com/shadcn-ui/lint/pull/91) [`dde45eb`](https://github.com/shadcn-ui/lint/commit/dde45eb0b401c110c61d0fb45f2afaa426de21fa) Thanks [@shadcn](https://github.com/shadcn)! - Resolve `{{sizes}}` in `no-restyle` contract messages on every finding, not only spacing.
+
+- [#87](https://github.com/shadcn-ui/lint/pull/87) [`44d6cbf`](https://github.com/shadcn-ui/lint/commit/44d6cbfe30dba144bdca04f4707803e5b61d3f4f) Thanks [@shadcn](https://github.com/shadcn)! - Add `settings.shadcn.themeImports`, so a design system installed as a package can supply the project's theme tokens.
+
+- [#94](https://github.com/shadcn-ui/lint/pull/94) [`9a55f6d`](https://github.com/shadcn-ui/lint/commit/9a55f6d1b3fc78e6342c39c26cb6093342fd1b67) Thanks [@shadcn](https://github.com/shadcn)! - Match a tag with no import, such as an auto-imported Vue component, against the directory `settings.shadcn.ui` names.
+
+- [#90](https://github.com/shadcn-ui/lint/pull/90) [`5ef03bf`](https://github.com/shadcn-ui/lint/commit/5ef03bf4bab4de604e773c69fdd995e6ffab2994) Thanks [@shadcn](https://github.com/shadcn)! - Classify a class declared with `@utility` by the properties its body sets.
+
 ## 0.2.1
 
 ### Patch Changes
