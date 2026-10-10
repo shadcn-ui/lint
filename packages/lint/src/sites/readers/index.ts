@@ -51,8 +51,10 @@ export function isContainer(node: any) {
   return typeof node?.type === "string" && node.type in CONTAINERS
 }
 
-// The attribute an expression container is the value of.
+// The attribute an expression container is the value of. Svelte's
+// `{className}` has no container: the attribute holds the identifier.
 export function attributeOfContainer(container: any) {
+  if (container?.type === "SvelteShorthandAttribute") return container
   const attribute = container?.parent
   return attribute && CONTAINERS[container.type] === attribute.type
     ? attribute

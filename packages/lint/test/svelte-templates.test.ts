@@ -130,6 +130,46 @@ describe("Svelte templates", () => {
     ).toEqual([])
   })
 
+  it("reads a shorthand attribute the way its long form is read", () => {
+    const body = `const contentClass = "text-lg";`
+    const long = found(
+      `<Card.Content contentClass={contentClass}>x</Card.Content>`,
+      body
+    )
+    expect(long).toEqual([
+      `shadcn/no-restyle: "text-lg" is not allowed on <CardContent>: <CardContent> owns its typography`,
+    ])
+    expect(
+      found(`<Card.Content {contentClass}>x</Card.Content>`, body)
+    ).toEqual(long)
+  })
+
+  it("reads a shorthand style attribute", () => {
+    const body = `const style = { color: "red" };`
+    const long = found(`<div style={style}></div>`, body)
+    expect(long).toEqual(["shadcn/no-inline-styles: Inline style sets color"])
+    expect(found(`<div {style}></div>`, body)).toEqual(long)
+  })
+
+  it("accepts the received class prop as a shorthand", () => {
+    expect(found(`<Button className={className}>x</Button>`)).toEqual([])
+    expect(found(`<Button {className}>x</Button>`)).toEqual([])
+  })
+
+  it("hands an object over through a shorthand attribute", () => {
+    const body = `const theme = { className: "w-full" };`
+    const long = found(
+      `<Button theme={theme} class={theme.className}>x</Button>`,
+      body
+    )
+    expect(long).toEqual([
+      "shadcn/require-static-classes: Dynamically built className on <Button> cannot be checked",
+    ])
+    expect(
+      found(`<Button {theme} class={theme.className}>x</Button>`, body)
+    ).toEqual(long)
+  })
+
   it("leaves dynamic elements to the vocabulary rules", () => {
     expect(
       found(`<svelte:element this={tone} class="bg-red-500 flex" />`)

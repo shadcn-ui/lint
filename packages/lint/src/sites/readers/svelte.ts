@@ -57,6 +57,8 @@ function templateOf(attribute: any) {
 }
 
 function valueOf(attribute: any) {
+  // `{className}` is its own value.
+  if (attribute?.type === "SvelteShorthandAttribute") return attribute.value
   const parts: any[] = attribute?.value ?? []
   if (!parts.length) return null
   if (parts.length === 1) return parts[0]
@@ -71,7 +73,7 @@ function nameText(name: any): string {
 }
 
 export const svelteReader: TemplateReader = {
-  attributes: ["SvelteAttribute"],
+  attributes: ["SvelteAttribute", "SvelteShorthandAttribute"],
   spreads: ["SvelteSpreadAttribute"],
   classObjects: true,
   staticStyles: true,
