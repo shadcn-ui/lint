@@ -1,0 +1,9 @@
+{
+  "name": "package-imports-fixture",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#lib/*": "./src/lib/*.ts"
+  }
+}

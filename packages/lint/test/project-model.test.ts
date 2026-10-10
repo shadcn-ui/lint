@@ -197,6 +197,24 @@ describe("resolution", () => {
     )
   })
 
+  // The package imports guide maps "#components/*" to files with an
+  // extension, so the ui alias only matches as a directory.
+  test("a ui alias through a wildcard package.json imports key", () => {
+    const warnings: string[] = []
+    setWarningSink((message) => warnings.push(message))
+    const root = path.join(FIXTURES, "package-imports")
+    const ui = path.join(root, "src/components/ui")
+    const app = path.join(root, "src/app.tsx")
+    expect(resolveDirectory("#components/ui", root, root)).toBe(ui)
+    expect(uiDirectory(findProject(app)!)).toBe(ui)
+    expect(componentsFor(app).files.get("Button")).toBe(
+      path.join(ui, "button.tsx")
+    )
+    expect(warnings).toEqual([])
+    resetWarnings()
+    setWarningSink((message) => console.warn(message))
+  })
+
   test("a .js specifier resolves to the .tsx source", () => {
     expect(resolveFile("@/components/ui/button.js", PROJECT, PROJECT)).toBe(
       path.join(PROJECT, "components/ui/button.tsx")

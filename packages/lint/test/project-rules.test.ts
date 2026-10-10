@@ -13,6 +13,7 @@ const FIXTURES = path.join(__dirname, "fixtures")
 const NO_JSON_PAGE = path.join(FIXTURES, "no-json/src/app/page.tsx")
 const WEB_PAGE = path.join(FIXTURES, "monorepo/apps/web/app/page.tsx")
 const ADMIN_PAGE = path.join(FIXTURES, "monorepo/apps/admin/app/page.tsx")
+const IMPORTS_APP = path.join(FIXTURES, "package-imports/src/app.tsx")
 
 const tester = createTester()
 const boundary = noRestyle as any
@@ -83,6 +84,34 @@ describe("variants resolve through imports without components.json", () => {
           code: `import { Button } from "@acme/ui"\nexport const A = () => <Button className="bg-highlight">Go</Button>`,
           options: [{ componentImports: ["^@acme/ui"] }],
           errors: [{ messageId: "appearanceClass" }],
+        },
+      ],
+    })
+  })
+})
+
+describe("package.json imports aliases", () => {
+  test("variants and file through a wildcard imports key", () => {
+    tester.run("no-restyle", boundary, {
+      valid: [],
+      invalid: [
+        {
+          filename: IMPORTS_APP,
+          code: `import { Button } from "#components/ui/button"\nexport const A = () => <Button className="bg-primary p-4">Go</Button>`,
+          options: [{ allow: ["layout"] }],
+          errors: [
+            {
+              messageId: "appearanceClassWithVariants",
+              data: {
+                className: "bg-primary",
+                component: "Button",
+                category: "color",
+                variants: "default, outline",
+                file: "test/fixtures/package-imports/src/components/ui/button.tsx",
+              },
+            },
+            { messageId: "spacingClassWithSizes" },
+          ],
         },
       ],
     })
