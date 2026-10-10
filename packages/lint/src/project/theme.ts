@@ -42,6 +42,8 @@ type ThemeRead = {
   declarations: Declaration[]
   // The mark of a project's entry stylesheet.
   tailwind: boolean
+  // The tw of `@import "tailwindcss" prefix(tw)`: only tw:flex is Tailwind.
+  prefix: string | null
   files: string[]
   // Retried with the signature, so a corrected alias invalidates too.
   missingImports: { spec: string; fromDir: string; rootDir: string }[]
@@ -231,6 +233,14 @@ export function parseImports(css: string) {
   return out
 }
 
+// The prefix a Tailwind import declares, if any.
+export function parseTailwindPrefix(css: string) {
+  const re =
+    /@import\s+(?:url\(\s*)?["']tailwindcss(?:\/[^"']*)?["']\s*\)?[^;]*?\bprefix\(\s*([\w-]+)\s*\)/g
+  for (const match of stripComments(css).matchAll(re)) return match[1]
+  return null
+}
+
 export function parseUtilities(css: string) {
   const out = new Set<string>()
   for (const match of css.matchAll(/@utility\s+([\w-]+\*?)\s*\{/g)) {
@@ -279,6 +289,7 @@ function readTheme(
   }
   for (const name of parseUtilities(css)) read.utilities.add(name)
   for (const name of parseClassSelectors(css)) read.classes.add(name)
+  if (!fromPackage) read.prefix ??= parseTailwindPrefix(css)
   // Imports come first in the cascade.
   const dir = path.dirname(cssFile)
   const root = packageRoot(cssFile) ?? dir
@@ -329,6 +340,7 @@ function themeAt(cssFile: string) {
     themeNames: new Set(),
     declarations: [],
     tailwind: false,
+    prefix: null,
     files: [],
     missingImports: [],
   }
@@ -459,6 +471,11 @@ export function tailwindEntryFor(fromFile: string) {
     }`
   )
   return discovered
+}
+
+export function tailwindPrefixFor(fromFile: string) {
+  const entry = tailwindEntryFor(fromFile)
+  return entry ? themeAt(entry).prefix : null
 }
 
 export function colorTokensFor(fromFile: string) {

@@ -1,6 +1,7 @@
 import * as path from "node:path"
 import { describe, expect, test } from "vitest"
 
+import { noRawColors } from "../src/rules/no-raw-colors"
 import { noUnknownClasses } from "../src/rules/no-unknown-classes"
 import { oracleAvailable, resetOracleMemo } from "../src/tailwind/client"
 import { button, createTester, PAGE, PROJECT } from "./helpers"
@@ -258,6 +259,54 @@ describe.skipIf(!oracleAvailable())("prefixed variant typos", () => {
                   output: code.replace("tw:hovr:flex", "tw:hover:flex"),
                 },
               ],
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  // Under prefix(tw), text-muted is no more a Tailwind class than flex.
+  test("an unprefixed color class is unknown, not an undeclared color", () => {
+    resetOracleMemo()
+    const code = `export const A = () => <div className="tw:text-primary text-muted text-red-500 flex" />`
+    tester.run("no-raw-colors", noRawColors as any, {
+      valid: [{ filename: page, code }],
+      invalid: [
+        {
+          filename: page,
+          code: `export const A = () => <div className="tw:text-nope" />`,
+          errors: [{ messageId: "undeclaredToken" }],
+        },
+      ],
+    })
+    tester.run("no-unknown-classes", noUnknownClasses as any, {
+      valid: [],
+      invalid: [
+        {
+          filename: page,
+          code,
+          errors: [
+            {
+              messageId: "unknownClass",
+              data: {
+                className: "text-muted",
+                file: "test/fixtures/prefixed/app/globals.css",
+              },
+            },
+            {
+              messageId: "unknownClass",
+              data: {
+                className: "text-red-500",
+                file: "test/fixtures/prefixed/app/globals.css",
+              },
+            },
+            {
+              messageId: "unknownClass",
+              data: {
+                className: "flex",
+                file: "test/fixtures/prefixed/app/globals.css",
+              },
             },
           ],
         },

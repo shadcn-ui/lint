@@ -19,6 +19,7 @@ import {
   declaresUtility,
   scopedColorTokensFor,
   tailwindEntryFor,
+  tailwindPrefixFor,
   themeFileFor,
 } from "../project/theme"
 import { classSiteVisitors } from "../sites/collect"
@@ -207,6 +208,7 @@ export const noRawColors = {
         // The stylesheet the oracle can build: not every theme file
         // imports Tailwind.
         entry: tailwindEntryFor(filename),
+        prefix: tailwindPrefixFor(filename),
         file,
         memo: verdictMemo(declared ?? NO_THEME, file),
       }
@@ -301,7 +303,10 @@ export const noRawColors = {
 
     const judge = (token: string): Verdict => {
       if (isArbitraryValue(token)) return null
-      const { declared } = themeFor()
+      const { declared, prefix } = themeFor()
+      // Under prefix(tw), text-muted is not a Tailwind class, let alone
+      // a color: whether it exists is no-unknown-classes' question.
+      if (prefix && !token.startsWith(`${prefix}:`)) return null
       const parts = splitColorClass(token)
       const colorValue = parts?.value ?? null
       // A palette name the theme declares is one of its tokens.
