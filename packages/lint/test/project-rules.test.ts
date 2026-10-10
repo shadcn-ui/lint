@@ -110,6 +110,8 @@ describe("package.json imports aliases", () => {
                 category: "color",
                 variants: "default, outline",
                 file: "test/fixtures/package-imports/src/components/ui/button.tsx",
+                where:
+                  "in test/fixtures/package-imports/src/components/ui/button.tsx",
               },
             },
             { messageId: "spacingClassWithSizes" },
