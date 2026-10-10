@@ -308,6 +308,16 @@ function isMutated(variable: any) {
   })
 }
 
+// `cn` or `Option.some`: a callee named by identifiers and dots, the
+// way `mergeFunctions` and `variantFunctions` spell it.
+function calleeName(callee: any): string | null {
+  if (callee?.type === "Identifier") return callee.name
+  if (callee?.type !== "MemberExpression" || callee.computed) return null
+  if (callee.property?.type !== "Identifier") return null
+  const object = calleeName(callee.object)
+  return object ? `${object}.${callee.property.name}` : null
+}
+
 const helperNames = new WeakMap<object, string[]>()
 
 function helperNamesOf(context: any) {
@@ -367,8 +377,7 @@ function isEscaped(variable: any, context?: any) {
       if (
         outer?.type === "CallExpression" &&
         outer.arguments.includes(container) &&
-        outer.callee.type === "Identifier" &&
-        helperNamesOf(context).includes(outer.callee.name)
+        helperNamesOf(context).includes(calleeName(outer.callee) ?? "")
       )
         return false
     }
@@ -888,8 +897,7 @@ export function collectClassStrings(
         }
         return
       case "CallExpression": {
-        const callee =
-          node.callee?.type === "Identifier" ? node.callee.name : null
+        const callee = calleeName(node.callee)
         if (callee && helpers.has(callee)) {
           // A call reached by resolving an identifier keeps its own site.
           const hopped = path.size > 0
@@ -1325,8 +1333,7 @@ export function classSiteVisitors(
     ...visitors,
     CallExpression(node: any) {
       if (consumedCalls.has(node)) return
-      const callee =
-        node.callee?.type === "Identifier" ? node.callee.name : null
+      const callee = calleeName(node.callee)
       if (!callee || !helpers.has(callee)) return
       for (const site of callSites(node)) emit(site)
     },
