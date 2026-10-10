@@ -254,6 +254,74 @@ describe("contract messages", () => {
     })
   })
 
+  test("{{sizes}} is the list on every finding kind", () => {
+    const contracts = [
+      {
+        pattern: "^Button$",
+        allow: ["layout"],
+        deny: ["w-*"],
+        message: "Sizes: {{sizes}}.",
+      },
+      {
+        pattern: "^CardTitle$",
+        message: "Sizes: {{sizes|none yet}}.",
+      },
+    ]
+    tester.run("no-restyle", noRestyle as any, {
+      valid: [],
+      invalid: [
+        // A denied class names the sizes, not a literal placeholder.
+        {
+          filename: PAGE,
+          code: `${button}
+export const A = () => <Button className="w-full">Go</Button>`,
+          options: [{ contracts }],
+          errors: [
+            {
+              message:
+                "Sizes: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg.",
+            },
+          ],
+        },
+        // So does an appearance class.
+        {
+          filename: PAGE,
+          code: `${button}
+export const A = () => <Button className="font-bold">Go</Button>`,
+          options: [{ contracts }],
+          errors: [
+            {
+              message:
+                "Sizes: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg.",
+            },
+          ],
+        },
+        // And a spacing class, as before.
+        {
+          filename: PAGE,
+          code: `${button}
+export const A = () => <Button className="p-4">Go</Button>`,
+          options: [{ contracts }],
+          errors: [
+            {
+              message:
+                "Sizes: default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg.",
+            },
+          ],
+        },
+        // A component without sizes takes the fallback on a non-spacing
+        // finding too, rather than printing the placeholder.
+        {
+          filename: PAGE,
+          code: `import { CardTitle } from "@/components/ui/card"
+export const A = () => <CardTitle className="font-bold">Go</CardTitle>`,
+          options: [{ contracts }],
+          errors: [{ message: "Sizes: none yet." }],
+        },
+      ],
+    })
+  })
+
   test("{{variants}} is the bare list on every finding kind", () => {
     tester.run("no-restyle", noRestyle as any, {
       valid: [],

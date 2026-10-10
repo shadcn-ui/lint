@@ -415,7 +415,14 @@ const ARBITRARY_PROPERTY_RULES = [
   [/^(?:transition|animation|--tw-(?:duration|ease|delay)$)/, "motion"],
 ] as const
 
+// tailwind-merge's prefix; two dots cannot collide with a plugin group.
 const ARBITRARY_PREFIX = "arbitrary.."
+
+// The group id a CSS property carries, for a class whose category comes
+// from the property it sets rather than from its name.
+export function propertyGroup(property: string) {
+  return ARBITRARY_PREFIX + property
+}
 
 export const CATEGORIES = [
   "color",

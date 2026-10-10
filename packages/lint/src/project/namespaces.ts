@@ -5,15 +5,18 @@
 // --background-image-* the grammar has no scale for, so it reads as a
 // color, and a project's animations live in @utility as often as @theme.
 
-import { categoryOf } from "../grammar/categories"
+import { CATEGORIES, categoryOf, propertyGroup } from "../grammar/categories"
 import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
 import { classifierFor } from "../grammar/classifier"
 import { setsFontSize } from "../tailwind/client"
 import {
   declaresClass,
+  knownClassesFor,
   moduleThemeEntryFor,
   themeVocabularyFor,
+  utilityPropertiesOf,
   type ThemeVocabulary,
+  type Utilities,
 } from "./theme"
 
 const NAMESPACES: {
@@ -34,13 +37,16 @@ const NAMESPACES: {
 
 const ANIMATE_PREFIX = "animate-"
 
-const memos = new WeakMap<ThemeVocabulary, Map<string, string | null>>()
+const memos = new WeakMap<
+  ThemeVocabulary | Utilities,
+  Map<string, string | null>
+>()
 
-function memoFor(vocabulary: ThemeVocabulary) {
-  let memo = memos.get(vocabulary)
+function memoFor(read: ThemeVocabulary | Utilities) {
+  let memo = memos.get(read)
   if (!memo) {
     memo = new Map()
-    memos.set(vocabulary, memo)
+    memos.set(read, memo)
   }
   if (memo.size > 50_000) memo.clear()
   return memo
@@ -83,6 +89,47 @@ export function themeGroupFor(fromFile: string | undefined, token: string) {
   return group
 }
 
+const RANK = new Map(CATEGORIES.map((name, index) => [name, index]))
+
+// A body that changes more than one thing is read as the first
+// appearance it carries, so a utility that paints and lays out is still
+// paint. Layout ranks last: it is what a body with nothing else in it
+// leaves.
+function lookupUtility(utilities: Utilities, token: string) {
+  const properties = utilityPropertiesOf(utilities, token)
+  if (!properties) return null
+  let best: string | null = null
+  let rank = Infinity
+  for (const property of properties) {
+    const group = propertyGroup(property)
+    const category = categoryOf(group)
+    const at = category === null ? CATEGORIES.length : RANK.get(category)!
+    if (at < rank) {
+      best = group
+      rank = at
+    }
+  }
+  return best
+}
+
+// The cn group an @utility the project declares gives this class. The
+// class name says nothing the grammar can read, so the body answers
+// instead: the properties it sets are categorized the way an arbitrary
+// property is, and `@utility heading-2xs { font-size: ... }` is
+// typography for the same reason `[font-size:1rem]` is.
+export function utilityGroupFor(fromFile: string | undefined, token: string) {
+  if (!fromFile) return null
+  const { utilities } = knownClassesFor(fromFile)
+  if (!utilities.size) return null
+  const memo = memoFor(utilities)
+  let group = memo.get(token)
+  if (group === undefined) {
+    group = lookupUtility(utilities, token)
+    memo.set(token, group)
+  }
+  return group
+}
+
 // cn groups Tailwind's own animations and the --animate-* names a theme
 // declares, so that merging never drops a plugin's animate-once. The rest
 // of a project's animations come from its CSS: animate-in from an
@@ -117,10 +164,17 @@ export function projectClassifierFor(fromFile?: string) {
   const { groupOf: grammarGroupOf } = classifierFor(fromFile)
   const groupOf = (token: string) => {
     const group = grammarGroupOf(token)
-    if (!group) return animationGroupFor(fromFile, token)
+    if (!group) {
+      return (
+        animationGroupFor(fromFile, token) ?? utilityGroupFor(fromFile, token)
+      )
+    }
     if (categoryOf(group) !== "color") return group
     return (
-      themeGroupFor(fromFile, token) ?? moduleGroupFor(fromFile, token) ?? group
+      themeGroupFor(fromFile, token) ??
+      utilityGroupFor(fromFile, token) ??
+      moduleGroupFor(fromFile, token) ??
+      group
     )
   }
   return { groupOf }

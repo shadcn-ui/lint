@@ -12,7 +12,7 @@ import { dirOf, mtimeOf, TTL } from "../project/fs"
 import { themeFileFor } from "../project/theme"
 import { themeScalesFromCss } from "../project/theme-scales"
 import { warnOnce } from "../project/warn"
-import { GROUP_CATEGORY } from "./categories"
+import { GROUP_CATEGORY, propertyGroup } from "./categories"
 import { splitVariants } from "./classes"
 import * as cnValidators from "./validators"
 
@@ -162,9 +162,6 @@ const validatorByName: Record<
   ((value: string) => boolean) | undefined
 > = cnValidators
 
-// tailwind-merge's prefix; two dots cannot collide with a plugin group.
-const ARBITRARY_PROPERTY_PREFIX = "arbitrary.."
-
 function createNode() {
   const node: Node = { next: new Map(), validators: null, group: null }
   return node
@@ -279,7 +276,7 @@ function walk(parts: string[], start: number, root: Node) {
 function arbitraryPropertyGroup(base: string) {
   const content = base.slice(1, -1)
   const colon = content.indexOf(":")
-  return colon > 0 ? ARBITRARY_PROPERTY_PREFIX + content.slice(0, colon) : null
+  return colon > 0 ? propertyGroup(content.slice(0, colon)) : null
 }
 
 // Only a slash outside brackets starts a modifier like bg-primary/90.

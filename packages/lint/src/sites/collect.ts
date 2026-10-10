@@ -308,13 +308,13 @@ function isMutated(variable: any) {
   })
 }
 
-// `cn` or `Option.some`: a callee named by identifiers and dots, the
-// way `mergeFunctions` and `variantFunctions` spell it.
-function calleeName(callee: any): string | null {
+// `cn` or `Option.some`: a name written as identifiers and dots, the way
+// `mergeFunctions` and `allowDynamicIdentifiers` spell it.
+export function dottedName(callee: any): string | null {
   if (callee?.type === "Identifier") return callee.name
   if (callee?.type !== "MemberExpression" || callee.computed) return null
   if (callee.property?.type !== "Identifier") return null
-  const object = calleeName(callee.object)
+  const object = dottedName(callee.object)
   return object ? `${object}.${callee.property.name}` : null
 }
 
@@ -377,7 +377,7 @@ function isEscaped(variable: any, context?: any) {
       if (
         outer?.type === "CallExpression" &&
         outer.arguments.includes(container) &&
-        helperNamesOf(context).includes(calleeName(outer.callee) ?? "")
+        helperNamesOf(context).includes(dottedName(outer.callee) ?? "")
       )
         return false
     }
@@ -897,7 +897,7 @@ export function collectClassStrings(
         }
         return
       case "CallExpression": {
-        const callee = calleeName(node.callee)
+        const callee = dottedName(node.callee)
         if (callee && helpers.has(callee)) {
           // A call reached by resolving an identifier keeps its own site.
           const hopped = path.size > 0
@@ -1343,7 +1343,7 @@ export function classSiteVisitors(
     ...visitors,
     CallExpression(node: any) {
       if (consumedCalls.has(node)) return
-      const callee = calleeName(node.callee)
+      const callee = dottedName(node.callee)
       if (!callee || !helpers.has(callee)) return
       for (const site of callSites(node)) emit(site)
     },

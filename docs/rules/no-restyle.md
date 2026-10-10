@@ -164,9 +164,10 @@ The rule also accepts [recognition options](../rules.md#recognition):
   and unrelated components are outside this rule.
 - A class the grammar cannot classify is reported as `unclassified`,
   even with `allow: ["layout"]`. Allow a custom class by name when needed.
-  The rule does not inspect that class's CSS. A class your CSS declares
-  with `@utility` is reported the same way, in words that do not treat it
-  as a misspelling.
+  A class your CSS declares with `@utility` is classified by the
+  properties its body sets. One your CSS declares some other way is
+  reported as `unclassified`, in words that do not treat it as a
+  misspelling.
 - Contracts match class names and groups, not every equivalent CSS effect.
   For example, `w-*` does not match `[width:100%]` or `inline-full`.
 - Allowing `p-*` also allows `p-[13px]` through this rule. Use

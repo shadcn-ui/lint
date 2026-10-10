@@ -86,6 +86,19 @@ body {
 @utility tab-* {
   tab-size: --value(integer);
 }
+/* What a utility sets is what it changes: typography, not a color. */
+@utility heading-2xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+@utility text-md-regular {
+  font-size: 1rem;
+  font-weight: 400;
+}
+@utility max-w-chat {
+  max-width: 48rem;
+}
 .legacy-card {
   border: 1px solid var(--border);
 }

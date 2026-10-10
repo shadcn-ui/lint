@@ -16,13 +16,17 @@ import { warnOnce } from "./warn"
 
 export type ScaleKind = "radius" | "text"
 
+// Each @utility a project declares, by name, holding the CSS properties
+// its body sets.
+export type Utilities = Map<string, string[]>
+
 // What a project's own CSS names: the @theme declarations, the color
 // tokens among them, and its @utility names. One object per theme read,
 // replaced when the CSS changes, so callers can memo against its identity.
 export type ThemeVocabulary = {
   names: Set<string>
   tokens: Set<string>
-  utilities: Set<string>
+  utilities: Utilities
 }
 
 type Declaration = { name: string; value: string; theme: boolean }
@@ -32,7 +36,7 @@ type ThemeRead = {
   // Tokens a color utility reads from its own namespace before
   // --color-*: --background-color-surface declares bg-surface only.
   scoped: Map<string, Set<string>>
-  utilities: Set<string>
+  utilities: Utilities
   classes: Set<string>
   // Every custom property the project declares, in light mode, last
   // declaration winning: what tokens resolve to.
@@ -245,11 +249,39 @@ export function parseTailwindPrefix(css: string) {
 }
 
 export function parseUtilities(css: string) {
-  const out = new Set<string>()
-  for (const match of css.matchAll(/@utility\s+([\w-]+\*?)\s*\{/g)) {
-    out.add(match[1])
+  const out = new Map<string, string[]>()
+  const stripped = stripComments(css)
+  for (const match of stripped.matchAll(/@utility\s+([\w-]+\*?)\s*\{/g)) {
+    out.set(
+      match[1],
+      declaredProperties(stripped, match.index + match[0].length)
+    )
   }
   return out
+}
+
+// The properties an @utility body sets, from just inside its brace to
+// the matching close, nesting included: a declaration follows a brace or
+// a semicolon, which neither a selector like &:hover nor an at-rule
+// prelude does. Custom properties stay in: a body that sets
+// --tw-shadow-color is as much a color as one that sets box-shadow.
+function declaredProperties(css: string, start: number) {
+  let depth = 1
+  let i = start
+  while (i < css.length && depth > 0) {
+    const char = css[i]
+    if (char === "{") depth++
+    else if (char === "}") depth--
+    i++
+  }
+  const body = css.slice(start, depth === 0 ? i - 1 : css.length)
+  const names = new Set<string>()
+  for (const [, name] of body.matchAll(
+    /(?:^|[;{}])\s*(-{0,2}[a-zA-Z][\w-]*)\s*:/g
+  )) {
+    names.add(name.toLowerCase())
+  }
+  return [...names]
 }
 
 // A class that exists in CSS (.legacy-card) is not an unknown class.
@@ -322,7 +354,9 @@ function readTheme(
   } catch {
     return
   }
-  for (const name of parseUtilities(css)) read.utilities.add(name)
+  for (const [name, properties] of parseUtilities(css)) {
+    read.utilities.set(name, properties)
+  }
   for (const name of parseClassSelectors(css)) read.classes.add(name)
   if (!fromPackage) read.prefix ??= parseTailwindPrefix(css)
   if (/@(?:config|plugin)\s/.test(stripComments(css))) read.modules = true
@@ -406,7 +440,7 @@ function themeAt(cssFile: string, imports: readonly RegExp[] = NO_IMPORTS) {
   const read: ThemeRead = {
     tokens: new Set(),
     scoped: new Map(),
-    utilities: new Set(),
+    utilities: new Map(),
     classes: new Set(),
     values: new Map(),
     themeNames: new Set(),
@@ -689,13 +723,13 @@ export function themeVocabularyFor(fromFile: string) {
   })
 }
 
-const utilityPrefixes = new WeakMap<Set<string>, string[]>()
+const utilityPrefixes = new WeakMap<Utilities, string[]>()
 
 // The `tab-` of an `@utility tab-*`, computed once per theme read.
-export function utilityPrefixesOf(utilities: Set<string>) {
+export function utilityPrefixesOf(utilities: Utilities) {
   let list = utilityPrefixes.get(utilities)
   if (!list) {
-    list = [...utilities]
+    list = [...utilities.keys()]
       .filter((name) => name.endsWith("*"))
       .map((name) => name.slice(0, -1))
     utilityPrefixes.set(utilities, list)
@@ -703,16 +737,25 @@ export function utilityPrefixesOf(utilities: Set<string>) {
   return list
 }
 
+// The properties the @utility that generates this class sets, by name
+// and then by prefix, or null when no @utility declares it. An empty
+// list is a body that sets nothing a category can be read from.
+export function utilityPropertiesOf(utilities: Utilities, token: string) {
+  const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
+  if (!base) return null
+  const exact = utilities.get(base)
+  if (exact) return exact
+  const prefix = utilityPrefixesOf(utilities).find((p) => base.startsWith(p))
+  return prefix ? (utilities.get(`${prefix}*`) ?? []) : null
+}
+
 // Whether the project's CSS declares this class with @utility, by name
 // or by prefix: Tailwind generates it, so it is the project's vocabulary
 // whatever the name looks like. A plain selector is not: `.text-danger
 // { color: #f00 }` is the raw color no-raw-colors exists to report.
 export function declaresUtility(fromFile: string, token: string) {
-  const base = normalizeClass(token).replace(OPACITY_MODIFIER, "")
-  if (!base) return false
   const { utilities } = knownClassesFor(fromFile)
-  if (utilities.has(base)) return true
-  return utilityPrefixesOf(utilities).some((prefix) => base.startsWith(prefix))
+  return utilityPropertiesOf(utilities, token) !== null
 }
 
 // Whether the project's own CSS declares this class: an @utility name,
@@ -724,11 +767,17 @@ export function declaresClass(fromFile: string, token: string) {
   return !!base && knownClassesFor(fromFile).classes.has(base)
 }
 
+// One object for every project with no theme to read, so a classifier
+// asking per class does not allocate one per class.
+const NO_CLASSES = {
+  utilities: new Map() as Utilities,
+  classes: new Set<string>(),
+}
+
 // What a project's CSS declares beyond Tailwind's own.
 export function knownClassesFor(fromFile: string) {
   const cssFile = themeFileFor(fromFile)
-  if (!cssFile)
-    return { utilities: new Set<string>(), classes: new Set<string>() }
+  if (!cssFile) return NO_CLASSES
   const { utilities, classes } = themeOf(fromFile, cssFile)
   return { utilities, classes }
 }

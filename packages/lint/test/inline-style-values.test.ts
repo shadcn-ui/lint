@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest"
 
 import { plugin } from "../src/index"
 
-function messages(code: string) {
+function messages(code: string, options?: Record<string, unknown>) {
   const linter = new Linter()
   return linter
     .verify(
@@ -16,7 +16,9 @@ function messages(code: string) {
           parserOptions: { ecmaFeatures: { jsx: true } },
         },
         plugins: { shadcn: plugin },
-        rules: { "shadcn/no-inline-styles": "error" },
+        rules: {
+          "shadcn/no-inline-styles": options ? ["error", options] : "error",
+        },
       },
       { filename: "page.tsx" }
     )
@@ -29,6 +31,56 @@ describe("final inline-style properties", () => {
       name: "a local style binding is checked",
       code: `const style = { color: "red" }; <div style={style} />`,
       expected: ["inlineStyle"],
+    },
+    {
+      name: "an explicitly allowed dynamic identifier is exempt",
+      code: `<div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: [],
+    },
+    {
+      name: "an unlisted dynamic identifier remains reported",
+      code: `<div style={otherStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["dynamicStyle"],
+    },
+    // Only what no static read can follow: a name that resolves to a
+    // literal is still checked.
+    {
+      name: "an allowed name that resolves is still checked",
+      code: `const floatingStyles = { color: "red" }; <div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["inlineStyle"],
+    },
+    {
+      name: "an allowed name from a hook is exempt",
+      code: `const { floatingStyles } = useFloating(); <div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: [],
+    },
+    {
+      name: "an allowed name spread into a literal is exempt, the rest is checked",
+      code: `const { floatingStyles } = useFloating(); <div style={{ ...floatingStyles, color: "red" }} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["inlineStyle"],
+    },
+    {
+      name: "an unlisted spread remains reported",
+      code: `const { other } = useFloating(); <div style={{ ...other }} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["dynamicStyle"],
+    },
+    {
+      name: "a dotted name allows a member path",
+      code: `const { styles } = usePopper(); <div style={styles.popper} />`,
+      options: { allowDynamicIdentifiers: ["styles.popper"] },
+      expected: [],
+    },
+    {
+      name: "a dotted name is exact",
+      code: `const { styles } = usePopper(); <div style={styles.arrow} />`,
+      options: { allowDynamicIdentifiers: ["styles.popper"] },
+      expected: ["dynamicStyle"],
     },
     {
       name: "ordinary custom properties in a local object remain readable",
@@ -210,8 +262,8 @@ describe("final inline-style properties", () => {
       code: `function View({ style }: { style: object }) { return <div style={{ "--gap": "4px", ...style }} /> }`,
       expected: [],
     },
-  ])("$name", ({ code, expected }) => {
-    expect(messages(code)).toEqual(expected)
+  ])("$name", ({ code, options, expected }) => {
+    expect(messages(code, options)).toEqual(expected)
   })
 })
 

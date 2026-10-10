@@ -125,12 +125,17 @@ export const noRestyle = {
       const shownPath = shown ? displayPath(shown, context) : ""
       const where = shownPath ? `in ${shownPath}` : `to <${component}>`
       let details: ReturnType<typeof appearanceDetails> | undefined
+      // Read once per site, on the first finding, like the variants.
+      let sizes: string[] | null | undefined
 
       for (const { value, node } of site.contextualStrings) {
         for (const token of splitClasses(value)) {
           const verdict = contracts.decide(component, token)
           if (verdict.kind === "ok") continue
           details ??= appearanceDetails(site)
+          if (sizes === undefined) {
+            sizes = file ? sizeNamesFor(file, component) : null
+          }
           const { messageId, variantNames, variantsSuffix } = details
           // Every finding carries the same slots, whatever the category,
           // so a contract's own words can interpolate any of them.
@@ -140,6 +145,7 @@ export const noRestyle = {
             entries: verdict.entries.join(" "),
             category: verdict.category,
             variants: variantNames,
+            sizes: sizes?.join(", ") ?? "",
             wrapper: site.wrapper ?? "",
             file: shownPath,
             where,
@@ -168,7 +174,6 @@ export const noRestyle = {
               verdict.message
             )
           } else if (verdict.category === "spacing") {
-            const sizes = file ? sizeNamesFor(file, component) : null
             emit(
               {
                 node,
@@ -181,7 +186,6 @@ export const noRestyle = {
                     : "spacingClassNoSizes",
                 data: {
                   ...data,
-                  sizes: sizes?.join(", ") ?? "",
                   around: aroundFor(
                     site,
                     contracts,
