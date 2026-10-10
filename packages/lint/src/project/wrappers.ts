@@ -286,6 +286,7 @@ function jsxElementName(node: any) {
 function build(
   file: string,
   patterns: RegExp[],
+  ui: string[],
   visiting: Set<string>,
   deps: Set<string>,
   parsedAst?: any
@@ -336,6 +337,8 @@ function build(
     }
   }
   const index = componentsFor(file)
+  // A tag with no import is also looked up in settings.shadcn.ui.
+  const tagIndex = ui.length ? componentsFor(file, ui) : index
   const { bindings, candidates } = indexLocalBindings(ast)
   const localVisiting = new Set<string>()
 
@@ -348,10 +351,10 @@ function build(
     const imported = imports.get(name.root)
     if (!imported) {
       if (name.property !== null) return null
-      if (index.has(name.root)) {
+      if (tagIndex.has(name.root)) {
         return {
           component: name.root,
-          file: index.files.get(name.root) ?? null,
+          file: tagIndex.files.get(name.root) ?? null,
         }
       }
       return candidates.has(name.root) ? resolveDeclared(name.root) : null
@@ -389,7 +392,14 @@ function build(
       complete = false
       return null
     }
-    const result = lookup(binding.file, binding.name, patterns, visiting, deps)
+    const result = lookup(
+      binding.file,
+      binding.name,
+      patterns,
+      ui,
+      visiting,
+      deps
+    )
     if (!result.complete) complete = false
     return result.target
   }
@@ -451,13 +461,14 @@ function lookup(
   file: string,
   exportName: string,
   patterns: RegExp[],
+  ui: string[],
   visiting: Set<string>,
   deps: Set<string> | undefined,
   parsedAst?: any
 ): { target: WrapperTarget | null; complete: boolean } {
   deps?.add(file)
   if (mtimeOf(file) === null) return { target: null, complete: false }
-  const key = `${file}|${patterns.map((p) => p.source).join(",")}`
+  const key = `${file}|${patterns.map((p) => p.source).join(",")}|${ui.join(",")}`
   const cached = cache.get(key)
   const now = Date.now()
   if (
@@ -477,7 +488,14 @@ function lookup(
   }
   visiting.add(file)
   const own = new Set<string>()
-  const { wrappers, complete } = build(file, patterns, visiting, own, parsedAst)
+  const { wrappers, complete } = build(
+    file,
+    patterns,
+    ui,
+    visiting,
+    own,
+    parsedAst
+  )
   visiting.delete(file)
   if (deps) {
     for (const dep of own) {
@@ -502,9 +520,10 @@ export function wrapperTargetOf(
   file: string,
   exportName: string,
   patterns: RegExp[] = [],
-  parsedAst?: any
+  parsedAst?: any,
+  ui: string[] = []
 ): WrapperTarget | null {
-  return lookup(file, exportName, patterns, new Set(), undefined, parsedAst)
+  return lookup(file, exportName, patterns, ui, new Set(), undefined, parsedAst)
     .target
 }
 

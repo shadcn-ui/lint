@@ -4,7 +4,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 
-import { projectFor, uiDirectory } from "./components-json"
+import { projectFor, resolveAlias, uiDirectory } from "./components-json"
 import { isFile, mtimeOf, realpath, TTL } from "./fs"
 import { exportsOf } from "./modules"
 import { isSfc } from "./parser"
@@ -127,16 +127,56 @@ function signatureFor(entries: string[], deps: string[]) {
   return `${entries.join(",")}||${signatureOf(deps)}`
 }
 
+const merged = new Map<
+  string,
+  { parts: ComponentIndex[]; index: ComponentIndex }
+>()
+
+// One index over several directories: the first to name a component
+// wins, and a file belongs to the system if any directory owns it.
+function mergeIndexes(parts: ComponentIndex[]) {
+  const key = parts.map((part) => part.dir).join("\0")
+  const cached = merged.get(key)
+  if (cached && cached.parts.every((part, i) => part === parts[i])) {
+    return cached.index
+  }
+  const files = new Map<string, string>()
+  for (const part of parts) {
+    for (const [name, file] of part.files) {
+      if (!files.has(name)) files.set(name, file)
+    }
+  }
+  const index: ComponentIndex = {
+    dir: parts[0].dir,
+    files,
+    has: (name) => files.has(name),
+    owns: (file) => parts.some((part) => part.owns(file)),
+  }
+  merged.set(key, { parts, index })
+  return index
+}
+
 // A project without a ui directory gets an empty index and relies on
-// componentImports.
-export function componentsFor(fromFile: string) {
+// componentImports. `ui` is settings.shadcn.ui: import prefixes that
+// name directories too, for projects without components.json.
+export function componentsFor(fromFile: string, ui: string[] = []) {
   const project = projectFor(fromFile)
   if (!project) return EMPTY
-  const dir = uiDirectory(project)
-  if (!dir) return EMPTY
-  try {
-    return buildIndex(dir)
-  } catch {
-    return EMPTY
+  const dirs = new Set<string>()
+  const own = uiDirectory(project)
+  if (own) dirs.add(own)
+  for (const prefix of ui) {
+    const dir = resolveAlias(project, prefix)
+    if (dir) dirs.add(dir)
   }
+  const parts: ComponentIndex[] = []
+  for (const dir of dirs) {
+    try {
+      parts.push(buildIndex(dir))
+    } catch {
+      // An unreadable directory names no components.
+    }
+  }
+  if (!parts.length) return EMPTY
+  return parts.length === 1 ? parts[0] : mergeIndexes(parts)
 }

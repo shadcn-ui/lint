@@ -45,7 +45,8 @@ rather than the package file.
 Without `components.json`, the linter uses the nearest `package.json`
 and looks in `components/ui` or `src/components/ui`. For another import
 location, set `settings.shadcn.ui`, such as `"@/ds"`. This recognizes
-`@/ds` and `@/ds/button` across the rules. Use `componentImports`
+`@/ds` and `@/ds/button` across the rules, and a tag with no import,
+such as an auto-imported Vue component, by its name in that directory. Use `componentImports`
 for regex matching and `ignoreImports` to skip imports before
 recognition. See [shared options](./rules.md#shared-options).
 

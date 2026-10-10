@@ -76,6 +76,8 @@ export function isClassAttribute(name: string) {
 
 export type TrackerOptions = {
   componentImports?: string[]
+  // settings.shadcn.ui, as written.
+  ui?: string[]
   // Left alone even when the name matches: a raw Radix primitive
   // imported next to its shadcn wrapper.
   ignoreImports?: string[]
@@ -103,7 +105,11 @@ export function createComponentTracker(
   options: TrackerOptions = {}
 ) {
   const filename = fileOf(context)
+  const ui = options.ui ?? []
   const index = componentsFor(filename)
+  // A tag with no import, such as an auto-imported <UiButton>, is also
+  // looked up in settings.shadcn.ui. An import still resolves as before.
+  const tagIndex = ui.length ? componentsFor(filename, ui) : index
   const patterns = (options.componentImports ?? []).map(regexpOf)
   const ignored = (options.ignoreImports ?? []).map(regexpOf)
   const imports = new Map<string, ComponentImport>()
@@ -133,14 +139,21 @@ export function createComponentTracker(
     let target: WrapperTarget | null = null
     if (binding) {
       if (binding.file !== filename && !NODE_MODULES.test(binding.file)) {
-        target = wrapperTargetOf(binding.file, binding.name, patterns)
+        target = wrapperTargetOf(
+          binding.file,
+          binding.name,
+          patterns,
+          undefined,
+          ui
+        )
       }
     } else if (local && filename && /^[A-Z]/.test(local)) {
       target = wrapperTargetOf(
         filename,
         local,
         patterns,
-        context.sourceCode?.ast
+        context.sourceCode?.ast,
+        ui
       )
     }
     wrappers.set(key, target)
@@ -193,11 +206,17 @@ export function createComponentTracker(
     }
 
     // Not imported: a ui component of this file, or a same-file wrapper.
-    const name = property === null ? root : `${root}${property}`
-    if (index.has(name)) {
+    // A globally registered <ui-button> is UiButton, the way Vue reads it.
+    const name =
+      property === null
+        ? !tagIndex.has(root) && element.alias && tagIndex.has(element.alias)
+          ? element.alias
+          : root
+        : `${root}${property}`
+    if (tagIndex.has(name)) {
       return {
         component: name,
-        file: index.files.get(name) ?? null,
+        file: tagIndex.files.get(name) ?? null,
         wrapper: null,
       }
     }
