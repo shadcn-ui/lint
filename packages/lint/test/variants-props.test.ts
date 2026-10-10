@@ -154,6 +154,47 @@ describe("variants from props", () => {
     expect(sizeNamesFor(file, "CardTitle")).toBeNull()
   })
 
+  // shadcn-ui/lint#56: Empty was offered EmptyMedia's variants.
+  test("another component's cva in the same file is not borrowed", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    const file = path.join(dir, "empty.tsx")
+    fs.writeFileSync(
+      file,
+      `function Empty({ className, ...props }: React.ComponentProps<"div">) {
+         return <div className={cn("flex", className)} {...props} />
+       }
+       const emptyMediaVariants = cva("flex", { variants: { variant: { default: "", icon: "" } } })
+       function EmptyMedia({ className, variant, ...props }: React.ComponentProps<"div"> & VariantProps<typeof emptyMediaVariants>) {
+         return <div className={cn(emptyMediaVariants({ variant }), className)} {...props} />
+       }`
+    )
+    expect(variantNamesFor(file, "Empty")).toBeNull()
+    expect(variantNamesFor(file, "EmptyMedia")).toEqual(["default", "icon"])
+  })
+
+  test("a cva the component uses stands in, whatever its name", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    const file = path.join(dir, "chip.tsx")
+    fs.writeFileSync(
+      file,
+      `const styles = cva("", { variants: { variant: { solid: "", ghost: "" } } })
+       const sizes = cva("", { variants: { size: { sm: "", lg: "" } } })
+       interface TagProps extends VariantProps<typeof sizes> { className?: string }
+       export function Chip({ variant, className }: { variant?: "solid" | "ghost" | string; className?: string }) {
+         return <span className={cn(styles({ variant }), className)} />
+       }
+       export const Badge = React.forwardRef<HTMLSpanElement, React.ComponentProps<"span">>(
+         ({ className, ...props }, ref) => <span ref={ref} className={cn(styles(), className)} {...props} />
+       )
+       export function Tag(props: TagProps) { return <span /> }
+       export function Label(props: { className?: string }) { return <span /> }`
+    )
+    expect(variantNamesFor(file, "Chip")).toEqual(["solid", "ghost"])
+    expect(variantNamesFor(file, "Badge")).toEqual(["solid", "ghost"])
+    expect(sizeNamesFor(file, "Tag")).toEqual(["sm", "lg"])
+    expect(variantNamesFor(file, "Label")).toBeNull()
+  })
+
   test("variantNamesFor reads an alias and a lookup object from the file", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
     const file = path.join(dir, "button.tsx")

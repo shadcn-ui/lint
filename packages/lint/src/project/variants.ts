@@ -21,7 +21,11 @@ export type VariantDefinition = {
 
 const cache = new Map<
   string,
-  { mtimeMs: number; definitions: VariantDefinition[] }
+  {
+    mtimeMs: number
+    definitions: VariantDefinition[]
+    uses: Map<string, Set<string>>
+  }
 >()
 
 const VARIANT_FACTORIES = new Set(["cva", "tv"])
@@ -235,17 +239,50 @@ function componentSignature(node: any) {
   return null
 }
 
-export function extractVariantDefinitions(source: string, file = "x.tsx") {
+// The identifiers a function or `const` names, following the same-file
+// types it references, so `props: ButtonProps` reaches the
+// `VariantProps<typeof buttonVariants>` its interface extends.
+function namesIn(node: any, types: Map<string, any>) {
+  const names = new Set<string>()
+  const pending = [node]
+  while (pending.length) {
+    walk(pending.pop(), (child) => {
+      if (child.type !== "Identifier" || names.has(child.name)) return
+      names.add(child.name)
+      const type = types.get(child.name)
+      if (type) pending.push(type)
+    })
+  }
+  return names
+}
+
+// The file's definitions, and the factories each function or `const`
+// names in its body or its props, so a factory is offered only to the
+// components that use it.
+function readVariants(source: string, file: string) {
   const definitions: VariantDefinition[] = []
-  if (!MAY_DEFINE_VARIANTS.test(source)) return definitions
+  const uses = new Map<string, Set<string>>()
+  if (!MAY_DEFINE_VARIANTS.test(source)) return { definitions, uses }
   let ast: any
   try {
     ast = parseSource(source, file)
   } catch {
-    return definitions
+    return { definitions, uses }
   }
   const declared = declarationsIn(ast)
+  const scopes = new Map<string, any>()
+  const types = new Map<string, any>()
   walk(ast, (node, parent) => {
+    if (
+      (node.type === "FunctionDeclaration" ||
+        node.type === "VariableDeclarator" ||
+        node.type === "TSTypeAliasDeclaration" ||
+        node.type === "TSInterfaceDeclaration") &&
+      node.id?.type === "Identifier"
+    ) {
+      const into = node.type.startsWith("TS") ? types : scopes
+      if (!into.has(node.id.name)) into.set(node.id.name, node)
+    }
     if (node.type === "CallExpression") {
       if (node.callee?.type !== "Identifier") return
       if (!VARIANT_FACTORIES.has(node.callee.name)) return
@@ -274,34 +311,53 @@ export function extractVariantDefinitions(source: string, file = "x.tsx") {
     if (!Object.keys(axes).length) return
     definitions.push({ name: signature.name, axes, source: "props" })
   })
-  return definitions
+  const factories = new Set(
+    definitions.flatMap((d) => (d.source === "factory" && d.name ? d.name : []))
+  )
+  if (!factories.size) return { definitions, uses }
+  for (const [name, node] of scopes) {
+    const used = [...namesIn(node, types)].filter(
+      (n) => n !== name && factories.has(n)
+    )
+    if (used.length) uses.set(name, new Set(used))
+  }
+  return { definitions, uses }
+}
+
+export function extractVariantDefinitions(source: string, file = "x.tsx") {
+  return readVariants(source, file).definitions
+}
+
+function fileVariantsOf(file: string) {
+  const mtimeMs = mtimeOf(file)
+  if (mtimeMs === null) return null
+  const cached = cache.get(file)
+  if (cached && cached.mtimeMs === mtimeMs) return cached
+  let read: ReturnType<typeof readVariants>
+  try {
+    read = readVariants(fs.readFileSync(file, "utf-8"), file)
+  } catch {
+    read = { definitions: [], uses: new Map() }
+  }
+  const entry = { mtimeMs, ...read }
+  cache.set(file, entry)
+  return entry
 }
 
 export function variantDefinitionsOf(file: string) {
-  const mtimeMs = mtimeOf(file)
-  if (mtimeMs === null) return []
-  const cached = cache.get(file)
-  if (cached && cached.mtimeMs === mtimeMs) return cached.definitions
-  let definitions: VariantDefinition[] = []
-  try {
-    definitions = extractVariantDefinitions(
-      fs.readFileSync(file, "utf-8"),
-      file
-    )
-  } catch {
-    definitions = []
-  }
-  cache.set(file, { mtimeMs, definitions })
-  return definitions
+  return fileVariantsOf(file)?.definitions ?? []
 }
 
 // The definition for a component: the cva named after it
 // (buttonVariants for Button), else the component's own props (Text),
-// else the file's first cva. Another component's props never apply.
+// else the first cva the component uses. An SFC is its file's only
+// component, so any cva in it is the component's. Another component's
+// props or cva never apply.
 function definitionFor(file: string, component: string) {
   const expected =
     component.charAt(0).toLowerCase() + component.slice(1) + "Variants"
-  const definitions = variantDefinitionsOf(file)
+  const read = fileVariantsOf(file)
+  const definitions = read?.definitions ?? []
   if (!definitions.length) {
     // A `buttonVariants` may live in the barrel beside Button.vue.
     // Only the factory named after the component: a barrel speaks for
@@ -315,7 +371,11 @@ function definitionFor(file: string, component: string) {
   return (
     definitions.find((d) => d.name === expected) ??
     definitions.find((d) => d.name === component && d.source === "props") ??
-    definitions.find((d) => d.source === "factory") ??
+    definitions.find(
+      (d) =>
+        d.source === "factory" &&
+        (isSfc(file) || (!!d.name && !!read?.uses.get(component)?.has(d.name)))
+    ) ??
     null
   )
 }
