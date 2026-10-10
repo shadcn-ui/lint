@@ -79,6 +79,9 @@ export function withSettings<T extends Record<string, unknown>>(
   if (settings.ui !== undefined) {
     const prefixes = strings(settings.ui, "ui") ?? []
     if (prefixes.length) {
+      // The prefixes name directories too: a tag with no import, such as
+      // an auto-imported <UiButton>, is matched by name there.
+      merged.ui = prefixes
       merged.componentImports = [
         ...((merged.componentImports as string[] | undefined) ?? []),
         ...prefixes.map((prefix) => `^${escapeRegExp(prefix)}(/|$)`),

@@ -32,10 +32,13 @@ export const RULES = {
 export function lintSfc(
   code: string,
   filename: string,
-  rules: Record<string, unknown> = RULES
+  rules: Record<string, unknown> = RULES,
+  settings?: Record<string, unknown>
 ) {
   const vue = filename.endsWith(".vue")
-  const linter = new Linter({ cwd: vue ? VUE_PROJECT : SVELTE_PROJECT })
+  // The fixture the file lives in, so a config matches it.
+  const fixture = path.relative(FIXTURES, filename).split(path.sep)[0]
+  const linter = new Linter({ cwd: path.join(FIXTURES, fixture) })
   const parser = vue ? vueParser : svelteParser
   return linter.verify(
     code,
@@ -47,6 +50,7 @@ export function lintSfc(
           parserOptions: { parser: tsParser },
         },
         plugins: { shadcn: plugin as any },
+        ...(settings ? { settings } : {}),
         rules: rules as any,
       },
     ],

@@ -89,6 +89,29 @@ settings: {
 
 See [Settings](../README.md#settings) for the full list.
 
+### Auto-imported components
+
+With unplugin-vue-components or Nuxt, a template uses `<UiButton>` with
+no import. Set `settings.shadcn.ui` to the directory's import prefix,
+and a tag with no import is matched by name against the components
+there, written either way:
+
+```js
+settings: {
+  shadcn: {
+    ui: "@/ui",
+  },
+}
+```
+
+```vue
+<template>
+  <!-- Reported: <UiButton> owns its color. -->
+  <UiButton class="bg-primary">Save</UiButton>
+  <ui-button class="bg-primary">Save</ui-button>
+</template>
+```
+
 ## Example
 
 ```vue
