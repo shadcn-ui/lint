@@ -32,7 +32,13 @@ import { policySchema, recognitionSchema } from "./policy-schema"
 import { withSettings } from "./settings"
 import { didYouMean, nearestColorTokens, paletteColor, roleOf } from "./suggest"
 
-const NAMED = new Set(["white", "black", "transparent", "current", "inherit"])
+// No theme can get these wrong: they turn a color off or pass one down.
+const NAMED = new Set(["transparent", "current", "inherit"])
+
+// Tailwind declares these in every theme, so they pass until `deny`
+// names them: text-white on bg-primary is right in one theme and wrong
+// in the next.
+const FIXED = new Set(["white", "black"])
 
 // SVG paint takes none: fill-none and stroke-none paint nothing.
 const PAINT_PREFIXES = new Set(["fill-", "stroke-"])
@@ -118,6 +124,8 @@ type Verdict = {
   messageId: string
   data: Record<string, string>
   replacements?: string[]
+  // white or black: reported only where `deny` names it.
+  optIn?: boolean
 } | null
 
 // A project's class vocabulary repeats on every file, so each token is
@@ -317,6 +325,10 @@ export const noRawColors = {
       // --background-color-surface declares bg-surface, and only that.
       if (parts && tokensFor(parts.prefix)?.has(parts.value)) return null
       if (isPaletteClass(token)) return paletteVerdict(token)
+      if (colorValue && FIXED.has(colorValue)) {
+        const verdict = paletteVerdict(token)
+        return verdict && { ...verdict, optIn: true }
+      }
       if (!declared) return null
       if (categoryOf(groupOf(token)) !== "color") return null
       if (!colorValue || NAMED.has(colorValue)) return null
@@ -348,7 +360,8 @@ export const noRawColors = {
           if (!verdict) continue
           const exemption = policy.decide(site.component, token)
           if (exemption.kind === "ok") continue
-          const { replacements, ...report } = verdict
+          if (verdict.optIn && exemption.kind !== "denied") continue
+          const { replacements, optIn: _optIn, ...report } = verdict
           emit(
             {
               node,
