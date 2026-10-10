@@ -95,11 +95,16 @@ export function projectFor(fromFile: string): Project | null {
 }
 
 // An alias to a directory that exists, through tsconfig paths, package
-// imports and exports, and the "@/" convention.
+// imports and exports, and the "@/" convention. Failing those, a bare
+// "src/" is a directory beside components.json, as the shadcn CLI reads it.
 export function resolveAlias(project: Project, alias: string) {
-  const fromRoot = resolveDirectory(alias, project.dir, project.root)
-  if (fromRoot || project.dir === project.root) return fromRoot
-  return resolveDirectory(alias, project.dir, project.dir)
+  const resolved =
+    resolveDirectory(alias, project.dir, project.root) ??
+    (project.dir === project.root
+      ? null
+      : resolveDirectory(alias, project.dir, project.dir))
+  if (resolved || path.isAbsolute(alias)) return resolved
+  return resolveDirectory(`./${alias}`, project.dir, project.dir)
 }
 
 // Where the design-system components live. An alias that resolves to
