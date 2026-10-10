@@ -44,11 +44,43 @@ describe("final inline-style properties", () => {
       options: { allowDynamicIdentifiers: ["floatingStyles"] },
       expected: ["dynamicStyle"],
     },
+    // Only what no static read can follow: a name that resolves to a
+    // literal is still checked.
     {
-      name: "an allowed identifier bypasses same-file resolution by intent",
+      name: "an allowed name that resolves is still checked",
       code: `const floatingStyles = { color: "red" }; <div style={floatingStyles} />`,
       options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["inlineStyle"],
+    },
+    {
+      name: "an allowed name from a hook is exempt",
+      code: `const { floatingStyles } = useFloating(); <div style={floatingStyles} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
       expected: [],
+    },
+    {
+      name: "an allowed name spread into a literal is exempt, the rest is checked",
+      code: `const { floatingStyles } = useFloating(); <div style={{ ...floatingStyles, color: "red" }} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["inlineStyle"],
+    },
+    {
+      name: "an unlisted spread remains reported",
+      code: `const { other } = useFloating(); <div style={{ ...other }} />`,
+      options: { allowDynamicIdentifiers: ["floatingStyles"] },
+      expected: ["dynamicStyle"],
+    },
+    {
+      name: "a dotted name allows a member path",
+      code: `const { styles } = usePopper(); <div style={styles.popper} />`,
+      options: { allowDynamicIdentifiers: ["styles.popper"] },
+      expected: [],
+    },
+    {
+      name: "a dotted name is exact",
+      code: `const { styles } = usePopper(); <div style={styles.arrow} />`,
+      options: { allowDynamicIdentifiers: ["styles.popper"] },
+      expected: ["dynamicStyle"],
     },
     {
       name: "ordinary custom properties in a local object remain readable",

@@ -123,18 +123,28 @@ colors. Use narrow exceptions when possible.
 
 ### Dynamic style identifiers
 
-Some libraries expose computed style objects that cannot be inspected statically.
-You can allow specific identifiers for those integrations:
+Some libraries compute a style object no static read can follow, such as
+Floating UI's `floatingStyles`. Name it to allow it:
 
 ```js
 "shadcn/no-inline-styles": ["error", {
-  allowDynamicIdentifiers: ["floatingStyles"],
+  allowDynamicIdentifiers: ["floatingStyles", "styles.popper"],
 }]
 ```
 
-This exempts only the named identifier. Other dynamic identifiers remain
-reported, and inline object literals are still checked normally. Use narrow,
-library-specific names rather than broad names such as `style` or `props`.
+```tsx
+const { floatingStyles } = useFloating()
+
+// Allowed.
+<div style={floatingStyles} />
+
+// Allowed, and color is still checked.
+<div style={{ ...floatingStyles, color: "red" }} />
+```
+
+A dotted name matches that exact member path. A name that resolves to an
+object literal in the same file is still checked, and other dynamic
+values are still reported.
 
 ### Contracts
 

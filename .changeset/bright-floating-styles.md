@@ -2,4 +2,4 @@
 "@shadcn/lint": patch
 ---
 
-Add `allowDynamicIdentifiers` to `no-inline-styles` for narrowly allowing dynamic style objects from libraries such as Floating UI.
+Add `allowDynamicIdentifiers` to `no-inline-styles` for style objects a library computes, such as Floating UI's `floatingStyles`.

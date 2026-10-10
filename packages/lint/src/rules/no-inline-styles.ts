@@ -5,6 +5,7 @@
 
 import { parseColor } from "../grammar/colors"
 import {
+  dottedName,
   forwardedValuesOf,
   isForwardedProp,
   objectEntries,
@@ -303,9 +304,14 @@ export const noInlineStyles = {
   },
   create(context: any) {
     const options = context.options?.[0] ?? {}
-    const allowDynamicIdentifiers = new Set<string>(
+    // A library's computed styles (floatingStyles, styles.popper) that
+    // no static read can follow. One that is an object literal after all
+    // is still checked.
+    const allowedDynamic = new Set<string>(
       options.allowDynamicIdentifiers ?? []
     )
+    const isAllowedDynamic = (expr: any) =>
+      allowedDynamic.has(dottedName(expr) ?? "")
     const emit = reporter(context, MESSAGES, {
       rule: "shadcn/no-inline-styles",
       message: options.message,
@@ -414,8 +420,8 @@ export const noInlineStyles = {
         return
       }
       if (expr.type === "Identifier") {
-        if (allowDynamicIdentifiers.has(expr.name)) return
         const init = resolveIdentifier(expr, context, seen)?.init
+        if (isAllowedDynamic(expr) && init?.type !== "ObjectExpression") return
         if (init) return check(init, reportAt, seen, component)
         emit(
           { node: reportAt, messageId: "dynamicStyle", data: { component } },
@@ -425,9 +431,9 @@ export const noInlineStyles = {
       }
       if (expr.type === "MemberExpression") {
         const found = resolveMemberValue(expr, context, seen)
-        if (!("unresolved" in found) && found.value) {
-          return check(found.value, reportAt, seen, component)
-        }
+        const value = "unresolved" in found ? null : found.value
+        if (isAllowedDynamic(expr) && value?.type !== "ObjectExpression") return
+        if (value) return check(value, reportAt, seen, component)
       }
       if (expr.type !== "ObjectExpression") {
         emit(
@@ -445,6 +451,12 @@ export const noInlineStyles = {
             isForwardedProp(unwrap(prop.argument), context, "style")
           ) {
             check(prop.argument, prop, seen, component)
+            continue
+          }
+          if (
+            prop.type === "SpreadElement" &&
+            isAllowedDynamic(unwrap(prop.argument))
+          ) {
             continue
           }
           emit(
