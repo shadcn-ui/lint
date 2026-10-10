@@ -4,6 +4,7 @@
 import { CATEGORIES } from "../grammar/categories"
 import { splitClasses } from "../grammar/classes"
 import { componentsFor } from "../project/components"
+import { NODE_MODULES } from "../project/fs"
 import { declaresClass } from "../project/theme"
 import { sizeNamesFor, variantNamesFor } from "../project/variants"
 import { classSiteVisitors, type ClassSite } from "../sites/collect"
@@ -40,12 +41,12 @@ const SPACING_SIZES =
   "Use a size ({{sizes}}), or {{around}} for space around it."
 const SPACING_AROUND = "For space around it, use {{around}}."
 const SPACING_NEW_SIZE =
-  "Add a size in {{file}} only if the design explicitly calls for one."
+  "Add a size {{where}} only if the design explicitly calls for one."
 
 const MESSAGES = {
   appearanceClass: `${NOT_ALLOWED} ${OWNS} Use one of its variants. Add a new variant only if the design explicitly calls for a treatment none of them provides.`,
-  appearanceClassWithVariants: `${NOT_ALLOWED} ${OWNS} Use a variant: {{variants}}. Add a new variant in {{file}} ${NEW_VARIANT_GUARD}`,
-  appearanceClassNoVariants: `${NOT_ALLOWED} ${OWNS} Add a variant in {{file}} only if the design explicitly calls for this treatment.`,
+  appearanceClassWithVariants: `${NOT_ALLOWED} ${OWNS} Use a variant: {{variants}}. Add a new variant {{where}} ${NEW_VARIANT_GUARD}`,
+  appearanceClassNoVariants: `${NOT_ALLOWED} ${OWNS} Add a variant {{where}} only if the design explicitly calls for this treatment.`,
   appearanceClassViaWrapper: `"{{className}}" is not allowed on <{{wrapper}}>: ${OWNS_VIA_WRAPPER} Use a variant{{variantsSuffix}}. Add a new variant {{where}} ${NEW_VARIANT_GUARD}`,
   deniedClass: `${NOT_ALLOWED} its contract denies {{entries}}.`,
   layoutClass: `${NOT_ALLOWED} its contract allows {{entries}}. Use one of those, or put layout classes on a parent element.`,
@@ -118,7 +119,11 @@ export const noRestyle = {
       if (!site.component) return
       const component = site.component
       const file = site.componentFile
-      const where = file ? displayPath(file, context) : ""
+      // A package recognized through componentImports is read for its
+      // variants, but no message sends anyone into node_modules to add one.
+      const shown = file && !NODE_MODULES.test(file) ? file : null
+      const shownPath = shown ? displayPath(shown, context) : ""
+      const where = shownPath ? `in ${shownPath}` : `to <${component}>`
       let details: ReturnType<typeof appearanceDetails> | undefined
       // Read once per site, on the first finding, like the variants.
       let sizes: string[] | null | undefined
@@ -142,7 +147,8 @@ export const noRestyle = {
             variants: variantNames,
             sizes: sizes?.join(", ") ?? "",
             wrapper: site.wrapper ?? "",
-            file: where,
+            file: shownPath,
+            where,
           }
 
           if (
@@ -196,11 +202,7 @@ export const noRestyle = {
               {
                 node,
                 messageId,
-                data: {
-                  ...data,
-                  variantsSuffix,
-                  where: where ? `in ${where}` : `to <${component}>`,
-                },
+                data: { ...data, variantsSuffix },
               },
               verdict.message
             )

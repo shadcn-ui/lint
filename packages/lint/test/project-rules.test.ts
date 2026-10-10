@@ -27,6 +27,7 @@ const buttonError = (file: string) => ({
     category: "color",
     variants: "primary, secondary",
     file,
+    where: `in ${file}`,
   },
 })
 
@@ -74,6 +75,7 @@ describe("variants resolve through imports without components.json", () => {
                 category: "typography",
                 variants: "",
                 file: "test/fixtures/no-json/src/ds/card.tsx",
+                where: "in test/fixtures/no-json/src/ds/card.tsx",
               },
             },
           ],
@@ -108,6 +110,8 @@ describe("package.json imports aliases", () => {
                 category: "color",
                 variants: "default, outline",
                 file: "test/fixtures/package-imports/src/components/ui/button.tsx",
+                where:
+                  "in test/fixtures/package-imports/src/components/ui/button.tsx",
               },
             },
             { messageId: "spacingClassWithSizes" },
@@ -128,6 +132,8 @@ describe("monorepo aliases", () => {
         category: "color",
         variants: "default, brand",
         file: "test/fixtures/monorepo/packages/ui/src/components/button.tsx",
+        where:
+          "in test/fixtures/monorepo/packages/ui/src/components/button.tsx",
       },
     }
     tester.run("no-restyle", boundary, {

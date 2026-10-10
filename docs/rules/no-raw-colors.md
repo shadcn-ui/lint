@@ -184,7 +184,9 @@ Invalid entries produce a configuration error; see
 
 - Tokens come from the [theme and its imports](../how-it-works.md#theme-tokens).
   Without a readable theme, palette colors are still reported, but
-  undeclared tokens cannot be checked.
+  undeclared tokens cannot be checked. A design system installed as a
+  package contributes its tokens once `settings.shadcn.themeImports`
+  names its import.
 - Color suggestions use resolved light-mode values. A nearby color is
   a suggestion, not a guarantee that it matches the design.
 - Variable references such as `bg-(--brand)` pass. This rule does not

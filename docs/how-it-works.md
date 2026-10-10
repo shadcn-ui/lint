@@ -38,7 +38,9 @@ read that package's file. Only the names your UI directory exports are
 its components; the rest of that package is not, whatever its bundled
 locals are called. A component you do re-export from your UI directory
 is checked, and its finding names no file: there is no variant to add
-inside `node_modules`.
+inside `node_modules`. A package that `componentImports` names is read
+for its variants the same way, and its findings name the component
+rather than the package file.
 
 Without `components.json`, the linter uses the nearest `package.json`
 and looks in `components/ui` or `src/components/ui`. For another import
@@ -73,6 +75,24 @@ A color utility also reads its own namespace, the way Tailwind does:
 Imported stylesheets can contribute tokens and custom utilities.
 Tailwind's built-in palette does not count as your project's declared
 tokens. See [no-raw-colors](./rules/no-raw-colors.md).
+
+A stylesheet under `node_modules` contributes custom utilities and
+classes but no tokens. A workspace package resolves outside
+`node_modules` and counts as your own. A design system installed as a
+package does not, until `settings.shadcn.themeImports` names its import:
+
+```js
+settings: {
+  shadcn: {
+    themeImports: ["^@acme/ui/"],
+  },
+}
+```
+
+With `@import "@acme/ui/theme.css"` in your theme, that file's tokens
+count, and so do the stylesheets it imports from the same package. A
+`@import "tailwindcss"` inside it is another package, so the palette
+stays out.
 
 Suggestions use token values too. The linter resolves variables from
 `:root`, skips `.dark` blocks, and compares colors in OKLab. It also
