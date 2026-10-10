@@ -128,6 +128,22 @@ settings: {
 <Button className={mergeClasses("mt-4", "w-full")}>Save changes</Button>
 ```
 
+A dotted name matches a method call by its exact path. Effect's `Option`
+constructors, for example:
+
+```js
+mergeFunctions: ["Option.some", "Option.none", "Option.fromNullishOr"]
+```
+
+```tsx
+// Allowed: the classes are written out, and none() has none.
+<OptionButton className={Option.some("w-full")} />
+<OptionButton className={Option.none()} />
+
+// Still dynamic: the argument is not static.
+<OptionButton className={Option.some(load())} />
+```
+
 The linter reads the arguments; it does not execute the helper. Only
 register helpers whose arguments accurately describe their output.
 

@@ -243,6 +243,7 @@ Svelte and Vue components forward `class` the same way. See
 - Calls to `cn`, `cx`, `clsx`, `cva`, `tv`, `twMerge`, `twJoin`, and
   `classNames`, including calls outside JSX. Add functions through
   `mergeFunctions` and `variantFunctions` in shared settings or rule options.
+  A dotted name such as `h.Class` matches a method call.
 - Same-file variables and object values, one hop deep.
 - Readable objects spread onto elements, including nested spreads and
   computed keys.
