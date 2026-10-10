@@ -75,10 +75,15 @@ export type Answer =
       // @plugin or @config: rebuilt in a fresh worker so modules reload.
       hasModules: boolean
       unknown: Unknown[]
+      // Known candidates that set a font size: text-body from an @config
+      // fontSize reads as a color to a grammar that only knows the name.
+      fontSizes: string[]
     }
   | { ok: false; reason: string }
 
 const SIGNATURE_TTL = 1000
+
+const FONT_SIZE = /(?:^|[;{\s])font-size\s*:/
 
 const loaded = new Map<string, Loaded>()
 let generations = 0
@@ -473,8 +478,12 @@ export async function query(
   }
   const css = system.ds.candidatesToCss(candidates)
   const unknown: Unknown[] = []
+  const fontSizes: string[] = []
   for (let i = 0; i < candidates.length; i++) {
-    if (css[i] !== null) continue
+    if (css[i] !== null) {
+      if (FONT_SIZE.test(css[i]!)) fontSizes.push(candidates[i])
+      continue
+    }
     unknown.push({
       token: candidates[i],
       suggestion: suggestionFor(system, candidates[i]),
@@ -486,6 +495,7 @@ export async function query(
     generation: system.generation,
     hasModules: system.modules > 0,
     unknown,
+    fontSizes,
   }
 }
 

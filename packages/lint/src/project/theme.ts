@@ -44,6 +44,9 @@ type ThemeRead = {
   tailwind: boolean
   // The tw of `@import "tailwindcss" prefix(tw)`: only tw:flex is Tailwind.
   prefix: string | null
+  // An @config or @plugin: JavaScript adds to the theme, and only
+  // Tailwind itself can say what.
+  modules: boolean
   files: string[]
   // Retried with the signature, so a corrected alias invalidates too.
   missingImports: { spec: string; fromDir: string; rootDir: string }[]
@@ -290,6 +293,7 @@ function readTheme(
   for (const name of parseUtilities(css)) read.utilities.add(name)
   for (const name of parseClassSelectors(css)) read.classes.add(name)
   if (!fromPackage) read.prefix ??= parseTailwindPrefix(css)
+  if (/@(?:config|plugin)\s/.test(stripComments(css))) read.modules = true
   // Imports come first in the cascade.
   const dir = path.dirname(cssFile)
   const root = packageRoot(cssFile) ?? dir
@@ -341,6 +345,7 @@ function themeAt(cssFile: string) {
     declarations: [],
     tailwind: false,
     prefix: null,
+    modules: false,
     files: [],
     missingImports: [],
   }
@@ -476,6 +481,13 @@ export function tailwindEntryFor(fromFile: string) {
 export function tailwindPrefixFor(fromFile: string) {
   const entry = tailwindEntryFor(fromFile)
   return entry ? themeAt(entry).prefix : null
+}
+
+// The Tailwind entry when its theme loads JavaScript, the one case the
+// CSS alone cannot answer. Null otherwise.
+export function moduleThemeEntryFor(fromFile: string) {
+  const file = tailwindEntryFor(fromFile)
+  return file && themeAt(file).modules ? file : null
 }
 
 export function colorTokensFor(fromFile: string) {

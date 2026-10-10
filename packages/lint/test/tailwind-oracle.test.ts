@@ -83,12 +83,14 @@ describe("tailwind oracle", () => {
       "flex-grow-[3]",
       "overflow-ellipsis",
       "decoration-clone",
+      "text-sm/6",
     ])
     expect(answer).toEqual({
       ok: true,
       generation: expect.any(Number),
       hasModules: false,
       unknown: [],
+      fontSizes: ["text-sm/6"],
     })
   })
 

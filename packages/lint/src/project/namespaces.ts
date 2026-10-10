@@ -8,8 +8,10 @@
 import { categoryOf } from "../grammar/categories"
 import { normalizeClass, OPACITY_MODIFIER } from "../grammar/classes"
 import { classifierFor } from "../grammar/classifier"
+import { setsFontSize } from "../tailwind/client"
 import {
   declaresClass,
+  moduleThemeEntryFor,
   themeVocabularyFor,
   type ThemeVocabulary,
 } from "./theme"
@@ -95,6 +97,17 @@ export function animationGroupFor(fromFile: string | undefined, token: string) {
   return declaresClass(fromFile, token) ? "animate" : null
 }
 
+// A theme that loads an @config or @plugin can add a font size the CSS
+// never names, so its own Tailwind answers for the text-* classes the
+// grammar reads as colors.
+export function moduleGroupFor(fromFile: string | undefined, token: string) {
+  if (!fromFile) return null
+  if (!normalizeClass(token).startsWith("text-")) return null
+  const entry = moduleThemeEntryFor(fromFile)
+  if (!entry) return null
+  return setsFontSize(entry, token) ? "font-size" : null
+}
+
 // The classifier the rules use: cn's grammar, then the project's theme
 // wherever the grammar's answer was a color it could not have known was
 // something else, or no answer for an animation the project declares.
@@ -106,7 +119,9 @@ export function projectClassifierFor(fromFile?: string) {
     const group = grammarGroupOf(token)
     if (!group) return animationGroupFor(fromFile, token)
     if (categoryOf(group) !== "color") return group
-    return themeGroupFor(fromFile, token) ?? group
+    return (
+      themeGroupFor(fromFile, token) ?? moduleGroupFor(fromFile, token) ?? group
+    )
   }
   return { groupOf }
 }
