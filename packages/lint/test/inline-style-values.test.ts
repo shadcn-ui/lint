@@ -281,6 +281,27 @@ describe("CSS color leaves", () => {
     ["CSS string", '"red blue #abc rgb(0 0 0)"', []],
     ["CSS comment", "4px /* red #abc rgb(0 0 0) */", []],
     ["token reference", "var(--color-primary)", []],
+    ["channels from one variable", "oklch(var(--primary-oklch))", []],
+    ["variable channels, literal alpha", "oklch(var(--x) / 0.2)", []],
+    ["variable channels, percent alpha", "hsl(var(--x) / 50%)", []],
+    ["variable channels, variable alpha", "rgb(var(--x) / var(--a))", []],
+    [
+      "variable channels in a gradient",
+      "linear-gradient(oklch(var(--x)), color(var(--y) / 0.5))",
+      [],
+    ],
+    ["literal channels", "oklch(0.62 0.19 260)", ["customPropColor"]],
+    [
+      "a variable among literal channels",
+      "oklch(var(--l) 0.19 260)",
+      ["customPropColor"],
+    ],
+    [
+      "a variable with a fallback",
+      "oklch(var(--x, 0.62 0.19 260))",
+      ["customPropColor"],
+    ],
+    ["a literal alpha leaf", "oklch(var(--x) / red)", ["customPropColor"]],
     ["named color outside a URL", "url(/icons/red) blue", ["customPropColor"]],
     ["named gradient", "linear-gradient(red, blue)", ["customPropColor"]],
     [

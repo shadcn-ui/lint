@@ -48,7 +48,10 @@ export function Panel({ width }: { width: number }) {
 
 Custom properties are checked for colors, not every kind of hardcoded
 value. Hex colors, named colors, color functions, and colors in gradients
-or shadows are reported. Theme variable references pass.
+or shadows are reported. Theme variable references pass, and so does a
+color function whose channels are one theme variable with an optional
+alpha, such as `oklch(var(--primary-oklch) / 0.2)`. Literal channels and a
+`var()` with a fallback are reported.
 
 ### Variables and style objects
 

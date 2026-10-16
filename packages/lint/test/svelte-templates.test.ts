@@ -113,6 +113,16 @@ describe("Svelte templates", () => {
     ])
   })
 
+  it("accepts a color function over one theme variable", () => {
+    expect(
+      found(
+        `<svg><path fill="oklch(var(--primary-oklch))" stroke="oklch(var(--border-oklch) / 0.2)" /></svg><div style="--tone: oklch(var(--ct-oklch)); --edge: oklch(var(--x, 0.5 0.1 200))"></div>`
+      )
+    ).toEqual([
+      "shadcn/no-inline-styles: Custom property --edge hardcodes a color",
+    ])
+  })
+
   it("keeps a ; inside a quoted or parenthesized style value", () => {
     expect(
       found(

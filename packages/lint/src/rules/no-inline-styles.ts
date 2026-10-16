@@ -3,7 +3,7 @@
 // hardcoded color in one is that exception being laundered, so it is
 // followed one hop. See docs/rules/no-inline-styles.md.
 
-import { parseColor } from "../grammar/colors"
+import { parseColor, withoutVariableChannelColors } from "../grammar/colors"
 import {
   dottedName,
   forwardedValuesOf,
@@ -79,9 +79,10 @@ function colorValueText(value: string) {
   return text
 }
 
-// The value, or any leaf of it outside var(), read as a color.
+// The value, or any leaf of it outside var(), read as a color. A color
+// function over one theme variable is a theme color.
 function hasRawColor(value: string) {
-  const text = colorValueText(value)
+  const text = withoutVariableChannelColors(colorValueText(value))
   if (COLOR_FUNCTION.test(text) || parseColor(text) !== null) return true
   const leaves = text.replace(/var\([^)]*\)/gi, " ").split(/[\s,()/]+/)
   return leaves.some((leaf) => leaf && parseColor(leaf) !== null)
