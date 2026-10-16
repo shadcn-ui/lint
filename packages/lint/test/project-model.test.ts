@@ -395,3 +395,106 @@ describe("components.json with a bare ui alias", () => {
     expect(uiDirectory(projectFor(page)!)).toBe(path.join(root, "lib/ui"))
   })
 })
+
+describe("an Nx workspace", () => {
+  let root: string
+  function write(name: string, source: string) {
+    const file = path.join(root, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, source)
+    return file
+  }
+  const warnings: string[] = []
+  beforeEach(() => {
+    resetFsMemo()
+    warnings.length = 0
+    setWarningSink((message) => warnings.push(message))
+    root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-nx-"))
+    )
+    write("package.json", "{}")
+    write(
+      "tsconfig.base.json",
+      JSON.stringify({
+        compilerOptions: {
+          baseUrl: ".",
+          jsx: "react-jsx",
+          paths: { "@acme/ui/*": ["libs/ui/src/*"] },
+        },
+      })
+    )
+    write(
+      "apps/web/tsconfig.json",
+      JSON.stringify({ extends: "../../tsconfig.base.json" })
+    )
+  })
+  afterEach(() => {
+    resetWarnings()
+    setWarningSink((message) => console.warn(message))
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  test("reads paths from tsconfig.base.json when the root has no tsconfig.json", () => {
+    expect(tsconfigPaths(root).map((entry) => entry.pattern)).toEqual([
+      "@acme/ui/*",
+    ])
+    // A tsconfig.json at the root is read instead.
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { paths: {} } }))
+    resetFsMemo()
+    expect(tsconfigPaths(root)).toEqual([])
+  })
+
+  // shadcn-ui/lint#111: with paths only in tsconfig.base.json, the ui
+  // alias did not resolve and no component was recognized.
+  test("resolves the ui alias through it, with no warning", () => {
+    write(
+      "components.json",
+      JSON.stringify({
+        style: "new-york",
+        tailwind: { css: "apps/web/src/styles.css" },
+        aliases: { ui: "@acme/ui/components", utils: "@acme/ui/utils" },
+      })
+    )
+    write(
+      "apps/web/src/styles.css",
+      `@import "tailwindcss";\n@theme { --color-primary: #111; }\n`
+    )
+    write(
+      "libs/ui/src/components/button.tsx",
+      [
+        `import { cva } from "class-variance-authority"`,
+        `export const buttonVariants = cva("inline-flex", { variants: { size: { sm: "h-8 px-3", lg: "h-10 px-6" } } })`,
+        `export function Button({ className, size }: { className?: string; size?: "sm" | "lg" }) {`,
+        `  return <button className={buttonVariants({ size }) + " " + (className ?? "")} />`,
+        `}`,
+      ].join("\n")
+    )
+    const page = write(
+      "apps/web/src/page.tsx",
+      `import { Button } from "@acme/ui/components/button"\nexport const Page = () => <Button className="p-4" />`
+    )
+    const messages = new Linter({ cwd: root }).verify(
+      fs.readFileSync(page, "utf8"),
+      {
+        files: ["**/*.tsx"],
+        languageOptions: {
+          parser,
+          parserOptions: { ecmaFeatures: { jsx: true } },
+        },
+        plugins: { shadcn: plugin },
+        rules: { "shadcn/no-restyle": ["error", { allow: ["layout"] }] },
+      } as any,
+      { filename: page }
+    )
+    expect(messages.map((m) => [m.line, m.column, m.message])).toEqual([
+      [
+        2,
+        45,
+        expect.stringMatching(
+          /^"p-4" is not allowed on <Button>: <Button> owns its spacing\. Use a size \(sm, lg\)/
+        ),
+      ],
+    ])
+    expect(warnings).toEqual([])
+  })
+})

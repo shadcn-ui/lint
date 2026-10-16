@@ -157,8 +157,10 @@ function readTsconfigChain(
   return [...own, ...inherited]
 }
 
+// An Nx workspace keeps its paths in tsconfig.base.json, which each
+// project's tsconfig.json extends, and has no tsconfig.json at the root.
 export function tsconfigPaths(rootDir: string) {
-  const file = ["tsconfig.json", "jsconfig.json"]
+  const file = ["tsconfig.json", "jsconfig.json", "tsconfig.base.json"]
     .map((name) => path.join(rootDir, name))
     .find((candidate) => isFile(candidate))
   if (!file) return []
