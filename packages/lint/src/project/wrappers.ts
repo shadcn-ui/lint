@@ -25,7 +25,31 @@ export type WrapperTarget = {
   file: string | null
 }
 
-type FileWrappers = Map<string, WrapperTarget | null>
+// A tag a prop lands on: a design-system component, or a wrapper that
+// is asked in turn where that prop goes.
+type Hop = { target: WrapperTarget } | { file: string; name: string }
+
+// Where one component sends the class props it receives: the target of
+// each one it names, and the tag a props spread hands the rest to.
+// "className" is the main class prop, which an SFC spells `class`.
+type Forwards = {
+  props: Map<string, WrapperTarget | null>
+  spread: Hop | null
+}
+
+type FileWrappers = Map<string, Forwards>
+
+const NO_FORWARDS: Forwards = { props: new Map(), spread: null }
+
+const CLASS_PROP = /^[^:]*class(name)?s?$/i
+const MAIN_CLASS_PROP = /^(class|className|class:list)$/
+
+// The prop of a wrapper an attribute sets. `class` and `className` are
+// its main class prop, and Vue's `header-class` is `headerClass`.
+export function wrapperPropOf(attribute: string) {
+  if (MAIN_CLASS_PROP.test(attribute)) return "className"
+  return attribute.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+}
 
 type Entry = {
   deps: string[]
@@ -101,41 +125,71 @@ function componentFunction(bindings: Map<string, any>, name: string) {
     : null
 }
 
-// The destructured binding, or the whole props object. Once className is
-// destructured out, `{...rest}` no longer carries it.
-function classNameBindings(fn: any) {
-  const names = new Set<string>()
-  const propsNames = new Set<string>()
+// The destructured binding of each class prop, and what carries the props
+// left undestructured: the whole props object, or `...rest`.
+function propBindings(fn: any) {
+  const named = new Map<string, string>()
+  const carriers = new Set<string>()
   const param = fn.params?.[0]
-  if (!param) return { names, propsNames }
+  if (!param) return { named, carriers }
   const pattern = param.type === "AssignmentPattern" ? param.left : param
   if (pattern.type === "ObjectPattern") {
     for (const prop of pattern.properties) {
+      if (prop.type === "RestElement") {
+        if (prop.argument?.type === "Identifier") {
+          carriers.add(prop.argument.name)
+        }
+        continue
+      }
       if (prop.type !== "Property") continue
       const key = prop.key?.name ?? prop.key?.value
-      if (key !== "className") continue
+      if (typeof key !== "string" || !CLASS_PROP.test(key)) continue
       const value =
         prop.value?.type === "AssignmentPattern" ? prop.value.left : prop.value
-      if (value?.type === "Identifier") names.add(value.name)
-    }
-    if (!names.size) {
-      for (const prop of pattern.properties) {
-        if (
-          prop.type === "RestElement" &&
-          prop.argument?.type === "Identifier"
-        ) {
-          propsNames.add(prop.argument.name)
-        }
-      }
+      if (value?.type === "Identifier") named.set(key, value.name)
     }
   } else if (pattern.type === "Identifier") {
-    propsNames.add(pattern.name)
+    carriers.add(pattern.name)
   }
-  return { names, propsNames }
+  return { named, carriers }
 }
 
-function forwardsClassName(
+// The same split for one prop. Once it is destructured out, `{...rest}`
+// no longer carries it.
+function bindingsFor(
+  prop: string,
+  named: Map<string, string>,
+  carriers: Set<string>
+) {
+  const local = named.get(prop)
+  return {
+    names: new Set<string>(local ? [local] : []),
+    propsNames: local ? new Set<string>() : carriers,
+  }
+}
+
+// The class props a body reads off its props: `props.headerClassName`.
+function memberClassProps(body: any, carriers: Set<string>) {
+  const out = new Set<string>()
+  if (!carriers.size) return out
+  walk(body, (node) => {
+    if (
+      node.type === "MemberExpression" &&
+      !node.computed &&
+      node.object?.type === "Identifier" &&
+      carriers.has(node.object.name) &&
+      typeof node.property?.name === "string" &&
+      CLASS_PROP.test(node.property.name)
+    ) {
+      out.add(node.property.name)
+    }
+  })
+  return out
+}
+
+function forwardsProp(
   expr: any,
+  prop: string,
   names: Set<string>,
   propsNames: Set<string>
 ) {
@@ -147,7 +201,7 @@ function forwardsClassName(
       node.type === "MemberExpression" &&
       node.object?.type === "Identifier" &&
       propsNames.has(node.object.name) &&
-      node.property?.name === "className"
+      node.property?.name === prop
     )
       found = true
     if (
@@ -340,24 +394,36 @@ function build(
   // A tag with no import is also looked up in settings.shadcn.ui.
   const tagIndex = ui.length ? componentsFor(file, ui) : index
   const { bindings, candidates } = indexLocalBindings(ast)
-  const localVisiting = new Set<string>()
+  const declaring = new Set<string>()
+  const asking = new Set<string>()
 
-  const targetOf = (element: any) => targetOfName(jsxElementName(element))
+  // Each tag is resolved once, whichever props are asked about it.
+  const hops = new Map<any, Hop | null>()
+  const hopOf = (element: any) => {
+    let hop = hops.get(element)
+    if (hop === undefined) {
+      hop = hopOfName(jsxElementName(element))
+      hops.set(element, hop)
+    }
+    return hop
+  }
 
-  const targetOfName = (
+  const hopOfName = (
     name: { root?: string; property: string | null } | null
-  ): WrapperTarget | null => {
+  ): Hop | null => {
     if (!name?.root) return null
     const imported = imports.get(name.root)
     if (!imported) {
       if (name.property !== null) return null
       if (tagIndex.has(name.root)) {
         return {
-          component: name.root,
-          file: tagIndex.files.get(name.root) ?? null,
+          target: {
+            component: name.root,
+            file: tagIndex.files.get(name.root) ?? null,
+          },
         }
       }
-      return candidates.has(name.root) ? resolveDeclared(name.root) : null
+      return candidates.has(name.root) ? { file, name: name.root } : null
     }
     const importedName = importNameOf(imported, name.root, name.property)
     const binding = importedName.exportName
@@ -374,27 +440,38 @@ function build(
       importedName,
       patterns
     )
-    if (component) return component
+    if (component) return { target: component }
     if (!binding) {
       // Not cached: the file the name points at may yet be created.
       complete = false
       return index.has(importedName.name)
         ? {
-            component: importedName.name,
-            file: index.files.get(importedName.name) ?? null,
+            target: {
+              component: importedName.name,
+              file: index.files.get(importedName.name) ?? null,
+            },
           }
         : null
     }
     // Packages are never wrappers of the project's own system.
     if (binding.file === file || NODE_MODULES.test(binding.file)) return null
     if (importedName.suffix) return null
-    if (visiting.has(binding.file)) {
+    return { file: binding.file, name: binding.name }
+  }
+
+  // The component a prop handed to this tag ends up on.
+  const targetVia = (hop: Hop | null, prop: string): WrapperTarget | null => {
+    if (!hop) return null
+    if ("target" in hop) return hop.target
+    if (hop.file === file) return localTarget(hop.name, prop)
+    if (visiting.has(hop.file)) {
       complete = false
       return null
     }
     const result = lookup(
-      binding.file,
-      binding.name,
+      hop.file,
+      hop.name,
+      prop,
       patterns,
       ui,
       visiting,
@@ -404,36 +481,96 @@ function build(
     return result.target
   }
 
-  const resolveDeclared = (name: string): WrapperTarget | null => {
-    const cached = wrappers.get(name)
-    if (cached !== undefined) return cached
-    if (localVisiting.has(name)) {
+  const localTarget = (name: string, prop: string) => {
+    const key = `${name}|${prop}`
+    if (asking.has(key)) {
       complete = false
       return null
     }
-    localVisiting.add(name)
+    asking.add(key)
+    const own = resolveDeclared(name)
+    const target = own.props.has(prop)
+      ? (own.props.get(prop) ?? null)
+      : targetVia(own.spread, prop)
+    asking.delete(key)
+    return target
+  }
+
+  // The first tag the prop reaches that is, or wraps, a design-system
+  // component: named in one of its class props, or carried by a spread.
+  const forwardedTarget = (
+    fn: any,
+    prop: string,
+    named: Map<string, string>,
+    carriers: Set<string>
+  ) => {
+    const { names, propsNames } = bindingsFor(prop, named, carriers)
+    if (!names.size && !propsNames.size) return null
     let target: WrapperTarget | null = null
+    walk(fn.body, (node) => {
+      if (target || node.type !== "JSXOpeningElement") return
+      for (const attr of node.attributes ?? []) {
+        let lands: string | null = null
+        if (attr.type === "JSXAttribute") {
+          const attribute =
+            attr.name?.type === "JSXIdentifier" ? attr.name.name : ""
+          if (
+            CLASS_PROP.test(attribute) &&
+            forwardsProp(attr.value, prop, names, propsNames)
+          ) {
+            lands = wrapperPropOf(attribute)
+          }
+        } else if (
+          attr.type === "JSXSpreadAttribute" &&
+          forwardsProp(attr, prop, names, propsNames)
+        ) {
+          lands = prop
+        }
+        if (lands === null) continue
+        target = targetVia(hopOf(node), lands)
+        if (target) return
+      }
+    })
+    return target
+  }
+
+  const resolveDeclared = (name: string): Forwards => {
+    const cached = wrappers.get(name)
+    if (cached) return cached
+    if (declaring.has(name)) {
+      complete = false
+      return NO_FORWARDS
+    }
+    declaring.add(name)
+    const own: Forwards = { props: new Map(), spread: null }
     const fn = componentFunction(bindings, name)
     if (fn) {
-      const { names, propsNames } = classNameBindings(fn)
-      if (names.size || propsNames.size) {
+      const { named, carriers } = propBindings(fn)
+      const props = new Set([
+        "className",
+        ...named.keys(),
+        ...memberClassProps(fn.body, carriers),
+      ])
+      for (const prop of props) {
+        own.props.set(prop, forwardedTarget(fn, prop, named, carriers))
+      }
+      // Any other prop goes wherever the props are spread.
+      if (carriers.size) {
         walk(fn.body, (node) => {
-          if (target || node.type !== "JSXOpeningElement") return
-          const forwards = node.attributes?.some(
+          if (own.spread || node.type !== "JSXOpeningElement") return
+          const spreads = node.attributes?.some(
             (attr: any) =>
-              (attr.type === "JSXAttribute" &&
-                attr.name?.name === "className" &&
-                forwardsClassName(attr.value, names, propsNames)) ||
-              (attr.type === "JSXSpreadAttribute" &&
-                forwardsClassName(attr, names, propsNames))
+              attr.type === "JSXSpreadAttribute" &&
+              attr.argument?.type === "Identifier" &&
+              carriers.has(attr.argument.name)
           )
-          if (forwards) target = targetOf(node)
+          if (spreads) own.spread = hopOf(node)
         })
       }
     }
-    localVisiting.delete(name)
-    wrappers.set(name, target)
-    return target
+    declaring.delete(name)
+    wrappers.set(name, own)
+    return own
   }
 
   for (const name of candidates) {
@@ -446,20 +583,61 @@ function build(
     for (const tag of sfcForwardingTags(source, file, ast)) {
       const [root, ...rest] = tag.name.split(".")
       const pascal = root.includes("-") ? sfcNameOf(root) : root
-      target = targetOfName({
-        root: imports.has(root) ? root : pascal,
-        property: rest.length ? rest.join(".") : null,
-      })
+      target = targetVia(
+        hopOfName({
+          root: imports.has(root) ? root : pascal,
+          property: rest.length ? rest.join(".") : null,
+        }),
+        "className"
+      )
       if (target) break
     }
-    wrappers.set(sfcNameOf(file), target)
+    // Only its class is followed: any other prop is not checked.
+    wrappers.set(sfcNameOf(file), {
+      props: new Map([["className", target]]),
+      spread: null,
+    })
   }
   return { wrappers, complete }
+}
+
+// Where a file's component sends a prop, following spreads within the
+// file; a spread into another file asks that file.
+function targetIn(
+  file: string,
+  wrappers: FileWrappers,
+  exportName: string,
+  prop: string,
+  patterns: RegExp[],
+  ui: string[],
+  visiting: Set<string>,
+  deps: Set<string> | undefined
+): { target: WrapperTarget | null; complete: boolean } {
+  const seen = new Set<string>()
+  for (let name = exportName; !seen.has(name);) {
+    seen.add(name)
+    const own = wrappers.get(name)
+    if (!own) break
+    if (own.props.has(prop)) {
+      return { target: own.props.get(prop) ?? null, complete: true }
+    }
+    const hop = own.spread
+    if (!hop) break
+    if ("target" in hop) return { target: hop.target, complete: true }
+    if (hop.file === file) {
+      name = hop.name
+      continue
+    }
+    if (visiting.has(hop.file)) return { target: null, complete: false }
+    return lookup(hop.file, hop.name, prop, patterns, ui, visiting, deps)
+  }
+  return { target: null, complete: true }
 }
 
 function lookup(
   file: string,
   exportName: string,
+  prop: string,
   patterns: RegExp[],
   ui: string[],
   visiting: Set<string>,
@@ -471,6 +649,8 @@ function lookup(
   const key = `${file}|${patterns.map((p) => p.source).join(",")}|${ui.join(",")}`
   const cached = cache.get(key)
   const now = Date.now()
+  let wrappers: FileWrappers
+  let complete = true
   if (
     cached &&
     (now - cached.checkedAt < TTL ||
@@ -484,47 +664,65 @@ function lookup(
         deps.add(dep)
       }
     }
-    return { target: cached.wrappers.get(exportName) ?? null, complete: true }
+    wrappers = cached.wrappers
+  } else {
+    visiting.add(file)
+    const own = new Set<string>()
+    const built = build(file, patterns, ui, visiting, own, parsedAst)
+    visiting.delete(file)
+    if (deps) {
+      for (const dep of own) {
+        deps.add(dep)
+      }
+    }
+    const depList = [...own]
+    wrappers = built.wrappers
+    complete = built.complete
+    if (complete) {
+      cache.set(key, {
+        deps: depList,
+        signature: signatureOf(depList),
+        checkedAt: now,
+        wrappers,
+      })
+    }
   }
   visiting.add(file)
-  const own = new Set<string>()
-  const { wrappers, complete } = build(
+  const result = targetIn(
     file,
+    wrappers,
+    exportName,
+    prop,
     patterns,
     ui,
     visiting,
-    own,
-    parsedAst
+    deps
   )
   visiting.delete(file)
-  if (deps) {
-    for (const dep of own) {
-      deps.add(dep)
-    }
-  }
-  const depList = [...own]
-  if (complete) {
-    cache.set(key, {
-      deps: depList,
-      signature: signatureOf(depList),
-      checkedAt: now,
-      wrappers,
-    })
-  }
-  return { target: wrappers.get(exportName) ?? null, complete }
+  return { target: result.target, complete: complete && result.complete }
 }
 
 // For the file being linted, pass the AST the linter already parsed
-// instead of re-reading it from disk.
+// instead of re-reading it from disk. `prop` is the class prop a caller
+// sets; "className" is the main one, `class` in an SFC.
 export function wrapperTargetOf(
   file: string,
   exportName: string,
   patterns: RegExp[] = [],
   parsedAst?: any,
-  ui: string[] = []
+  ui: string[] = [],
+  prop = "className"
 ): WrapperTarget | null {
-  return lookup(file, exportName, patterns, ui, new Set(), undefined, parsedAst)
-    .target
+  return lookup(
+    file,
+    exportName,
+    prop,
+    patterns,
+    ui,
+    new Set(),
+    undefined,
+    parsedAst
+  ).target
 }
 
 export function clearWrapperCache() {
