@@ -1,5 +1,29 @@
 # @shadcn/lint
 
+## 0.2.3
+
+### Patch Changes
+
+- [#122](https://github.com/shadcn-ui/lint/pull/122) [`cf6487f`](https://github.com/shadcn-ui/lint/commit/cf6487f0ed45438e00363b2698ae2fb92b84bd39) Thanks [@shadcn](https://github.com/shadcn)! - Accept `--border-color-*` tokens for `divide-*` in `no-raw-colors`, the way Tailwind falls back from `--divide-color-*`.
+
+- [#107](https://github.com/shadcn-ui/lint/pull/107) [`f1c81bd`](https://github.com/shadcn-ui/lint/commit/f1c81bdad723a8127a2e6b62a8b2b723762aff3e) Thanks [@shadcn](https://github.com/shadcn)! - Check a component reached through a nested namespace, `<UI.Button.Root>`, resolving each segment through `export * as` barrels.
+
+- [#126](https://github.com/shadcn-ui/lint/pull/126) [`cbc8d4d`](https://github.com/shadcn-ui/lint/commit/cbc8d4dc75728a64fae5e29ea6f3644e354ec788) Thanks [@shadcn](https://github.com/shadcn)! - Classify tw-animate-css classes such as `animate-in`, `fade-in`, and `slide-in-from-top-1` as `motion` in `no-restyle` when the theme imports the package.
+
+- [#121](https://github.com/shadcn-ui/lint/pull/121) [`24a73ee`](https://github.com/shadcn-ui/lint/commit/24a73eec93d6362a9fd0ff321ded13095338fe5f) Thanks [@shadcn](https://github.com/shadcn)! - Resolve theme variables such as `--radius` from `:root` and `@theme` for scale and color suggestions, not from a scoped selector such as `.compact` declared after them.
+
+- [#123](https://github.com/shadcn-ui/lint/pull/123) [`c0d164b`](https://github.com/shadcn-ui/lint/commit/c0d164b9f438a0ecccc93a07f3fbc178cca6186c) Thanks [@shadcn](https://github.com/shadcn)! - Skip plain object property keys such as `"fill-color"` in the `scanAllStrings` scan. Class object keys like `cn({ "bg-red-500": on })` are still checked.
+
+- [#106](https://github.com/shadcn-ui/lint/pull/106) [`355eb51`](https://github.com/shadcn-ui/lint/commit/355eb51f3eadace985a33b1dd5e8e23710d4896e) Thanks [@shadcn](https://github.com/shadcn)! - Check a CSS custom property passed to a Svelte component, `<Button --tone="red">`, the way `no-inline-styles` checks it in a `style` attribute.
+
+- [#104](https://github.com/shadcn-ui/lint/pull/104) [`acee889`](https://github.com/shadcn-ui/lint/commit/acee88913d52995aa8a19af1d47ab03059dadd1f) Thanks [@shadcn](https://github.com/shadcn)! - Resolve a Svelte `$derived(expr)` binding to `expr`, so reactive class and style values are read like a `const`.
+
+- [#105](https://github.com/shadcn-ui/lint/pull/105) [`808970e`](https://github.com/shadcn-ui/lint/commit/808970e87adfd9f672edffb490b94e9ca5d46038) Thanks [@shadcn](https://github.com/shadcn)! - Check `stop-color`, `flood-color`, and `lighting-color` in Svelte and Vue markup the way `no-raw-colors` checks `stopColor` in JSX.
+
+- [#124](https://github.com/shadcn-ui/lint/pull/124) [`118a109`](https://github.com/shadcn-ui/lint/commit/118a109902a88fbad36454feaf7815847b62c38d) Thanks [@shadcn](https://github.com/shadcn)! - Accept a color function whose channels are one theme variable, such as `oklch(var(--primary-oklch) / 0.2)`, in `no-raw-colors` SVG attributes and `no-inline-styles` custom properties. Literal channels and a `var()` fallback are still reported.
+
+- [#125](https://github.com/shadcn-ui/lint/pull/125) [`1d31b7f`](https://github.com/shadcn-ui/lint/commit/1d31b7f954b7f46bbccabacc15cbdd8c624f2f95) Thanks [@shadcn](https://github.com/shadcn)! - Check a wrapper's other class props, such as `headerClassName`, in `no-restyle` against the component the wrapper hands them to, not the one that receives `className`.
+
 ## 0.2.2
 
 ### Patch Changes
