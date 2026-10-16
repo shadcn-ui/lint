@@ -226,6 +226,30 @@ describe("theme scales refresh and fail safe", () => {
     expect(groupOf("rounded-pill", page)).toBe("rounded")
   })
 
+  // A pnpm or bun workspace links the package into node_modules, and
+  // the theme imports it by name.
+  test("a workspace package imported by name counts", () => {
+    const { write, page } = createProject(
+      `@import "tailwindcss";\n@import "acme-tokens/tokens.css";`
+    )
+    const tokens = write(
+      "packages/tokens/package.json",
+      JSON.stringify({
+        name: "acme-tokens",
+        exports: { "./tokens.css": "./tokens.css" },
+      })
+    )
+    write(
+      "packages/tokens/tokens.css",
+      "@theme { --color-foreground: #111; --text-body: 0.875rem; }"
+    )
+    const link = path.join(path.dirname(page), "node_modules/acme-tokens")
+    fs.mkdirSync(path.dirname(link), { recursive: true })
+    fs.symlinkSync(path.dirname(tokens), link, "dir")
+    expect(groupOf("text-body", page)).toBe("font-size")
+    expect(groupOf("text-foreground", page)).toBe("text-color")
+  })
+
   test("a reset drops the names declared before it", () => {
     const { page } = createProject(
       "@theme { --radius-card: 8px; --radius-*: initial; --radius-fresh: 4px; }"
