@@ -54,8 +54,9 @@ recognition. See [shared options](./rules.md#shared-options).
 
 The theme CSS comes from `components.json`. If the path it names does
 not exist, the linter warns once and discovers the theme the way it
-does without `components.json`. It follows the theme's `@import`s and
-reads `--color-*` declarations in `@theme`:
+does without `components.json`. It follows the theme's `@import`s,
+taking a package's `style` export first as Tailwind does, and reads
+`--color-*` declarations in `@theme`:
 
 ```css
 @theme inline {
