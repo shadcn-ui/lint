@@ -108,6 +108,12 @@ const PREFIX_NAMESPACES: Record<string, string> = {
   stroke: "stroke",
 }
 
+// Namespaces a utility reads after its own and before --color-*, as in
+// Tailwind 4.3.3: divide-* reads --divide-color-*, then --border-color-*.
+const FALLBACK_NAMESPACES: Record<string, string[]> = {
+  "divide-color": ["border-color"],
+}
+
 // The @theme namespace a color utility reads before --color-*: "bg-"
 // reads --background-color-*, "border-t-" reads --border-color-*. Null
 // for a utility that reads --color-* only.
@@ -280,12 +286,17 @@ export const noRawColors = {
       return !!suggestion && categoryOf(groupOf(suggestion)) !== "color"
     }
 
-    // The tokens this utility can name: --color-* plus its own namespace.
+    // The tokens this utility can name: --color-* plus its own namespace
+    // and the ones it falls back to.
     const tokensFor = (prefix: string) => {
       const { declared, scoped } = themeFor()
       const namespace = colorNamespaceOf(prefix)
-      const own = namespace ? scoped?.get(namespace) : null
-      if (!own?.size) return declared
+      const own = namespace
+        ? [namespace, ...(FALLBACK_NAMESPACES[namespace] ?? [])].flatMap(
+            (name) => [...(scoped?.get(name) ?? [])]
+          )
+        : []
+      if (!own.length) return declared
       return new Set([...(declared ?? []), ...own])
     }
 

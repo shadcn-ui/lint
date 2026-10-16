@@ -60,8 +60,19 @@ describe("scoped color namespaces", () => {
           filename: PAGE,
           code: `export const A = () => <div className="hover:bg-surface/50" />`,
         },
+        // divide-* falls back to --border-color-*, as in Tailwind.
+        {
+          filename: PAGE,
+          code: `export const A = () => <ul className="divide-y divide-edge" />`,
+        },
       ],
       invalid: [
+        // ring-* has no such fallback.
+        {
+          filename: PAGE,
+          code: `export const A = () => <div className="ring-edge" />`,
+          errors: [{ messageId: "undeclaredToken" }],
+        },
         // A background-color token is not a text color.
         {
           filename: PAGE,
