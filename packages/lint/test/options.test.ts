@@ -100,6 +100,32 @@ describe("scanAllStrings", () => {
       ],
     })
   })
+
+  test("plain object keys are names, class object keys are classes", () => {
+    tester.run("no-raw-colors", noRawColors as any, {
+      valid: [
+        {
+          filename: PAGE,
+          code: `const layer = { paint: { "fill-color": tone, "fill-opacity": 0.85 }, layout: { "text-field": "name" } }\nconst { "fill-color": fill } = layer.paint\nclass Layer { "fill-color" = tone }\ntype Paint = { "fill-color": string }\nexport const A = () => <div data-layer={layer} />`,
+          options: [{ scanAllStrings: true }],
+        },
+      ],
+      invalid: [
+        {
+          filename: PAGE,
+          code: `import { cn } from "@/lib/utils"\nexport const A = ({ on }) => <div className={cn({ "bg-pink-500": on })} />`,
+          options: [{ scanAllStrings: true }],
+          errors: [{ messageId: "paletteClassFar" }],
+        },
+        {
+          filename: PAGE,
+          code: `const tones = { ["bg-pink-500"]: 1 }\nexport const A = () => <div data-tones={tones} />`,
+          options: [{ scanAllStrings: true }],
+          errors: [{ messageId: "paletteClassFar" }],
+        },
+      ],
+    })
+  })
 })
 
 describe("SVG presentation attributes", () => {

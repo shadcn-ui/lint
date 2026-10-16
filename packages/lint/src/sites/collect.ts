@@ -1154,6 +1154,17 @@ function sharedFor(context: any, options: SiteOptions): Shared {
   return shared
 }
 
+// Nodes whose noncomputed string key is a name, not a value.
+const PROPERTY_KEY_PARENTS = new Set([
+  "Property",
+  "PropertyDefinition",
+  "MethodDefinition",
+  "AccessorProperty",
+  "TSPropertySignature",
+  "TSAbstractPropertyDefinition",
+  "TSAbstractMethodDefinition",
+])
+
 // Calls `onSite` for every class site in the file.
 export function classSiteVisitors(
   context: any,
@@ -1377,6 +1388,14 @@ export function classSiteVisitors(
               return
             if (reportedStrings.has(node) || claimedVocabulary.has(node)) return
             if (node.parent?.type === "ImportDeclaration") return
+            // A plain key names an API field, not a class. Class object keys
+            // (cn({ "bg-red-500": on })) are reached by their class site.
+            if (
+              PROPERTY_KEY_PARENTS.has(node.parent?.type) &&
+              node.parent.key === node &&
+              !node.parent.computed
+            )
+              return
             const strings = [{ value: node.value, node }]
             emit({
               contextualStrings: strings,
