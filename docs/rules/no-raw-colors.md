@@ -62,7 +62,8 @@ Tailwind also reads a color from the utility's own namespace before
 `--color-*`. `--background-color-surface` declares `bg-surface`,
 `--text-color-ink` declares `text-ink`, and `--border-color-edge`
 declares `border-edge`. Such a token counts for that utility only:
-`text-surface` is still undeclared.
+`text-surface` is still undeclared. `divide-*` also reads
+`--border-color-*`, as in Tailwind, so `divide-edge` is declared too.
 
 ### SVG attributes
 
