@@ -178,6 +178,12 @@ layout. A body that sets more than one thing takes the first appearance it
 carries. A class declared with a plain selector has no body to read and
 stays `unclassified`.
 
+The same holds for a package your theme imports. With `@import
+"tw-animate-css"`, `animate-in` comes from the package's `@theme` and
+`fade-in` or `slide-in-from-top-1` from its `@utility` rules, which set
+the custom properties its enter and exit keyframes read, so all of them
+are `motion`.
+
 Utilities Tailwind still generates under their Tailwind 3 names read as
 the utilities they are: `flex-grow` and `flex-shrink-0` classify with
 `grow` and `shrink`, `overflow-ellipsis` with `text-ellipsis`, and

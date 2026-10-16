@@ -412,7 +412,12 @@ const ARBITRARY_PROPERTY_RULES = [
     /^(?:box-shadow|text-shadow|opacity|filter|backdrop-filter|mix-blend-mode|background-blend-mode|--tw-(?:shadow|inset-shadow|drop-shadow|blur|brightness|contrast|grayscale|hue-rotate|invert|saturate|sepia|backdrop-.*)$)/,
     "effects",
   ],
-  [/^(?:transition|animation|--tw-(?:duration|ease|delay)$)/, "motion"],
+  // tw-animate-css's fade-in and slide-in-from-top set only what its
+  // enter and exit keyframes read, so they are motion too.
+  [
+    /^(?:transition|animation|--tw-(?:duration|ease|delay)$|--tw-(?:enter|exit|animation)-)/,
+    "motion",
+  ],
 ] as const
 
 // tailwind-merge's prefix; two dots cannot collide with a plugin group.

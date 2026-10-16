@@ -1,0 +1,10 @@
+{
+  "name": "tw-animate-css",
+  "version": "1.4.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "style": "./tw-animate.css"
+    }
+  }
+}
