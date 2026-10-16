@@ -43,6 +43,9 @@ type ThemeRead = {
   // Every custom property the project declares, in light mode, last
   // declaration winning: what tokens resolve to.
   values: Map<string, string>
+  // The values above that only a scoped selector such as `.compact`
+  // sets. A `:root` or `@theme` value replaces them.
+  scopedNames: Set<string>
   themeNames: Set<string>
   // In cascade order, resets included: what the scales are built from.
   declarations: Declaration[]
@@ -168,14 +171,20 @@ function applyTokenDeclarations(
 const DARK_PRELUDE =
   /\.dark(?![\w-])|prefers-color-scheme\s*:\s*dark|data-(?:theme|mode)=["']?dark|@variant\s+dark\b/
 
+// `:root, :host` is how Tailwind writes its own theme.
+const ROOT_SELECTOR = /^(?::root|html|:host)$/
+
 // Dark-mode blocks are skipped, so the values are the light theme's.
-// Later declarations win, as in CSS.
+// Later declarations win, as in CSS, but a value set under `:root` or
+// `@theme` wins over one a scoped selector such as `.compact` sets: the
+// scoped value applies only inside that selector.
 export function parseDeclarations(css: string) {
   const values = new Map<string, string>()
+  const scopedNames = new Set<string>()
   const themeNames = new Set<string>()
   const declarations: { name: string; value: string; theme: boolean }[] = []
   const stripped = stripComments(css)
-  const stack: { theme: boolean; dark: boolean }[] = []
+  const stack: { theme: boolean; dark: boolean; scoped: boolean }[] = []
   let start = 0
   for (let i = 0; i < stripped.length; i++) {
     const char = stripped[i]
@@ -185,6 +194,10 @@ export function parseDeclarations(css: string) {
       stack.push({
         theme: (outer?.theme ?? false) || /^@theme\b/.test(prelude),
         dark: (outer?.dark ?? false) || DARK_PRELUDE.test(prelude),
+        scoped:
+          (outer?.scoped ?? false) ||
+          (!prelude.startsWith("@") &&
+            !prelude.split(",").every((s) => ROOT_SELECTOR.test(s.trim()))),
       })
       start = i + 1
     } else if (char === "}" || char === ";") {
@@ -194,7 +207,12 @@ export function parseDeclarations(css: string) {
       )
       const scope = stack[stack.length - 1]
       if (match && !scope?.dark) {
-        values.set(match[1], match[2])
+        const scoped = scope?.scoped ?? false
+        if (!scoped || !values.has(match[1]) || scopedNames.has(match[1])) {
+          values.set(match[1], match[2])
+          if (scoped) scopedNames.add(match[1])
+          else scopedNames.delete(match[1])
+        }
         if (scope?.theme) themeNames.add(match[1])
         declarations.push({
           name: match[1],
@@ -206,7 +224,7 @@ export function parseDeclarations(css: string) {
       start = i + 1
     }
   }
-  return { values, themeNames, declarations }
+  return { values, scopedNames, themeNames, declarations }
 }
 
 // Null when a variable has no value and no fallback.
@@ -386,9 +404,18 @@ function readTheme(
     )
   }
   if (!fromPackage) {
-    const { values, themeNames, declarations } = parseDeclarations(css)
+    const { values, scopedNames, themeNames, declarations } =
+      parseDeclarations(css)
     applyTokenDeclarations(declarations, read.tokens, read.scoped)
-    for (const [name, value] of values) read.values.set(name, value)
+    for (const [name, value] of values) {
+      const scoped = scopedNames.has(name)
+      if (scoped && read.values.has(name) && !read.scopedNames.has(name)) {
+        continue
+      }
+      read.values.set(name, value)
+      if (scoped) read.scopedNames.add(name)
+      else read.scopedNames.delete(name)
+    }
     for (const name of themeNames) read.themeNames.add(name)
     read.declarations.push(...declarations)
   }
@@ -446,6 +473,7 @@ function themeAt(cssFile: string, imports: readonly RegExp[] = NO_IMPORTS) {
     utilities: new Map(),
     classes: new Set(),
     values: new Map(),
+    scopedNames: new Set(),
     themeNames: new Set(),
     declarations: [],
     tailwind: false,

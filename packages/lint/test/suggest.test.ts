@@ -97,6 +97,21 @@ describe("parseDeclarations", () => {
     expect([...themeNames]).toEqual(["color-primary", "radius-lg", "radius-md"])
   })
 
+  test(":root and @theme values win over a scoped selector's", () => {
+    const { values } = parseDeclarations(`
+      .before { --gap: 2px; }
+      :root, :host { --radius: 0.5rem; }
+      .compact { --radius: 0.25rem; --gap: 1px; }
+      [data-density="compact"] :root { --radius: 0.125rem; }
+      @theme { --spacing: 4px; }
+      .tight { --spacing: 2px; }
+    `)
+    expect(values.get("radius")).toBe("0.5rem")
+    expect(values.get("spacing")).toBe("4px")
+    // Set only by scoped selectors: the last one still resolves.
+    expect(values.get("gap")).toBe("1px")
+  })
+
   test("resolveVariables substitutes a few hops deep", () => {
     const { values } = parseDeclarations(css)
     expect(resolveVariables("var(--primary)", values)).toBe("oklch(0.205 0 0)")

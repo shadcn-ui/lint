@@ -1,3 +1,6 @@
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
 import { describe, expect, test } from "vitest"
 
 import {
@@ -266,4 +269,60 @@ test("an arbitrary layout property follows the layout keyword", () => {
       },
     ],
   })
+})
+
+// A density class declared after :root sets --radius only inside it, so
+// the scale comes from :root: lg is 10px and xl 12px, and 8px is on
+// neither. The :root value wins from an imported stylesheet too.
+test("the scale reads --radius from :root, not a scoped selector", () => {
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "lint-scoped-radius-"))
+  )
+  try {
+    fs.writeFileSync(
+      path.join(root, "components.json"),
+      JSON.stringify({ tailwind: { css: "app.css" } })
+    )
+    fs.writeFileSync(path.join(root, "base.css"), ":root { --radius: 0.5rem; }")
+    fs.writeFileSync(
+      path.join(root, "app.css"),
+      `@import "tailwindcss";
+@import "./base.css";
+.compact { --radius: 0.25rem; }
+@theme inline {
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+}`
+    )
+    const filename = path.join(root, "page.tsx")
+    createTester().run("no-arbitrary-values", noArbitraryValues as any, {
+      valid: [],
+      invalid: [
+        {
+          filename,
+          code: `export const A = () => <div className="rounded-[8px]" />`,
+          errors: [{ messageId: "arbitraryValueNearScale" }],
+        },
+        {
+          filename,
+          code: `export const A = () => <div className="rounded-[12px]" />`,
+          errors: [
+            {
+              messageId: "arbitraryValueWithScale",
+              data: { className: "rounded-[12px]", replacement: "rounded-xl" },
+              suggestions: [
+                {
+                  messageId: "useScale",
+                  data: { replacement: "rounded-xl" },
+                  output: `export const A = () => <div className="rounded-xl" />`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
 })
