@@ -7,6 +7,7 @@ import { componentsFor } from "../project/components"
 import { NODE_MODULES } from "../project/fs"
 import { declaresClass } from "../project/theme"
 import { sizeNamesFor, variantNamesFor } from "../project/variants"
+import { wrapperPropOf } from "../project/wrappers"
 import { classSiteVisitors, type ClassSite } from "../sites/collect"
 import { compileContracts, configErrorVisitors } from "./contracts"
 import { displayPath, fileOf, reporter } from "./messages"
@@ -34,7 +35,7 @@ const messageSchema = {
 const NOT_ALLOWED = '"{{className}}" is not allowed on <{{component}}>:'
 const OWNS = "<{{component}}> owns its {{category}}."
 const OWNS_VIA_WRAPPER =
-  "<{{wrapper}}> forwards className to <{{component}}>, which owns its {{category}}."
+  "<{{wrapper}}> forwards {{prop}} to <{{component}}>, which owns its {{category}}."
 const NEW_VARIANT_GUARD =
   "only if the design explicitly calls for a treatment none of these provides."
 const SPACING_SIZES =
@@ -147,6 +148,10 @@ export const noRestyle = {
             variants: variantNames,
             sizes: sizes?.join(", ") ?? "",
             wrapper: site.wrapper ?? "",
+            prop:
+              site.attribute && wrapperPropOf(site.attribute) !== "className"
+                ? site.attribute
+                : "className",
             file: shownPath,
             where,
           }

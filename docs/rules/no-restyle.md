@@ -126,7 +126,10 @@ The rule follows imports, re-exports, and wrappers that forward
 `<DialogTrigger render={<Button />} className="...">` belong to Button. A
 plain element such as `render={<a />}`, or a `render` value the rule
 cannot read, leaves them on the component itself. A wrapper
-uses the underlying component's contract and variant suggestions.
+uses the underlying component's contract and variant suggestions. Each
+class prop follows its own path: a wrapper's `headerClassName` handed to
+CardHeader is checked against CardHeader, and one the wrapper does not
+hand to a design-system component is not checked.
 
 It also reads same-file values and known class helpers:
 

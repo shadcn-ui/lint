@@ -240,6 +240,26 @@ Wrapper chains can cross files and use namespace imports such as
 values. A props spread counts as forwarding only if it still contains
 `className`. If several targets qualify, the first supplies the contract.
 
+Each class prop follows its own path. A wrapper that hands
+`headerClassName` to CardHeader gets CardHeader's contract for it, while
+its `className` keeps Card's:
+
+```tsx
+export function Panel({ className, headerClassName }: PanelProps) {
+  return (
+    <Card className={className}>
+      <CardHeader className={headerClassName} />
+    </Card>
+  )
+}
+
+// Checked against CardHeader's contract, not Card's.
+;<Panel headerClassName="px-6" />
+```
+
+A class prop the wrapper does not hand to a design-system component is
+not checked. In Svelte and Vue wrappers, only `class` is followed.
+
 A `render` prop forwards the same way. Base UI renders another component
 in a trigger's place, and the `className` goes with it:
 

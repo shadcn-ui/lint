@@ -174,6 +174,7 @@ describe("wrapper binding forms", () => {
                 component: "Button",
                 category: "shape",
                 wrapper: "Wrapped",
+                prop: "className",
                 variants:
                   "default, outline, secondary, ghost, destructive, link",
                 variantsSuffix:
@@ -216,6 +217,7 @@ describe("no-restyle through wrappers", () => {
                 component: "Button",
                 category: "color",
                 wrapper: "SaveButton",
+                prop: "className",
                 variants:
                   "default, outline, secondary, ghost, destructive, link",
                 variantsSuffix:
@@ -263,6 +265,7 @@ describe("namespace-import wrappers", () => {
                 component: "Button",
                 category: "color",
                 wrapper: "W.SaveButton",
+                prop: "className",
                 variants:
                   "default, outline, secondary, ghost, destructive, link",
                 variantsSuffix:
