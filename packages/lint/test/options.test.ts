@@ -110,6 +110,13 @@ describe("SVG presentation attributes", () => {
     expect(isRawColorValue("currentColor")).toBe(false)
     expect(isRawColorValue("none")).toBe(false)
     expect(isRawColorValue("var(--color-brand)")).toBe(false)
+    expect(isRawColorValue("oklch(var(--primary-oklch))")).toBe(false)
+    expect(isRawColorValue("oklch(var(--x) / 0.2)")).toBe(false)
+    expect(isRawColorValue("oklch(var(--x) / var(--alpha))")).toBe(false)
+    expect(isRawColorValue("oklch(0.62 0.19 260)")).toBe(true)
+    expect(isRawColorValue("oklch(var(--x, 0.62 0.19 260))")).toBe(true)
+    expect(isRawColorValue("oklch(var(--x) var(--y))")).toBe(true)
+    expect(isRawColorValue("color-mix(var(--x))")).toBe(true)
     expect(isRawColorValue("url(#gradient)")).toBe(false)
   })
 

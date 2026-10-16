@@ -11,7 +11,11 @@ import {
   splitClasses,
   withBase,
 } from "../grammar/classes"
-import { isNamedColor, parseColor } from "../grammar/colors"
+import {
+  isNamedColor,
+  parseColor,
+  withoutVariableChannelColors,
+} from "../grammar/colors"
 import { projectClassifierFor } from "../project/namespaces"
 import {
   colorTokensFor,
@@ -70,6 +74,7 @@ const COLOR_FUNCTION =
 export function isRawColorValue(value: string) {
   const trimmed = value.trim()
   if (ATTRIBUTE_ALLOWED.has(trimmed)) return false
+  if (!withoutVariableChannelColors(trimmed).trim()) return false
   if (COLOR_FUNCTION.test(trimmed)) return true
   return isNamedColor(trimmed)
 }

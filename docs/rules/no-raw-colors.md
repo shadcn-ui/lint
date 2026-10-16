@@ -72,16 +72,23 @@ Use `currentColor` with a text color class, or reference a theme variable:
 // Allowed.
 <svg className="text-primary" fill="currentColor" />
 <svg fill="var(--color-primary)" />
+<svg fill="oklch(var(--primary-oklch) / 0.2)" />
 
 // Reported.
 <svg fill="#ec4899" />
 <svg fill={"#ec4899"} />
 <path stroke="red" />
+<path stroke="oklch(var(--primary-oklch, 0.62 0.19 260))" />
 ````
 
 The rule checks literal strings in `fill`, `stroke`, `color`,
 `stopColor`, `floodColor`, and `lightingColor` on intrinsic elements.
 Class exceptions do not exempt these attributes.
+
+A color function whose channels are a single theme variable, such as
+`oklch(var(--primary-oklch))`, takes its color from the theme and passes.
+The alpha after `/` can be a number, a percentage, or another `var()`.
+Literal channels and a `var()` with a fallback are still reported.
 
 ### Allow an exception
 

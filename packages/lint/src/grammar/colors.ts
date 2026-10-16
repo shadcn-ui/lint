@@ -248,6 +248,21 @@ export function isNamedColor(value: string) {
   return Object.hasOwn(NAMED, value.trim().toLowerCase())
 }
 
+// A color function whose channels are one theme variable, with an
+// optional literal or variable alpha: oklch(var(--primary-oklch) / 0.2).
+// Literal channels and a var() fallback still hardcode a color.
+const VARIABLE = String.raw`var\(\s*--[\w-]+\s*\)`
+const ALPHA = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%?`
+const VARIABLE_CHANNELS = new RegExp(
+  String.raw`(?<![\w-])(?:rgba?|hsla?|hwb|oklch|oklab|lab|lch|color)\(\s*${VARIABLE}\s*(?:\/\s*(?:${ALPHA}|${VARIABLE})\s*)?\)`,
+  "gi"
+)
+
+// The value with each variable-channel color function blanked out.
+export function withoutVariableChannelColors(value: string) {
+  return value.replace(VARIABLE_CHANNELS, " ")
+}
+
 // Parses a CSS color into OKLab, or null for anything that is not a
 // literal color (variables, color-mix, keywords like currentColor).
 export function parseColor(value: string): Lab | null {
