@@ -24,3 +24,4 @@ dist-next/
 !packages/lint/test/fixtures/exports-pattern/node_modules/
 !packages/lint/test/fixtures/exports-pattern/node_modules/demo-widgets/dist/
 !packages/lint/test/fixtures/package-theme/node_modules/
+!packages/lint/test/fixtures/animate-theme/node_modules/

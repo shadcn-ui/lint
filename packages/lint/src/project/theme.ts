@@ -351,8 +351,9 @@ function ownPackageOf(
   return dir === current ? dir : null
 }
 
-// Files under node_modules contribute @utility names and class selectors
-// (tw-animate-css declares animate-in that way) but not color tokens:
+// Files under node_modules contribute @utility names, class selectors and
+// @theme animations (tw-animate-css declares fade-in and animate-in those
+// ways) but not color tokens:
 // Tailwind's own palette is not the project's vocabulary. Workspace
 // packages resolve past node_modules and count as the project's own, and
 // so does a design system published as a package once themeImports
@@ -418,6 +419,12 @@ function readTheme(
     }
     for (const name of themeNames) read.themeNames.add(name)
     read.declarations.push(...declarations)
+  } else if (css.includes("--animate-")) {
+    // A package's own @theme animations are generated all the same:
+    // tw-animate-css declares --animate-in there.
+    for (const name of parseDeclarations(css).themeNames) {
+      if (name.startsWith("animate-")) read.themeNames.add(name)
+    }
   }
 }
 
