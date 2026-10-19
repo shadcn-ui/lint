@@ -188,25 +188,32 @@ function readPackageJson(dir: string) {
   return json
 }
 
-function pickTarget(value: any): string | null {
+// A stylesheet's @import takes a package's `style` export first, as
+// Tailwind does: tailwindcss maps "." to its CSS under `style` and to its
+// JavaScript under `import` and `require`.
+function pickTarget(value: any, stylesheet = false): string | null {
   if (typeof value === "string") return value
   if (Array.isArray(value)) {
     for (const item of value) {
-      const picked = pickTarget(item)
+      const picked = pickTarget(item, stylesheet)
       if (picked) return picked
     }
     return null
   }
   if (value && typeof value === "object") {
+    if (stylesheet && "style" in value) {
+      const picked = pickTarget(value.style, true)
+      if (picked) return picked
+    }
     for (const key of ["import", "default", "require", "node", "types"]) {
       if (key in value) {
-        const picked = pickTarget(value[key])
+        const picked = pickTarget(value[key], stylesheet)
         if (picked) return picked
       }
     }
     for (const key of Object.keys(value)) {
       if (key.startsWith(".")) continue
-      const picked = pickTarget(value[key])
+      const picked = pickTarget(value[key], stylesheet)
       if (picked) return picked
     }
   }
@@ -214,7 +221,11 @@ function pickTarget(value: any): string | null {
 }
 
 // Through an exports/imports map, longest key first.
-function mapSubpath(map: Record<string, any>, subpath: string) {
+function mapSubpath(
+  map: Record<string, any>,
+  subpath: string,
+  stylesheet = false
+) {
   const keys = Object.keys(map)
     .filter((key) => key.startsWith(".") || key.startsWith("#"))
     .sort((a, b) => b.length - a.length)
@@ -222,7 +233,7 @@ function mapSubpath(map: Record<string, any>, subpath: string) {
   for (const key of keys) {
     const captured = matchPattern(key, subpath)
     if (captured === null) continue
-    const target = pickTarget(map[key])
+    const target = pickTarget(map[key], stylesheet)
     if (target) out.push(expand(target, captured))
   }
   return out
@@ -255,6 +266,7 @@ function splitPackageSpecifier(spec: string) {
 
 type ResolveOptions = {
   skipPaths?: boolean
+  stylesheet?: boolean
 }
 
 // In priority order, before extension probing. `rootDir` is the project
@@ -324,11 +336,15 @@ export function candidatesFor(
   const subpath = pkg.subpath ? `./${pkg.subpath}` : "."
   const exportsMap = readPackageJson(dir)?.exports
   if (exportsMap && typeof exportsMap === "object") {
-    for (const target of mapSubpath(exportsMap, subpath)) {
+    for (const target of mapSubpath(exportsMap, subpath, options.stylesheet)) {
       out.push(path.resolve(dir, target))
     }
     // A directory alias against a wildcard key ("./components/*").
-    for (const target of mapSubpath(exportsMap, `${subpath}/*`)) {
+    for (const target of mapSubpath(
+      exportsMap,
+      `${subpath}/*`,
+      options.stylesheet
+    )) {
       out.push(path.dirname(path.resolve(dir, target)))
     }
   }
@@ -390,7 +406,7 @@ export function resolveFile(
   extensions = EXTENSIONS,
   options: ResolveOptions = {}
 ) {
-  const key = `resolve:${fromDir}|${rootDir}|${spec}|${extensions.join(",")}|${options.skipPaths ? 1 : 0}`
+  const key = `resolve:${fromDir}|${rootDir}|${spec}|${extensions.join(",")}|${options.skipPaths ? 1 : 0}|${options.stylesheet ? 1 : 0}`
   return memoize(key, () =>
     resolveFileUncached(spec, fromDir, rootDir, extensions, options)
   )

@@ -319,6 +319,9 @@ export function parseClassSelectors(css: string) {
   return out
 }
 
+const resolveStylesheetImport = (spec: string, dir: string, root: string) =>
+  resolveFile(spec, dir, root, [".css"], { stylesheet: true })
+
 function isPackageFile(file: string) {
   return file.includes(`${path.sep}node_modules${path.sep}`)
 }
@@ -389,7 +392,7 @@ function readTheme(
     if (spec === "tailwindcss" || spec.startsWith("tailwindcss/")) {
       read.tailwind = true
     }
-    const target = resolveFile(spec, dir, root, [".css"])
+    const target = resolveStylesheetImport(spec, dir, root)
     if (!target) {
       read.missingImports.push({ spec, fromDir: dir, rootDir: root })
       continue
@@ -433,7 +436,7 @@ function signatureOf(read: ThemeRead) {
     ...read.files.map((file) => `${file}:${mtimeOf(file) ?? "missing"}`),
     ...read.missingImports.map(
       ({ spec, fromDir, rootDir }) =>
-        `${fromDir}:${spec}:${resolveFile(spec, fromDir, rootDir, [".css"]) ?? "missing"}`
+        `${fromDir}:${spec}:${resolveStylesheetImport(spec, fromDir, rootDir) ?? "missing"}`
     ),
   ].join("|")
 }

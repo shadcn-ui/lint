@@ -78,6 +78,19 @@ describe("resolve", () => {
     ).toBe(path.join(MONO, "packages/ui/src/styles/globals.css"))
   })
 
+  test("a stylesheet's import takes a package's style export, a script's its JavaScript", () => {
+    const app = path.join(PROJECT, "app")
+    expect(
+      resolveFile("tailwindcss", app, PROJECT, [".css"], { stylesheet: true })
+    ).toMatch(/tailwindcss[\\/]index\.css$/)
+    expect(resolveFile("tailwindcss", app, PROJECT)).toMatch(
+      /tailwindcss[\\/]dist[\\/]lib\.mjs$/
+    )
+    expect(
+      resolveFile("style-only", app, PROJECT, [".css"], { stylesheet: true })
+    ).toBe(path.join(PROJECT, "node_modules/style-only/styles/style-only.css"))
+  })
+
   test("relative paths and the @/ convention", () => {
     expect(resolveFile("./ds", path.join(NO_JSON, "src"), NO_JSON)).toBe(
       DS_INDEX
