@@ -24,6 +24,11 @@ const PATTERN = path.resolve(
   "fixtures/exports-pattern"
 )
 
+const SUBPATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures/subpath-imports"
+)
+
 const temporary: string[] = []
 
 afterAll(() => {
@@ -152,6 +157,22 @@ describe("tailwind oracle", () => {
     resetOracle()
     const answer = await query(path.join(PATTERN, "src/app.css"), [
       "p-card",
+      "p-crad",
+    ])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown).toEqual([
+      { token: "p-crad", suggestion: "p-card", baseKnown: false },
+    ])
+  })
+
+  // A stylesheet can import through the package's own "imports" map
+  // ("#ds/*"), the way Node and Vite resolve it.
+  test("builds a theme importing through a subpath import", async () => {
+    resetOracle()
+    const answer = await query(path.join(SUBPATH, "src/app.css"), [
+      "p-card",
+      "kit-frame",
       "p-crad",
     ])
     expect(answer.ok).toBe(true)
@@ -308,5 +329,14 @@ describe("resolveStylesheet", () => {
       path.join(dist, "themes/dark.css")
     )
     expect(resolveStylesheet(src, "demo-widgets/missing.css")).toBeNull()
+  })
+
+  test("subpath imports through the package's imports map", () => {
+    const src = path.join(SUBPATH, "src")
+    const styles = path.join(SUBPATH, "ds/styles.css")
+    expect(resolveStylesheet(src, "#ds/styles.css")).toBe(styles)
+    expect(resolveStylesheet(src, "#ds/styles")).toBe(styles)
+    expect(resolveStylesheet(src, "#ds/missing.css")).toBeNull()
+    expect(resolveStylesheet(src, "#unmapped/styles.css")).toBeNull()
   })
 })

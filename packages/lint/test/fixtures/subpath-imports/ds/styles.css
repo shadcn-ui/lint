@@ -1,0 +1,7 @@
+@theme {
+  --spacing-card: 1.25rem;
+}
+
+@utility kit-frame {
+  display: flex;
+}

@@ -273,6 +273,14 @@ export function resolveStylesheet(base: string, id: string) {
   if (id.startsWith(".") || path.isAbsolute(id)) {
     return stylesheetAt(path.dirname(path.resolve(base, id)), path.basename(id))
   }
+  // A subpath import ("#ds/styles.css") maps through the "imports" of
+  // the package that contains the importing stylesheet.
+  if (id.startsWith("#")) {
+    const root = packageRoot(path.join(base, "index.css"))
+    return root
+      ? resolveFile(id, base, root, [".css"], { skipPaths: true })
+      : null
+  }
   const match = id.match(/^(@[^/]+\/[^/]+|[^/]+)(?:\/(.*))?$/)
   if (!match) return null
   const [, name, subpath] = match
