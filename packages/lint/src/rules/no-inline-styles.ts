@@ -21,13 +21,10 @@ import {
   readerFor,
   type Visitors,
 } from "../sites/readers"
-import {
-  allowListOf,
-  configErrorVisitors,
-  ContractConfigError,
-} from "./contracts"
+import { configErrorVisitors } from "./contracts"
 import { reporter } from "./messages"
 import { entriesSchema, policySchema } from "./policy-schema"
+import { compilePropertyPolicy } from "./property-policy"
 
 const COLOR_FUNCTION =
   /#[0-9a-f]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|hwb|oklch|oklab|lab|lch|color|color-mix|light-dark)\(/i
@@ -99,83 +96,6 @@ function unwrap(node: any) {
     node = node.expression
   }
   return node
-}
-
-// Property names as CSS spells them, so backgroundColor and
-// background-color are one name. A custom property is its own name.
-function cssPropertyName(name: string) {
-  if (name.startsWith("--")) return name
-  return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`).toLowerCase()
-}
-
-// Names or globs (border-*, --chart-*). The mistake this option invites
-// is a class, caught by shape: no standard property carries a digit.
-function propertyMatcher(entries: string[] | undefined) {
-  const patterns = (entries ?? []).map((entry) => {
-    const custom = /^--[\w*-]+$/.test(entry)
-    if (!custom && !/^[a-zA-Z*][a-zA-Z*-]*$/.test(entry)) {
-      throw new ContractConfigError(
-        `shadcn/no-inline-styles: entry "${entry}" is not a CSS property name (backgroundColor, background-color, border-*, --chart-1), so it would match nothing.`
-      )
-    }
-    return new RegExp(`^${cssPropertyName(entry).replace(/\*/g, ".*")}$`)
-  })
-  return (property: string) => {
-    const name = cssPropertyName(property)
-    return patterns.some((pattern) => pattern.test(name))
-  }
-}
-
-// The shared policy shape, over property names (docs/rules.md).
-function compilePropertyPolicy(options: {
-  allow?: string[]
-  deny?: string[]
-  message?: string
-  contracts?: {
-    pattern: string
-    allow?: string[]
-    deny?: string[]
-    message?: string
-  }[]
-}) {
-  const topAllow = allowListOf(options)
-  const topDeny = options.deny ?? []
-  const compile = (
-    policy: { allow?: string[]; deny?: string[]; message?: string },
-    inherited?: { allow: string[]; deny: string[] }
-  ) => ({
-    allow: propertyMatcher(allowListOf(policy, inherited?.allow)),
-    deny: propertyMatcher(policy.deny ?? inherited?.deny),
-    message: (inherited ? policy.message : undefined) ?? null,
-  })
-  const baseline = compile(options)
-  const contracts = (options.contracts ?? []).map((c) => {
-    let pattern: RegExp
-    try {
-      pattern = new RegExp(c.pattern)
-    } catch {
-      throw new ContractConfigError(
-        `Contract pattern "${c.pattern}" is not a valid regular expression.`
-      )
-    }
-    return { pattern, ...compile(c, { allow: topAllow, deny: topDeny }) }
-  })
-  const policyFor = (component: string) => {
-    for (let i = contracts.length - 1; i >= 0; i--) {
-      if (contracts[i].pattern.test(component)) return contracts[i]
-    }
-    return baseline
-  }
-  const decide = (component: string, property: string) => {
-    const policy = component ? policyFor(component) : baseline
-    if (policy.deny(property)) return { exempt: false, message: policy.message }
-    if (policy.allow(property)) return { exempt: true, message: null }
-    return { exempt: false, message: policy.message }
-  }
-  // The component's words for a finding about no single property.
-  const wordsFor = (component: string) =>
-    component ? policyFor(component).message : null
-  return { decide, wordsFor }
 }
 
 // A hardcoded color, in the expression or one hop away in a same-file

@@ -1,0 +1,697 @@
+{
+  "schemaVersion": 1,
+  "labelProvenance": "Original syntax-category fixtures and manual source-index labels authored before production rule changes.",
+  "partition": "feedback-regression",
+  "provenance": "Independently authored synthetic paint and ownership regressions; private application source excluded.",
+  "scope": "Declared root sx diagnostics; contrast and unsupported tooltip channels remain separate.",
+  "evidenceLimitations": [
+    "Feedback regression fixtures are not independent confirmation.",
+    "Token presence does not establish contrast or theme validity.",
+    "No agent-effectiveness claim is recorded."
+  ],
+  "cases": [
+    {
+      "id": "feedback-paint-button-base-import",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "button-base-import",
+      "labelReason": "The imported styling primitive consumes a fixed color.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { ButtonBase as Trigger } from \"@mui/material\"; <Trigger sx={{ color: \"#3468ab\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "ButtonBase",
+            "authoredProperty": "color",
+            "sourceRange": [70, 75]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-card-border",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "card-border",
+      "labelReason": "A physical border shorthand carries a fixed color.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import Card from \"@mui/material/Card\"; <Card sx={{ borderTop: \"1px dashed #c21f39\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Card",
+            "authoredProperty": "borderTop",
+            "sourceRange": [51, 60]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-card-gradient-shadow",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "card-gradient-shadow",
+      "labelReason": "Both paint declarations contain fixed colors and require separate findings.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={{ backgroundImage: \"linear-gradient(90deg, #18314f, white)\", boxShadow: \"0 2px 8px rgb(0 0 0 / .2)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Card",
+            "authoredProperty": "backgroundImage",
+            "sourceRange": [50, 65]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Card",
+            "authoredProperty": "boxShadow",
+            "sourceRange": [109, 118]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-responsive-selector",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "responsive-selector",
+      "labelReason": "Responsive values and nested selectors remain owned by Box.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ border: { xs: \"1px solid currentColor\", md: \"1px solid red\" }, \"&:focus\": { outline: \"2px solid rgb(20 40 60)\" } }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "border",
+            "sourceRange": [48, 54]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "outline",
+            "sourceRange": [124, 131]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-background-fallback",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "background-fallback",
+      "labelReason": "A fallback fixes the surface color even when the primary operand is a variable.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={{ background: \"var(--surface, #f8f3e2)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Card",
+            "authoredProperty": "background",
+            "sourceRange": [50, 60]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-logical-border",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "logical-border",
+      "labelReason": "Logical border paint is still color consumption.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ borderInlineStart: \"1px solid blue\", borderBlockEndColor: \"#18314f\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "borderInlineStart",
+            "sourceRange": [48, 65]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "borderBlockEndColor",
+            "sourceRange": [85, 104]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-text-shadow",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "text-shadow",
+      "labelReason": "A text shadow paints a fixed color.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Typography } from \"@mui/material\"; <Typography sx={{ textShadow: \"0 1px red\" }}>Text</Typography>",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Typography",
+            "authoredProperty": "textShadow",
+            "sourceRange": [62, 72]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-border-system-values",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "border-system-values",
+      "labelReason": "System border/shadow indices and a palette divider do not consume fixed literal colors.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={{ border: 1, borderTop: 0, borderColor: \"divider\", outline: \"none\", boxShadow: 2 }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-variable-composition",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "variable-composition",
+      "labelReason": "Variable-backed paint and inherited currentColor remain legal in the declared scope.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={{ backgroundImage: \"linear-gradient(90deg, var(--surface-start), var(--surface-end))\", border: \"1px solid currentColor\", textShadow: \"0 1px var(--shadow)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-url-fragment",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "url-fragment",
+      "labelReason": "URL paths, filenames and fragment identifiers are not literal color consumption.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"url(\\\"/red/white.svg#fff\\\") center / cover no-repeat\", backgroundImage: \"url('/icons/black.svg#abc')\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-url-color-tail",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "url-color-tail",
+      "labelReason": "A real background color after a URL is still reportable.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"url(\\\"/red/icon.svg#fff\\\") center no-repeat #102030\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "background",
+            "sourceRange": [48, 58]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-overwritten-border",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "overwritten-border",
+      "labelReason": "The later declaration replaces the fixed color before consumption.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ border: \"1px solid red\", border: \"1px solid currentColor\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-unknown-spread",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "unknown-spread",
+      "labelReason": "An unresolved later spread may replace the surface; zero findings cannot establish acceptance.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; declare const external: any; <Card sx={{ background: \"red\", ...external }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-callback-card",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "callback-card",
+      "labelReason": "Callbacks remain out of static root sx coverage.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={() => ({ bgcolor: \"red\" })} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-tooltip-slots",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "tooltip-slots",
+      "labelReason": "The portaled bubble slot is not root sx; zero findings must not imply tooltip coverage.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Tooltip, Box } from \"@mui/material\"; <Tooltip title=\"Details\" slotProps={{ tooltip: { sx: { bgcolor: \"#18314f\", color: \"white\" } } }}><Box>Hover</Box></Tooltip>",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-styled-card",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "styled-card",
+      "labelReason": "styled numeric semantics and ownership are separate from root sx.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { styled } from \"@mui/material/styles\"; import Card from \"@mui/material/Card\"; export const Panel = styled(Card)({ backgroundColor: \"white\" });",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-token-pair",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "token-pair",
+      "labelReason": "Declared palette strings contain no fixed CSS color; readability and semantic pairing require runtime review.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Card } from \"@mui/material\"; <Card sx={{ color: \"primary.darker\", bgcolor: \"common.white\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-system-color",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "system-color",
+      "labelReason": "System colors follow user-agent/accessibility policy and are not fixed raw RGB literals.",
+      "scope": "Declared root sx diagnostics; token use does not establish contrast, bubble styling or whole-file correctness.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ color: \"GrayText\", outline: \"1px solid CanvasText\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-image-set-urls",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "image-set-urls",
+      "labelReason": "Quoted image-set images are URLs, not fixed color operands.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ backgroundImage: \"image-set(\\\"/red.avif#fff\\\" 1x, \\\"/blue.avif\\\" 2x)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-image-set-color-tail",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "image-set-color-tail",
+      "labelReason": "The actual background-color outside the image list remains reportable.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"image-set(\\\"/red.avif\\\" 1x, \\\"/blue.avif\\\" 2x) center red\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "background",
+            "sourceRange": [48, 58]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-opaque-image-identifiers",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "opaque-image-identifiers",
+      "labelReason": "Paint worklet names and referenced element identifiers do not establish literal color operands.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ backgroundImage: \"paint(red), element(#fff), -moz-element(#blue)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-paint-shorthand-longhand",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "shorthand-longhand",
+      "labelReason": "Both declarations survive JavaScript object construction. Source policy rejects authored fixed paint without inferring the CSS cascade.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ borderTop: \"1px solid red\", borderTopColor: \"divider\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "borderTop",
+            "sourceRange": [48, 57]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-longhand-shorthand",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "longhand-shorthand",
+      "labelReason": "Source policy is independent of shorthand/longhand ordering.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ borderTopColor: \"divider\", borderTop: \"1px solid red\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "borderTop",
+            "sourceRange": [75, 84]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-partial-border",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "partial-border",
+      "labelReason": "A token on one side does not exempt authored whole-border fixed paint.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ border: \"1px solid red\", borderTopColor: \"divider\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "border",
+            "sourceRange": [48, 54]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-image-color-components",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "image-color-components",
+      "labelReason": "A surface color does not remove fixed gradient colors; declarations remain independently governed.",
+      "scope": "Authored root sx declarations after JavaScript object resolution; no CSS-cascade or whole-file acceptance.",
+      "provenance": "Original synthetic example; no private application source or names.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"linear-gradient(red, blue)\", backgroundColor: \"background.paper\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "background",
+            "sourceRange": [48, 58]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-quoted-comment-url",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "quoted-comment-url",
+      "labelReason": "A comment marker inside a quoted image reference cannot consume a real color outside the string.",
+      "scope": "Authored root sx paint diagnostics; no whole-file acceptance.",
+      "provenance": "Original synthetic adversarial lexical regression.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"image-set(\\\"/*\\\" 1x) red /* trailing comment */\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "background",
+            "sourceRange": [48, 58]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-opaque-image-tail",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "opaque-image-tail",
+      "labelReason": "Opaque function arguments and comments cannot hide a real trailing background color.",
+      "scope": "Authored root sx paint diagnostics; no whole-file acceptance.",
+      "provenance": "Original synthetic adversarial lexical regression.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"paint(red /* ) */) #123456\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "background",
+            "sourceRange": [48, 58]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-paint-escaped-image-string",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "escaped-image-string",
+      "labelReason": "Escaped quotes and color-like text inside an image string remain image references.",
+      "scope": "Authored root sx paint diagnostics; no whole-file acceptance.",
+      "provenance": "Original synthetic adversarial lexical regression.",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ background: \"image-set(\\\"/images/quote\\\\\\\"red.avif#fff\\\" 1x, \\\"/blue.avif\\\" 2x)\" }} />",
+      "restylePolicy": {
+        "allow": ["*"]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    }
+  ]
+}

@@ -106,6 +106,20 @@ describe("flat config completion", () => {
 
   describe.skipIf(!built)("through the built types", () => {
     test.each(Object.entries(SETTINGS))(
+      "MUI rules, %s resolution",
+      (_, settings) => {
+        const source =
+          'import { defineConfig } from "eslint/config"; import mui from "../dist/mui.js"; export default defineConfig([{ plugins: { mui }, rules: { /*|*/ } }])'
+        const names = completionsIn(
+          path.join(ROOT, "test/eslint.config.ts"),
+          source,
+          settings
+        )
+        expect(names).toContain('"mui/no-restyle"')
+        expect(names).toContain('"mui/no-raw-colors"')
+      }
+    )
+    test.each(Object.entries(SETTINGS))(
       "defineConfig, %s resolution, .ts config",
       (_, settings) => {
         const names = completionsIn(

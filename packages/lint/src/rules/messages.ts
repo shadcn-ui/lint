@@ -18,6 +18,7 @@ const UNIVERSAL_KEYS = [
 const MESSAGE_KEYS = new Set([
   ...UNIVERSAL_KEYS,
   "category",
+  "channel",
   "variants",
   "wrapper",
   "sizes",
@@ -64,13 +65,13 @@ function formatTokens(declared: Set<string>) {
   return rest > 0 ? `${shown.join(", ")} (+${rest} more)` : shown.join(", ")
 }
 
-function noteFor(context: any) {
-  const note = context.settings?.shadcn?.note
+function noteFor(context: any, namespace = "shadcn") {
+  const note = context.settings?.[namespace]?.note
   if (note == null) return ""
   if (typeof note !== "string") {
     warnOnce(
-      "settings:note",
-      "settings.shadcn.note must be a string; it is ignored."
+      `${namespace === "shadcn" ? "settings" : namespace}:note`,
+      `settings.${namespace}.note must be a string; it is ignored.`
     )
     return ""
   }
@@ -98,7 +99,7 @@ export function checkMessage(message: string, label: string) {
     if (nearest) {
       warnOnce(
         `placeholder:${JSON.stringify([label, key])}`,
-        `Unknown message placeholder "{{${key}}}" in ${label.startsWith("shadcn/") ? label : `contract "${label}"`}. Did you mean "{{${nearest}}}"? It will remain literal.`
+        `Unknown message placeholder "{{${key}}}" in ${/^(shadcn|mui)\//.test(label) ? label : `contract "${label}"`}. Did you mean "{{${nearest}}}"? It will remain literal.`
       )
     }
   }
@@ -159,9 +160,9 @@ function withUniversalSlots(data: Record<string, unknown>) {
 export function reporter(
   context: any,
   messages: Record<string, string>,
-  options: { rule?: string; message?: unknown } = {}
+  options: { rule?: string; message?: unknown; namespace?: string } = {}
 ) {
-  const note = noteFor(context)
+  const note = noteFor(context, options.namespace)
   const ruleMessage = ruleMessageFor(options.rule ?? "shadcn", options.message)
   return (descriptor: any, override?: string | null) => {
     const text =

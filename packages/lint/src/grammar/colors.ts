@@ -269,7 +269,7 @@ export function parseColor(value: string): Lab | null {
   const text = value.trim().toLowerCase()
   if (!text) return null
   if (text.startsWith("#")) return fromHex(text)
-  const named = NAMED[text]
+  const named = Object.hasOwn(NAMED, text) ? NAMED[text] : undefined
   if (named) return fromHex(named)
   const match = text.match(/^([a-z]+)\((.*)\)$/s)
   if (!match) return null

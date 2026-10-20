@@ -28,7 +28,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./mui": {
+      "types": "./dist/mui.d.ts",
+      "default": "./dist/mui.js"
+    }
   },
   "types": "./dist/index.d.ts",
   "files": [

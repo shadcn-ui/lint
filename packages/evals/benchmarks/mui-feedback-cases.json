@@ -1,0 +1,830 @@
+{
+  "schemaVersion": 1,
+  "labelProvenance": "Original syntax-category fixtures and manual source-index labels authored from public documentation before running production rules.",
+  "partition": "feedback-regression",
+  "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+  "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+  "evidenceLimitations": [
+    "Feedback regression fixtures are not independent confirmation.",
+    "This catalog is not a public real-code corpus.",
+    "Unknown or out-of-scope channels remain unresolved even with zero diagnostics.",
+    "No agent-effectiveness claim is recorded."
+  ],
+  "cases": [
+    {
+      "id": "feedback-core-css-variable-exact-case-valid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Case-sensitive custom property contract",
+      "labelReason": "The exact authored custom-property spelling matches the synthetic Button contract. This is a property-policy verdict for geometry, not validation of arbitrary custom-property color consumption.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nexport function Sample() {\n  return <Button sx={{ \"--Panel-inset\": \"4px\" }}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": ["--Panel-inset"]
+          }
+        ]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-core-application-guidance-valid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Application extension guidance supplied explicitly",
+      "labelReason": "The root margin is allowed. Application prop choices come from declared guidance; this fixture makes no claim that the linter validates the theme extension.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nexport function Sample() {\n  return <Button variant=\"soft\" size=\"xLarge\" color=\"blackButton\" sx={{ mt: 2 }}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      },
+      "muiSettings": {
+        "guidance": {
+          "Button": {
+            "variant": ["soft"],
+            "size": ["xLarge"],
+            "color": ["blackButton"],
+            "themeFile": "src/application-theme.ts"
+          }
+        },
+        "note": "Application extensions are declared by this fixture."
+      }
+    },
+    {
+      "id": "feedback-core-aliased-import-valid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Canonical identity retained by aliased import",
+      "labelReason": "The local Action binding retains Button identity; its literal responsive margin and width meet the explicit Button contract.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button as Action } from \"@mui/material\";\nexport function Sample() {\n  return <Action sx={{ mt: { xs: 1, md: 2 }, width: \"100%\" }}>Continue</Action>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-core-nested-layout-valid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Nested selectors retain enclosing component contract",
+      "labelReason": "Nested layout properties are allowed by the enclosing Button contract; selector nesting does not transfer ownership to a child component.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import Button from \"@mui/material/Button\";\nexport function Sample() {\n  return <Button sx={{ \"& .adornment\": { display: \"inline-flex\", gap: 1 }, \"@media print\": { width: \"100%\" } }}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-grid-root-layout-valid",
+      "family": "grid",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Data Grid root responsive layout",
+      "labelReason": "Root width and height are statically readable and allowed; rows and columns are functional inputs outside this property policy.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Sample() {\n  return <DataGrid rows={[]} columns={[]} sx={{ width: { xs: \"100%\", md: 720 }, height: 320 }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DataGrid$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-grid-root-color-token-valid",
+      "family": "grid",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Data Grid static root color token",
+      "labelReason": "The contract explicitly permits color and the palette-shaped value is not a literal color; token existence is not asserted.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Sample() {\n  return <DataGrid rows={[]} columns={[]} sx={{ color: \"text.primary\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DataGrid$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-picker-functional-slot-props-valid",
+      "family": "pickers",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Functional Picker slot props accompany known root sx",
+      "labelReason": "required and helperText configure a functional slot. The declared root margin is readable and allowed; root acceptance does not certify arbitrary slot styling.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers\";\nexport function Sample() {\n  return <DatePicker slotProps={{ textField: { required: true, helperText: \"Choose a date\" } }} sx={{ my: 1 }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DatePicker$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-picker-root-color-token-valid",
+      "family": "pickers",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Picker static root color token",
+      "labelReason": "The root color is explicitly allowed and references a palette-shaped token; no token or theme validation is implied.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { TimePicker } from \"@mui/x-date-pickers\";\nexport function Sample() {\n  return <TimePicker sx={{ color: \"text.secondary\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^TimePicker$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-chart-root-layout-valid",
+      "family": "charts",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Known chart root layout and literal composition",
+      "labelReason": "A proven same-file constant contributes allowed margin and width; the later height is also allowed.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { BarChart } from \"@mui/x-charts\";\nconst placement = { m: 1, width: \"100%\" } as const;\nexport function Sample() {\n  return <BarChart series={[{ data: [3, 7] }]} sx={{ ...placement, height: 240 }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^BarChart$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-chart-root-color-token-valid",
+      "family": "charts",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Chart static root color token",
+      "labelReason": "Root color is explicitly permitted. The CSS variable reference contains no raw operand or fallback.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { LineChart } from \"@mui/x-charts\";\nexport function Sample() {\n  return <LineChart series={[{ data: [3, 7] }]} sx={{ color: \"var(--app-chart-ink)\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^LineChart$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-tree-root-color-token-valid",
+      "family": "tree",
+      "partition": "feedback-regression",
+      "label": "valid",
+      "motif": "Tree static root color token",
+      "labelReason": "The synthetic contract allows color and the exact CSS variable reference has no literal fallback.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { SimpleTreeView } from \"@mui/x-tree-view\";\nexport function Sample() {\n  return <SimpleTreeView sx={{ color: \"var(--Tree-ink)\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^SimpleTreeView$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-core-css-variable-case-mismatch-invalid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Case-sensitive custom property contract",
+      "labelReason": "The lower-case authored key does not match the exact custom property allowed by the Button contract.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nexport function Sample() {\n  return <Button sx={{ \"--panel-inset\": \"4px\" }}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": ["--Panel-inset"]
+          }
+        ]
+      },
+      "colorPolicy": {},
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "--panel-inset",
+            "sourceRange": [90, 105]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-core-nested-paint-invalid",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Forbidden paint under enclosing synthetic contract",
+      "labelReason": "The nested bgcolor property violates the Button layout contract and its hex value independently violates the color policy.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button as Action } from \"@mui/material\";\nexport function Sample() {\n  return <Action sx={{ \"&:hover\": { bgcolor: \"#146c94\" } }}>Continue</Action>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [113, 120]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Button",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [113, 120]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-grid-root-color-literal-invalid",
+      "family": "grid",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Data Grid static root literal color",
+      "labelReason": "The contract allows root color, so only the separate raw-color rule rejects the hex literal.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Sample() {\n  return <DataGrid rows={[]} columns={[]} sx={{ color: \"#146c94\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DataGrid$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "DataGrid",
+            "authoredProperty": "color",
+            "sourceRange": [120, 125]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-picker-root-color-literal-invalid",
+      "family": "pickers",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Picker static root literal color",
+      "labelReason": "Root color is permitted by the synthetic contract, but the independent color policy rejects the hex literal.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { TimePicker } from \"@mui/x-date-pickers\";\nexport function Sample() {\n  return <TimePicker sx={{ color: \"#146c94\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^TimePicker$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "TimePicker",
+            "authoredProperty": "color",
+            "sourceRange": [104, 109]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-chart-root-color-literal-invalid",
+      "family": "charts",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Chart static root literal color",
+      "labelReason": "Root color is permitted; its hex literal produces only a raw-color diagnostic.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { LineChart } from \"@mui/x-charts\";\nexport function Sample() {\n  return <LineChart series={[{ data: [3, 7] }]} sx={{ color: \"#146c94\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^LineChart$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "LineChart",
+            "authoredProperty": "color",
+            "sourceRange": [124, 129]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-tree-root-color-literal-invalid",
+      "family": "tree",
+      "partition": "feedback-regression",
+      "label": "invalid",
+      "motif": "Tree static root literal color",
+      "labelReason": "Root color is explicitly permitted, while the independent color policy rejects the hex literal.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { SimpleTreeView } from \"@mui/x-tree-view\";\nexport function Sample() {\n  return <SimpleTreeView sx={{ color: \"#146c94\" }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^SimpleTreeView$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "SimpleTreeView",
+            "authoredProperty": "color",
+            "sourceRange": [109, 114]
+          }
+        ]
+      }
+    },
+    {
+      "id": "feedback-core-callback-sx-unknown",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Callback sx is outside static resolution",
+      "labelReason": "The callback is not executed by lint analysis. Empty root diagnostics do not establish policy coverage or acceptance.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nexport function Sample() {\n  return <Button sx={(theme) => ({ color: theme.palette.text.primary })}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-core-mutable-constant-unknown",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Mutable same-file sx binding",
+      "labelReason": "The reassigned let binding cannot be treated as a proven constant. Zero diagnostics leave the declared root sx policy unresolved.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nlet placement = { mt: 1 };\nplacement = { mt: 3 };\nexport function Sample() {\n  return <Button sx={placement}>Continue</Button>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-core-custom-wrapper-unknown",
+      "family": "core",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Custom wrapper does not inherit import identity",
+      "labelReason": "The wrapper binding is excluded from recognized component identity. Its authored sx cannot receive a whole-file or root-policy acceptance verdict.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { Button } from \"@mui/material\";\nfunction LocalAction(props: any) { return <Button {...props} />; }\nexport function Sample() {\n  return <LocalAction sx={{ bgcolor: \"#146c94\" }}>Continue</LocalAction>;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-grid-computed-selector-unknown",
+      "family": "grid",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Computed Grid selector requires resolution",
+      "labelReason": "The computed selector depends on a function argument and is unresolved. No diagnostic is expected, and that result does not accept the styling.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Sample({ selector }: { selector: string }) {\n  return <DataGrid rows={[]} columns={[]} sx={{ [selector]: { color: \"#146c94\" } }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DataGrid$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-picker-slot-styling-unknown",
+      "family": "pickers",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Picker styling through slotProps is outside root sx coverage",
+      "labelReason": "The root margin is known and allowed; the slot sx color channel is outside coverage. Empty root diagnostics cannot accept that slot styling.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers\";\nexport function Sample() {\n  return <DatePicker sx={{ my: 1 }} slotProps={{ textField: { sx: { color: \"#146c94\" } } }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^DatePicker$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-chart-dedicated-api-unknown",
+      "family": "charts",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Dedicated chart colors API outside recognized root sx",
+      "labelReason": "BarChart is recognized, but colors is a dedicated chart API outside root sx coverage. There is no declared readable root sx to accept; zero findings leave that styling channel unresolved.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { BarChart } from \"@mui/x-charts\";\nexport function Sample() {\n  return <BarChart colors={[\"#aa0000\"]} series={[{ data: [3, 7] }]} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^BarChart$",
+            "allow": ["color"]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "feedback-styled-tree-unknown",
+      "family": "tree",
+      "partition": "feedback-regression",
+      "label": "unknown",
+      "motif": "Styled Tree constructor and wrapper identity outside coverage",
+      "labelReason": "The styled callback and generated wrapper are excluded. No root diagnostic is expected, but the generated tree styling remains unresolved.",
+      "scope": "Declared root sx diagnostics; no whole-file acceptance.",
+      "provenance": "Originally authored from syntax categories; private application source and names excluded.",
+      "source": "import { styled } from \"@mui/material/styles\";\nimport { RichTreeView } from \"@mui/x-tree-view\";\nconst DecoratedTree = styled(RichTreeView)({ color: \"#146c94\" });\nexport function Sample() {\n  return <DecoratedTree items={[{ id: \"entry\", label: \"Entry\" }]} sx={{ width: 280 }} />;\n}\n",
+      "restylePolicy": {
+        "allow": ["*"],
+        "contracts": [
+          {
+            "pattern": "^RichTreeView$",
+            "allow": [
+              "margin",
+              "width",
+              "height",
+              "display",
+              "gap",
+              "justifyContent",
+              "alignItems"
+            ]
+          }
+        ]
+      },
+      "colorPolicy": {
+        "allow": []
+      },
+      "expected": {
+        "analysisStatus": "unknown",
+        "policyStatus": "unresolved",
+        "diagnostics": []
+      }
+    }
+  ]
+}

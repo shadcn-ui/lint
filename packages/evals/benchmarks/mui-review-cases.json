@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "labelProvenance": "Independent Sol 6.1 advisor authored sources and expected findings from frozen policy before executing production rules.",
+  "cases": [
+    {
+      "id": "advisor-core-valid",
+      "family": "core",
+      "partition": "independent-review",
+      "label": "valid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import * as Material from \"@mui/material\";\nexport function Subject({ compact }: { compact: boolean }) {\n  return <Material.Button sx={[{ mt: { xs: 1, md: 3 } }, compact ? { width: 160 } : { display: \"inline-flex\" }]}>Continue</Material.Button>;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "advisor-core-invalid",
+      "family": "core",
+      "partition": "independent-review",
+      "label": "invalid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import Button from \"@mui/material/Button\";\nexport function Subject() {\n  return <Button sx={{ \"&:focus-visible\": { py: { xs: 1, md: 2 } } }}>Continue</Button>;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "py",
+            "sourceRange": [115, 117]
+          }
+        ]
+      }
+    },
+    {
+      "id": "advisor-grid-valid",
+      "family": "grid",
+      "partition": "independent-review",
+      "label": "valid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { DataGrid as Records } from \"@mui/x-data-grid\";\nexport function Subject() {\n  return <Records rows={[]} columns={[]} sx={{ width: { xs: \"100%\", md: 640 }, \"@media print\": { display: \"block\" } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "advisor-grid-invalid",
+      "family": "grid",
+      "partition": "independent-review",
+      "label": "invalid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { DataGrid as Records } from \"@mui/x-data-grid\";\nexport function Subject() {\n  return <Records rows={[]} columns={[]} sx={{ svg: { stroke: \"hsl(calc(240) 100% 50%)\" } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "DataGrid",
+            "authoredProperty": "stroke",
+            "sourceRange": [138, 144]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "DataGrid",
+            "authoredProperty": "stroke",
+            "sourceRange": [138, 144]
+          }
+        ]
+      }
+    },
+    {
+      "id": "advisor-pickers-valid",
+      "family": "pickers",
+      "partition": "independent-review",
+      "label": "valid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() {\n  return <DatePicker sx={[false, { my: { xs: 1, lg: 2 }, height: 56 }]} slotProps={{ textField: { required: true } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "advisor-pickers-invalid",
+      "family": "pickers",
+      "partition": "independent-review",
+      "label": "invalid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { TimePicker } from \"@mui/x-date-pickers\";\nexport function Subject() {\n  return <TimePicker sx={{ \"&:focus-within\": { borderColor: \"var(--brand, #123456)\" } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "TimePicker",
+            "authoredProperty": "borderColor",
+            "sourceRange": [125, 136]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "TimePicker",
+            "authoredProperty": "borderColor",
+            "sourceRange": [125, 136]
+          }
+        ]
+      }
+    },
+    {
+      "id": "advisor-charts-valid",
+      "family": "charts",
+      "partition": "independent-review",
+      "label": "valid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { LineChart as Trends } from \"@mui/x-charts/LineChart\";\nconst placement = { m: 1, width: \"100%\" } as const;\nexport function Subject() {\n  return <Trends series={[{ data: [2, 5] }]} sx={{ ...placement, height: 220 }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "advisor-charts-invalid",
+      "family": "charts",
+      "partition": "independent-review",
+      "label": "invalid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { LineChart as Trends } from \"@mui/x-charts\";\nexport function Subject() {\n  return <Trends series={[{ data: [2, 5] }]} sx={{ \"& > svg path\": { stroke: \"color-mix(in srgb, var(--mui-palette-primary-main) 60%, rebeccapurple)\" } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "LineChart",
+            "authoredProperty": "stroke",
+            "sourceRange": [150, 156]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "LineChart",
+            "authoredProperty": "stroke",
+            "sourceRange": [150, 156]
+          }
+        ]
+      }
+    },
+    {
+      "id": "advisor-tree-valid",
+      "family": "tree",
+      "partition": "independent-review",
+      "label": "valid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { SimpleTreeView } from \"@mui/x-tree-view\";\nimport { TreeItem } from \"@mui/x-tree-view/TreeItem\";\nexport function Subject() {\n  return <SimpleTreeView sx={{ width: 280 }}><TreeItem itemId=\"root\" label=\"Root\" sx={{ mt: { xs: 1, md: 2 } }} /></SimpleTreeView>;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "advisor-tree-invalid",
+      "family": "tree",
+      "partition": "independent-review",
+      "label": "invalid",
+      "scope": "Root sx diagnostics only; no claim of whole-file or task acceptance.",
+      "source": "import { RichTreeView as Explorer } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() {\n  return <Explorer items={[{ id: \"root\", label: \"Root\" }]} sx={{ color: { xs: \"text.primary\", md: \"rgb(calc(0) calc(0) calc(0))\" } }} />;\n}\n",
+      "expected": {
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "RichTreeView",
+            "authoredProperty": "color",
+            "sourceRange": [167, 172]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "RichTreeView",
+            "authoredProperty": "color",
+            "sourceRange": [167, 172]
+          }
+        ]
+      }
+    }
+  ]
+}

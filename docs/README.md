@@ -7,6 +7,7 @@ Start with [Get started](../README.md#get-started) to set up ESLint or Oxlint.
 - [React](./react.md): Oxlint or ESLint, shadcn/ui or your own components.
 - [Vue](./vue.md): ESLint with `vue-eslint-parser`, and what Oxlint can and cannot read.
 - [Svelte](./svelte.md): ESLint with `svelte-eslint-parser`, and what Oxlint can and cannot read.
+- [MUI](./mui.md): opt-in property and paint policies for readable JSX styling and configured wrappers.
 
 ## Guides
 

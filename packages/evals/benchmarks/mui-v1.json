@@ -1,0 +1,2114 @@
+{
+  "schemaVersion": 1,
+  "status": "executable-accuracy-catalog-and-independent-task-oracles",
+  "labelStatus": "independently-reviewed-bounded-surface",
+  "labelReview": "./mui-label-review.json",
+  "scope": "Direct Material UI, System and stable MUI X Community imports; declared static root sx forms. Non-root X channels remain explicit coverage observations.",
+  "research": "./mui-research.json",
+  "proposedRules": ["mui/no-raw-colors", "mui/no-restyle"],
+  "policy": {
+    "recognizedImports": [
+      "@mui/material",
+      "@mui/system",
+      "@mui/x-data-grid",
+      "@mui/x-date-pickers",
+      "@mui/x-charts",
+      "@mui/x-tree-view"
+    ],
+    "governedComponents": {
+      "Button": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "display"
+        ],
+        "ownedProperties": [
+          "padding",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "paddingLeft",
+          "color",
+          "backgroundColor",
+          "borderRadius",
+          "fontSize",
+          "fontFamily",
+          "fontWeight"
+        ],
+        "guidance": {
+          "size": ["small", "medium", "large"],
+          "themeFile": "theme/theme.ts"
+        },
+        "defaultDecision": "deny-unlisted-properties"
+      },
+      "DataGrid": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "DatePicker": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "TimePicker": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "BarChart": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "LineChart": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "RichTreeView": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "SimpleTreeView": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      },
+      "TreeItem": {
+        "allowedProperties": [
+          "margin",
+          "marginTop",
+          "marginRight",
+          "marginBottom",
+          "marginLeft",
+          "width",
+          "height",
+          "display"
+        ],
+        "ownedProperties": [
+          "color",
+          "backgroundColor",
+          "borderColor",
+          "borderRadius",
+          "fill",
+          "stroke"
+        ],
+        "defaultDecision": "deny-unlisted-properties",
+        "guidance": {
+          "themeFile": "theme/theme.ts"
+        },
+        "note": "Evaluator intent. Translate to explicit allow-list contract using existing public precedence semantics; not a new public schema."
+      }
+    },
+    "rawColorProperties": [
+      "color",
+      "backgroundColor",
+      "bgcolor",
+      "borderColor",
+      "borderTopColor",
+      "borderRightColor",
+      "borderBottomColor",
+      "borderLeftColor",
+      "outlineColor",
+      "fill",
+      "stroke"
+    ],
+    "approvedPalettePaths": [
+      "primary.main",
+      "error.main",
+      "text.primary",
+      "text.secondary",
+      "background.paper",
+      "action.hover",
+      "brand.main"
+    ],
+    "customBreakpointKeys": [],
+    "note": "This is evaluator policy data, not a supported public plugin configuration schema.",
+    "nestedOwnership": "Every declaration authored in a recognized root sx tree uses the enclosing canonical component contract, regardless of selector target. A selector never proves a child/slot component identity. Explicit property allowances apply at all depths."
+  },
+  "caseContract": {
+    "source": "Complete TSX parse input; lint cases are not rendered task components.",
+    "expected.diagnostics": "Exact unordered set for valid/invalid labels; null for uncertainty cases means record findings without prescribing a production rule result.",
+    "expected.coverage": "Evaluator-owned eligibility across analysis and semantic validation; supported, out-of-scope or unknown. This is not a public plugin coverage API.",
+    "environment": "Optional pristine evaluator inputs for custom configuration cases.",
+    "expected.analysisStatus": "Whether syntax and ownership are within the proposed readable surface; separate from policyStatus.",
+    "expected.policyStatus": "Independent policy outcome: accepted, violating or unknown. Unvalidated tokens and custom transforms do not become accepted through zero diagnostics.",
+    "label": "valid/invalid prescribe supported production-rule findings. unknown has no prescribed production findings; independentValidation may still establish accepted/violating policy for an out-of-scope channel.",
+    "expected.diagnostics.sourceRange": "Zero-based UTF-16 [start,end) range of the authored property key token, excluding colon; location expectations are reviewed independently. holdout-conditional-branch must report only the second color key."
+  },
+  "cases": [
+    {
+      "id": "palette-path",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"primary.main\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "background-alias",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ bgcolor: \"background.paper\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "inherit-color",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"inherit\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "current-color",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ borderColor: \"currentColor\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "transparent-color",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ bgcolor: \"transparent\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "css-variable",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"var(--mui-palette-primary-main)\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "numeric-spacing",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/system/Box\";\n\nexport function Subject() { return <Box sx={{ p: 2, gap: 1.5 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "system"
+    },
+    {
+      "id": "numeric-radius",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ borderRadius: 2 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "fractional-width",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { Box } from \"@mui/system\";\n\nexport function Subject() { return <Box sx={{ width: 0.5 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "system"
+    },
+    {
+      "id": "font-weight-token",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ fontWeight: \"bold\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "shadow-index",
+      "partition": "development",
+      "label": "valid",
+      "source": "import * as System from \"@mui/system\";\n\nexport function Subject() { return <System.Box sx={{ boxShadow: 2 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "system"
+    },
+    {
+      "id": "responsive-object",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: { xs: \"text.primary\", md: \"primary.main\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "responsive-array",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ bgcolor: [\"background.paper\", null, \"primary.main\"] }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "composition-array",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={[{ color: \"primary.main\" }, false, { p: 2 }]} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "nested-selector",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ \"&:hover\": { bgcolor: \"action.hover\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "constant-style",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\nconst styles = { color: \"primary.main\" } as const;\nexport function Subject() { return <Box sx={styles} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "literal-spread",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\nconst base = { color: \"primary.main\" } as const;\nexport function Subject() { return <Box sx={{ ...base, p: 2 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-placement",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ mt: 2, width: 1 }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-size-prop",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button size=\"small\" variant=\"contained\">Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "unrelated-component",
+      "partition": "development",
+      "label": "valid",
+      "source": "function Box(props: any) { return <div />; }\n\nexport function Subject() { return <Box sx={{ color: \"#ff0000\" }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "diagnostics": [],
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "literal-hex",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"#ff0000\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "named-color",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"red\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "rgb-color",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ bgcolor: \"rgb(255 0 0)\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [84, 91]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "oklch-color",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"oklch(0.6 0.2 30)\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "border-color",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ borderColor: \"#f00\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "borderColor",
+            "sourceRange": [84, 95]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "outline-color",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ outlineColor: \"red\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "outlineColor",
+            "sourceRange": [84, 96]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "svg-fill",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box component=\"svg\" sx={{ fill: \"#f00\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "fill",
+            "sourceRange": [100, 104]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-responsive-object",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: { xs: \"#f00\", md: \"primary.main\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-responsive-array",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: [\"primary.main\", \"#f00\"] }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-nested-hover",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ \"&:hover\": { color: \"#f00\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [97, 102]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-nested-media",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/system/Box\";\n\nexport function Subject() { return <Box sx={{ \"@media (min-width: 900px)\": { color: \"#f00\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [113, 118]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "system"
+    },
+    {
+      "id": "raw-composition-array",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={[{ p: 2 }, { color: \"#f00\" }]} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [95, 100]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-constant-style",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\nconst styles = { color: \"#f00\" } as const;\nexport function Subject() { return <Box sx={styles} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [54, 59]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "raw-literal-spread",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\nconst base = { color: \"#f00\" } as const;\nexport function Subject() { return <Box sx={{ ...base, p: 2 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [52, 57]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-padding",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ p: 2 }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "p",
+            "sourceRange": [93, 94]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-padding-x",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ px: 2 }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "px",
+            "sourceRange": [93, 95]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-radius",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ borderRadius: 2 }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "borderRadius",
+            "sourceRange": [93, 105]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-unlisted-property",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ boxShadow: 2 }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "boxShadow",
+            "sourceRange": [93, 102]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "button-token-background",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ bgcolor: \"primary.main\" }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [93, 100]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "named-import-alias",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import { Button as Action } from \"@mui/material\";\n\nexport function Subject() { return <Action sx={{ p: 2 }}>Save</Action>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "p",
+            "sourceRange": [100, 101]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "callback-theme",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={(theme) => ({ color: theme.vars.palette.primary.main })} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "callback-analysis-deferred",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "callback-literal",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={() => ({ color: \"#f00\" })} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "callback-analysis-deferred",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "unresolved-spread",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\ndeclare const external: any;\nexport function Subject() { return <Box sx={{ ...external }} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "unresolved-spread",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "external-style",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\ndeclare const external: any;\nexport function Subject() { return <Box sx={external} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "unresolved-identifier",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "mutated-style",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\nconst styles = { color: \"primary.main\" }; styles.color = \"#f00\";\nexport function Subject() { return <Box sx={styles} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "mutated-value",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "reassigned-style",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\nlet styles = { color: \"primary.main\" }; styles = { color: \"#f00\" };\nexport function Subject() { return <Box sx={styles} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "reassigned-value",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "wrapper-owner",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Button from \"@mui/material/Button\";\nfunction Wrapper(props: any) { return <Button {...props} />; }\nexport function Subject() { return <Wrapper sx={{ p: 2 }} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "unproven-sx-forwarding",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "custom-sx-config",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"red\" }} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "custom-sx-transform",
+        "analysisStatus": "supported",
+        "policyStatus": "unknown"
+      },
+      "environment": {
+        "customSxConfig": {
+          "color": {
+            "transform": "unresolved-custom-function"
+          }
+        },
+        "use": "Trusted evaluator metadata for semantic eligibility, not an input production rules are assumed to discover."
+      },
+      "family": "material"
+    },
+    {
+      "id": "computed-color",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\ndeclare const colors: Record<string, string>; declare const tone: string;\nexport function Subject() { return <Box sx={{ color: colors[tone] }} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "unresolved-computed-value",
+        "analysisStatus": "unknown",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "unvalidated-token",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"brand.missing\" }} />; }\n",
+      "expected": {
+        "coverage": "unknown",
+        "diagnostics": null,
+        "coverageReason": "theme-token-existence-unvalidated",
+        "analysisStatus": "supported",
+        "policyStatus": "unknown"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-print-token",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ \"@media print\": { color: \"text.primary\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-spacing-array",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ px: [1, 2, 3] }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-native-color",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"color-mix(in srgb, var(--mui-palette-primary-main) 80%, transparent)\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-cascade-token",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ \"@layer components\": { color: \"primary.main\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-default-placement",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import Action from \"@mui/material/Button\";\n\nexport function Subject() { return <Action sx={{ mx: 2 }}>Save</Action>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [],
+        "analysisStatus": "supported",
+        "policyStatus": "accepted"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-default-identity",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import Action from \"@mui/material/Button\";\n\nexport function Subject() { return <Action sx={{ p: 2 }}>Save</Action>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "p",
+            "sourceRange": [93, 94]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-namespace-identity",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import * as UI from \"@mui/material\";\n\nexport function Subject() { return <UI.Button sx={{ px: 2 }}>Save</UI.Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "px",
+            "sourceRange": [90, 92]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-conditional-branch",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\ndeclare const on: boolean;\nexport function Subject() { return <Box sx={on ? { color: \"primary.main\" } : { color: \"#f00\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [143, 148]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-color-fallback",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import Box from \"@mui/material/Box\";\n\nexport function Subject() { return <Box sx={{ color: \"var(--brand, #f00)\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [84, 89]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "holdout-two-rules",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import Button from \"@mui/material/Button\";\n\nexport function Subject() { return <Button sx={{ bgcolor: \"#f00\" }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "Button",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [93, 100]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Button",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [93, 100]
+          }
+        ],
+        "analysisStatus": "supported",
+        "policyStatus": "violating"
+      },
+      "family": "material"
+    },
+    {
+      "id": "x-grid-layout",
+      "family": "data-grid",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Subject() { return <DataGrid rows={[]} columns={[]} sx={{ width: \"100%\", height: 300 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-grid-renamed-export",
+      "family": "data-grid",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import { DataGrid as Records } from \"@mui/x-data-grid/DataGrid\";\nexport function Subject() { return <Records rows={[]} columns={[]} sx={{ m: 1 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-grid-raw-cell-color",
+      "family": "data-grid",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Subject() { return <DataGrid rows={[]} columns={[]} sx={{ \"& .MuiDataGrid-cell\": { color: \"#ff0000\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "DataGrid",
+            "authoredProperty": "color",
+            "sourceRange": [144, 149]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "DataGrid",
+            "authoredProperty": "color",
+            "sourceRange": [144, 149]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-grid-owned-background",
+      "family": "data-grid",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Subject() { return <DataGrid rows={[]} columns={[]} sx={{ bgcolor: \"background.paper\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "DataGrid",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [119, 126]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-grid-slot-style",
+      "family": "data-grid",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Subject() { return <DataGrid rows={[]} columns={[]} slotProps={{ baseButton: { sx: { color: \"#ff0000\" } } }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "slotProps styling needs slot ownership and installed API verification; root sx support does not cover it."
+      }
+    },
+    {
+      "id": "x-grid-external-class",
+      "family": "data-grid",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { DataGrid } from \"@mui/x-data-grid\";\nexport function Subject() { return <DataGrid rows={[]} columns={[]} getRowClassName={() => \"warning-row\"} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Class callbacks and external CSS are separate styling channels."
+      }
+    },
+    {
+      "id": "x-picker-layout",
+      "family": "date-time-pickers",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() { return <DatePicker label=\"Start date\" sx={{ width: \"100%\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-time-picker-functional-props",
+      "family": "date-time-pickers",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import { TimePicker as AppointmentTime } from \"@mui/x-date-pickers\";\nexport function Subject() { return <AppointmentTime label=\"Time\" slotProps={{ actionBar: { actions: [\"accept\", \"cancel\"] } }} sx={{ m: 1 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-picker-raw-color",
+      "family": "date-time-pickers",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() { return <DatePicker sx={{ color: \"#ff0000\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "DatePicker",
+            "authoredProperty": "color",
+            "sourceRange": [114, 119]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "DatePicker",
+            "authoredProperty": "color",
+            "sourceRange": [114, 119]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-picker-owned-border",
+      "family": "date-time-pickers",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() { return <DatePicker sx={{ borderColor: \"primary.main\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "DatePicker",
+            "authoredProperty": "borderColor",
+            "sourceRange": [114, 125]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-picker-static-slot-style",
+      "family": "date-time-pickers",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() { return <DatePicker slotProps={{ textField: { sx: { color: \"#ff0000\" } } }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Static slot style requires canonical identity of the slot; no general nested-object scan."
+      }
+    },
+    {
+      "id": "x-picker-callback-slot-style",
+      "family": "date-time-pickers",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { DatePicker } from \"@mui/x-date-pickers/DatePicker\";\nexport function Subject() { return <DatePicker slotProps={{ textField: () => ({ sx: { color: \"#ff0000\" } }) }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Callback slot style and popup ownership are unproven."
+      }
+    },
+    {
+      "id": "x-chart-layout",
+      "family": "charts",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart xAxis={[{ data: [\"Q1\", \"Q2\"] }]} series={[{ data: [10, 20] }]} height={300} sx={{ m: 1 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-chart-namespace-layout",
+      "family": "charts",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import * as Charts from \"@mui/x-charts\";\nexport function Subject() { return <Charts.LineChart series={[{ data: [10, 20] }]} height={300} sx={{ width: \"100%\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-chart-raw-svg-fill",
+      "family": "charts",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart series={[{ data: [10, 20] }]} height={300} sx={{ \"& .MuiBarElement-root\": { fill: \"#ff0000\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "BarChart",
+            "authoredProperty": "fill",
+            "sourceRange": [172, 176]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "BarChart",
+            "authoredProperty": "fill",
+            "sourceRange": [172, 176]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-chart-owned-border",
+      "family": "charts",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart series={[{ data: [10, 20] }]} height={300} sx={{ borderColor: \"primary.main\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "BarChart",
+            "authoredProperty": "borderColor",
+            "sourceRange": [145, 156]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-chart-series-color",
+      "family": "charts",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart series={[{ data: [10, 20], color: \"#ff0000\" }]} height={300} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Dedicated series color is CSS color, not sx palette lookup; no coverage claim for this channel."
+      }
+    },
+    {
+      "id": "x-chart-axis-text-style",
+      "family": "charts",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart xAxis={[{ data: [\"Q1\", \"Q2\"], tickLabelStyle: { fontSize: 18 } }]} series={[{ data: [10, 20] }]} height={300} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "accepted",
+        "diagnostics": null,
+        "coverageReason": "Legal dedicated SVG styles support text measurement. Independently validate approved values; do not call their API usage cheating."
+      },
+      "independentValidation": {
+        "channel": "axis-svg-style",
+        "owner": "BarChart.xAxis[].tickLabelStyle",
+        "approvedStyle": {
+          "fontSize": 18
+        },
+        "assertion": "Read this dedicated axis style independently and match the approved fixture metric; verify actual label layout at both widths. Do not call production sx classification."
+      },
+      "environment": {
+        "approvedAxisTextStyles": [
+          {
+            "fontSize": 18
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-chart-axis-text-style-unapproved",
+      "family": "charts",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { BarChart } from \"@mui/x-charts/BarChart\";\nexport function Subject() { return <BarChart xAxis={[{ data: [\"Q1\", \"Q2\"], tickLabelStyle: { fontSize: 19 } }]} series={[{ data: [10, 20] }]} height={300} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "violating",
+        "diagnostics": null,
+        "coverageReason": "Production root sx rules do not cover this dedicated channel; the independent oracle must reject an unapproved font metric."
+      },
+      "independentValidation": {
+        "channel": "axis-svg-style",
+        "owner": "BarChart.xAxis[].tickLabelStyle",
+        "approvedStyle": {
+          "fontSize": 18
+        },
+        "assertion": "Reject the unapproved fontSize19 despite no production sx diagnostic. Keep the unchanged approved fontSize18 counterexample accepted."
+      },
+      "environment": {
+        "approvedAxisTextStyles": [
+          {
+            "fontSize": 18
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-tree-layout",
+      "family": "tree-view",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { RichTreeView } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() { return <RichTreeView items={[{ id: \"root\", label: \"Root\" }]} sx={{ width: \"100%\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-tree-namespace-layout",
+      "family": "tree-view",
+      "partition": "holdout",
+      "label": "valid",
+      "source": "import * as Trees from \"@mui/x-tree-view\";\nexport function Subject() { return <Trees.RichTreeView items={[]} sx={{ m: 1 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-tree-raw-color",
+      "family": "tree-view",
+      "partition": "development",
+      "label": "invalid",
+      "source": "import { RichTreeView } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() { return <RichTreeView items={[]} sx={{ color: \"#ff0000\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "RichTreeView",
+            "authoredProperty": "color",
+            "sourceRange": [128, 133]
+          },
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "RichTreeView",
+            "authoredProperty": "color",
+            "sourceRange": [128, 133]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-tree-owned-content-background",
+      "family": "tree-view",
+      "partition": "holdout",
+      "label": "invalid",
+      "source": "import { RichTreeView } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() { return <RichTreeView items={[]} sx={{ \"& .MuiRichTreeView-itemContent\": { bgcolor: \"action.hover\" } }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "violating",
+        "diagnostics": [
+          {
+            "rule": "mui/no-restyle",
+            "component": "RichTreeView",
+            "authoredProperty": "bgcolor",
+            "sourceRange": [164, 171]
+          }
+        ]
+      }
+    },
+    {
+      "id": "x-tree-slot-style",
+      "family": "tree-view",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { RichTreeView } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() { return <RichTreeView items={[]} slotProps={{ item: { sx: { color: \"#ff0000\" } } }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Slot item identity and forwarding require independent proof."
+      }
+    },
+    {
+      "id": "x-tree-external-style",
+      "family": "tree-view",
+      "partition": "coverage",
+      "label": "unknown",
+      "source": "import { RichTreeView } from \"@mui/x-tree-view/RichTreeView\";\nexport function Subject() { return <RichTreeView items={[]} style={{ color: \"#ff0000\" }} />; }\n",
+      "expected": {
+        "coverage": "out-of-scope",
+        "analysisStatus": "out-of-scope",
+        "policyStatus": "unknown",
+        "diagnostics": null,
+        "coverageReason": "Inline style is a separate channel; do not accept zero root sx diagnostics as compliance."
+      }
+    },
+    {
+      "id": "system-stack-capability",
+      "family": "system",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { Stack } from \"@mui/system\";\nexport function Subject() { return <Stack sx={{ gap: 2 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-simple-tree-capability",
+      "family": "tree-view",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { SimpleTreeView } from \"@mui/x-tree-view/SimpleTreeView\";\nexport function Subject() { return <SimpleTreeView sx={{ width: \"100%\" }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "x-tree-item-capability",
+      "family": "tree-view",
+      "partition": "development",
+      "label": "valid",
+      "source": "import { TreeItem } from \"@mui/x-tree-view/TreeItem\";\nexport function Subject() { return <TreeItem itemId=\"root\" label=\"Root\" sx={{ m: 1 }} />; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "button-nested-layout-allowed",
+      "family": "material",
+      "partition": "development",
+      "label": "valid",
+      "source": "import Button from \"@mui/material/Button\";\nexport function Subject() { return <Button sx={{ \"& .MuiButton-startIcon\": { display: \"inline-flex\" } }}>Save</Button>; }\n",
+      "expected": {
+        "coverage": "supported",
+        "analysisStatus": "supported",
+        "policyStatus": "accepted",
+        "diagnostics": []
+      }
+    }
+  ],
+  "agentProtocol": {
+    "conditions": {
+      "A": "Generation with pinned official guidance.",
+      "B": "A output corrected with the same guidance and project policy.",
+      "C": "A output corrected with the same guidance, policy and diagnostics."
+    },
+    "generationRepeats": 3,
+    "maxCorrectionRounds": 3,
+    "executionOrder": "Randomized B/C order within each independently generated pair.",
+    "viewports": [
+      {
+        "width": 390,
+        "height": 844
+      },
+      {
+        "width": 1280,
+        "height": 900
+      }
+    ],
+    "modelSelection": "Only gpt-6.1-sol; pin provider model identifier and effort per run. Vary effort in separate cohorts, keeping identical model/effort for B and C within each pair. Record spend budget before paid execution. Use gpt-6.1-sol for any model-based visual judge; record judge effort separately and keep it fixed across candidate conditions.",
+    "fixtureStatus": "Fixture data, UI assertions and pinned guidance remain implementation work.",
+    "stoppingRule": "Primary B/C stop only when the hidden independent evaluator accepts the output or the shared three-round cap is reached. Observation tasks use one correction round each.",
+    "sharedFeedback": "B/C receive identical type/build/runtime errors and a generic acceptance-failed notice when needed; only C receives policy lint diagnostics. Oracle labels, rubric implementation and expected fixes stay outside prompts.",
+    "familyReporting": "Report Material/System and each of the four stable X families separately; no inference to licensed or preview components.",
+    "trialCounts": {
+      "tasks": 12,
+      "generationRepeats": 3,
+      "pairedTrials": 36,
+      "primaryPairs": 33,
+      "observationPairs": 3
+    },
+    "adversarialWorkflow": "Before promoting coverage, independently challenge ownership, channel semantics and acceptance. Add regression cases for each reproduced bypass. Failures reopen the specific gate; keep changed runs separate by manifest hash. Runtime mutation hiding required text/control through an allowed nested display property must fail task acceptance even when property-policy lint passes.",
+    "channelAcceptance": "Resolve dedicated channels only through declared pristine independent assertions. Report production analysis coverage separately; approved dedicated axis styling may be task-accepted without being counted as production sx coverage."
+  },
+  "tasks": [
+    {
+      "id": "account-form",
+      "category": "neutral",
+      "lane": "locked",
+      "prompt": "Build an account form with labeled name and email inputs, Save and Cancel actions, and visible confirmation containing the entered name after Save. Use the provided Material UI design system.",
+      "acceptance": [
+        "Name and email inputs have accessible labels.",
+        "Save displays confirmation using the entered name.",
+        "Cancel restores initial values.",
+        "The form is usable at both target widths."
+      ],
+      "states": ["light", "dark", "keyboard-focus", "submitted"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3,
+      "inputs": {
+        "initialName": "Ada",
+        "initialEmail": "ada@example.test"
+      }
+    },
+    {
+      "id": "billing-summary",
+      "category": "neutral",
+      "lane": "locked",
+      "prompt": "Build a billing summary with three invoices, totals, and a Pay action for each unpaid invoice. Preserve invoice identifiers and use the provided Material UI design system.",
+      "acceptance": [
+        "All three provided invoices and totals remain visible.",
+        "Pay changes the selected invoice status only.",
+        "The summary preserves readable mobile layout.",
+        "Buttons use governed appearance props."
+      ],
+      "states": ["light", "dark", "paid"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3,
+      "inputs": {
+        "invoices": [
+          {
+            "id": "INV-001",
+            "totalUsd": 120,
+            "status": "unpaid"
+          },
+          {
+            "id": "INV-002",
+            "totalUsd": 80,
+            "status": "unpaid"
+          },
+          {
+            "id": "INV-003",
+            "totalUsd": 200,
+            "status": "paid"
+          }
+        ]
+      }
+    },
+    {
+      "id": "compact-action",
+      "category": "temptation",
+      "lane": "locked",
+      "prompt": "Create a compact Save action with roughly 13px internal spacing and room above it. Choose the closest existing size treatment, retain its label, and show confirmation on activation.",
+      "acceptance": [
+        "The existing compact size treatment supplies internal spacing.",
+        "Margin can provide room above the action.",
+        "Save is keyboard accessible and displays confirmation.",
+        "No Button padding override is introduced."
+      ],
+      "states": ["light", "dark", "hover", "keyboard-focus"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "destructive-action",
+      "category": "temptation",
+      "lane": "locked",
+      "prompt": "Build a prominent red Delete account action and a confirmation dialog. Keep the provided destructive color family, support Cancel, and show a completion state after confirmation.",
+      "acceptance": [
+        "The action uses the existing destructive component treatment.",
+        "Cancel closes the dialog without completing deletion.",
+        "Confirmation displays the completion state.",
+        "Destructive emphasis remains visible in both color schemes."
+      ],
+      "states": ["light", "dark", "dialog-open", "cancelled", "confirmed"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "responsive-layout",
+      "category": "legitimate-customization",
+      "lane": "locked",
+      "prompt": "Build a responsive two-panel layout using Box, Stack or current Grid APIs. Panels stack on mobile and sit side by side on desktop. Use responsive theme spacing and a semantic surface color.",
+      "acceptance": [
+        "Panels stack at the mobile target and are adjacent at the desktop target.",
+        "Spacing uses theme-aware values.",
+        "The semantic surface remains readable in light and dark modes.",
+        "Legal Box and Stack styling is retained."
+      ],
+      "states": ["light", "dark"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "disabled-submit",
+      "category": "legitimate-customization",
+      "lane": "locked",
+      "prompt": "Build a labeled consent checkbox and a Submit action disabled until consent is checked. Use the existing Button treatments and keep state styling consistent with the theme.",
+      "acceptance": [
+        "Submit is disabled before consent.",
+        "Checking consent enables Submit.",
+        "Keyboard activation works when enabled.",
+        "Disabled styling remains discernible without restyling Button."
+      ],
+      "states": ["light", "dark", "disabled", "enabled", "keyboard-focus"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "approved-brand-variant",
+      "category": "approved-extension",
+      "lane": "extension",
+      "prompt": "Add a reusable promo Button variant for the existing brand palette. Make two campaign actions consume the variant. Update the permitted theme and TypeScript augmentation files, preserving all existing treatments.",
+      "acceptance": [
+        "The new variant uses the existing brand token.",
+        "Both campaign actions consume the same variant.",
+        "Existing variant definitions remain intact.",
+        "The augmentation type-checks and light/dark brand intent survives."
+      ],
+      "states": ["light", "dark", "hover"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**", "theme/theme.ts", "theme/augmentation.d.ts"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "dynamic-theme-style",
+      "category": "coverage-observation",
+      "lane": "observation",
+      "prompt": "Build a status indicator using an sx theme callback whose background derives from the supplied runtime status and theme. Keep its accessible status text synchronized with the selected status.",
+      "acceptance": [
+        "All provided statuses display the matching text.",
+        "Changing status updates the indicator.",
+        "Theme-based callback styling is not rewritten as a literal color.",
+        "Unresolved styling is reported as coverage uncertainty."
+      ],
+      "states": ["light", "dark", "status-changed"],
+      "file": "app/page.tsx",
+      "primaryMetric": false,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 1,
+      "inputs": {
+        "statuses": ["pending", "approved", "rejected"],
+        "palettePaths": ["warning.main", "success.main", "error.main"]
+      }
+    },
+    {
+      "id": "x-records-grid",
+      "family": "data-grid",
+      "category": "neutral",
+      "lane": "locked",
+      "prompt": "Build a records table using the supplied MUI X Community DataGrid. Display the provided records, allow sorting by amount, support row selection with a visible selected-record summary, and paginate within a bounded container. Preserve the supplied design system.",
+      "acceptance": [
+        "All fixture records remain reachable through pagination; do not require all virtualized rows in DOM simultaneously.",
+        "Sorting by amount produces correct ascending and descending values.",
+        "Keyboard selection updates the visible selected-record summary.",
+        "Grid and container have nonzero measured dimensions and remain usable at both target widths."
+      ],
+      "inputs": {
+        "rows": [
+          {
+            "id": "INV001",
+            "amount": 120
+          },
+          {
+            "id": "INV002",
+            "amount": 80
+          },
+          {
+            "id": "INV003",
+            "amount": 200
+          }
+        ],
+        "pageSize": 2
+      },
+      "states": [
+        "light",
+        "dark",
+        "keyboard-focus",
+        "sorted",
+        "selected",
+        "paginated"
+      ],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "x-appointment-pickers",
+      "family": "date-time-pickers",
+      "category": "neutral",
+      "lane": "locked",
+      "prompt": "Build an appointment date and time form using the supplied MUI X Community DatePicker and TimePicker. Show the entered values after confirmation and reject dates outside the supplied range. Use the fixture LocalizationProvider and adapter.",
+      "acceptance": [
+        "Date and time values can be edited with keyboard and picker controls.",
+        "Out-of-range dates cannot be confirmed; errors remain perceivable.",
+        "Confirmation shows the independently expected chosen date and time.",
+        "Open, accept and cancel preserve correct value state; desktop/mobile behavior is controlled explicitly, not inferred from viewport alone."
+      ],
+      "inputs": {
+        "adapter": "AdapterDayjs",
+        "locale": "en",
+        "timezone": "UTC",
+        "clock": "2026-10-07T12:00:00Z",
+        "minDate": "2026-10-08",
+        "maxDate": "2026-10-31",
+        "initialDate": "2026-10-12",
+        "initialTime": "09:30"
+      },
+      "states": [
+        "light",
+        "dark",
+        "keyboard-focus",
+        "popup-open",
+        "invalid",
+        "confirmed"
+      ],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "x-revenue-chart",
+      "family": "charts",
+      "category": "temptation",
+      "lane": "locked",
+      "prompt": "Build a revenue chart using the supplied MUI X Community BarChart and quarterly data. Include series labels and an inspectable tooltip, and make it readable in the compact viewport. Use approved fixture treatments when improving presentation.",
+      "acceptance": [
+        "Rendered bar marks and labels represent all supplied values without fabricated data.",
+        "Legend or equivalent visible labeling preserves the identity of both series.",
+        "Hover and keyboard navigation expose correct tooltip values.",
+        "Axes remain readable at both target widths after layout settles; axis font metrics use dedicated supported APIs.",
+        "Fixture-approved default chart colors or independently validated channel-specific treatments are used; sx palette paths are not suggested for dedicated CSS-color props."
+      ],
+      "inputs": {
+        "quarters": ["Q1", "Q2", "Q3"],
+        "series": [
+          {
+            "id": "current",
+            "label": "Current",
+            "data": [10, 20, 30]
+          },
+          {
+            "id": "previous",
+            "label": "Previous",
+            "data": [8, 18, 24]
+          }
+        ],
+        "animation": "disabled by trusted fixture",
+        "approvedAxisTextStyles": [
+          {
+            "fontSize": 18
+          }
+        ]
+      },
+      "states": ["light", "dark", "keyboard-focus", "tooltip", "compact"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    },
+    {
+      "id": "x-project-tree",
+      "family": "tree-view",
+      "category": "neutral",
+      "lane": "locked",
+      "prompt": "Build a project navigator using the supplied MUI X Community RichTreeView and item hierarchy. Support expansion and selection and display the selected item label while preserving the design system.",
+      "acceptance": [
+        "IDs and parent/child relationships match the pristine fixture.",
+        "Expand and collapse reveal and hide the correct descendants.",
+        "Keyboard traversal and selection update the visible selected-item label.",
+        "No items disappear during styling correction; the navigator works at both target widths."
+      ],
+      "inputs": {
+        "items": [
+          {
+            "id": "workspace",
+            "label": "Workspace",
+            "children": [
+              {
+                "id": "app",
+                "label": "Application"
+              },
+              {
+                "id": "docs",
+                "label": "Documentation"
+              }
+            ]
+          }
+        ]
+      },
+      "states": ["light", "dark", "keyboard-focus", "expanded", "selected"],
+      "file": "app/page.tsx",
+      "primaryMetric": true,
+      "editablePaths": ["app/**"],
+      "correctionRoundCap": 3
+    }
+  ]
+}

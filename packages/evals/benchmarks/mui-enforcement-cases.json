@@ -1,0 +1,131 @@
+{
+  "description": "Regression cases for bounded callbacks, configured wrappers and unresolved interpolation. Syntax diagnostics only; no rendering or agent-effectiveness claims.",
+  "cases": [
+    {
+      "id": "root-callback",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={theme => ({ color: \"red\" })} />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [58, 63]
+          }
+        ]
+      }
+    },
+    {
+      "id": "legacy-callback",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{ color: theme => \"red\" }} />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Box",
+            "authoredProperty": "color",
+            "sourceRange": [48, 53]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wrapper-prop",
+      "source": "import Icon from \"@design/icon\"; <Icon color=\"red\" />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Icon",
+            "authoredProperty": "color",
+            "sourceRange": [39, 44]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wrapper-prop-authored",
+      "source": "import Icon from \"@design/icon\"; <Icon color=\"red\" sx={{color: \"primary.main\"}} />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Icon",
+            "authoredProperty": "color",
+            "sourceRange": [39, 44]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wrapper-alias",
+      "source": "import { Icon as Glyph } from \"@design/components\"; <Glyph sx={{ color: \"red\" }} />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Icon",
+            "authoredProperty": "color",
+            "sourceRange": [65, 70]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wrapper-namespace",
+      "source": "import * as Design from \"@design/components\"; <Design.Icon sx={{ color: \"red\" }} />",
+      "expected": {
+        "diagnostics": [
+          {
+            "rule": "mui/no-raw-colors",
+            "component": "Icon",
+            "authoredProperty": "color",
+            "sourceRange": [65, 70]
+          }
+        ]
+      }
+    },
+    {
+      "id": "callback-unknown",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={theme => { mutate(); return { color: \"red\" }; }} />",
+      "expected": {
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "wrapper-shadowed",
+      "source": "import Icon from \"@design/icon\"; function Demo(Icon: any) {return <Icon color=\"red\" />}",
+      "expected": {
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "wrapper-overwritten",
+      "source": "import Icon from \"@design/icon\"; <Icon color=\"red\" {...props} />",
+      "expected": {
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "template-variable-name",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{color: `var(--${prefix}-red)`}} />",
+      "expected": {
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "template-channel",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{color: `rgb(${theme.vars.palette.primary.mainChannel} / 0.5)`}} />",
+      "expected": {
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "template-suffix",
+      "source": "import { Box } from \"@mui/material\"; <Box sx={{color: `${prefix}red`}} />",
+      "expected": {
+        "diagnostics": []
+      }
+    }
+  ]
+}
