@@ -1,5 +1,33 @@
 # @shadcn/lint
 
+## 0.2.4
+
+### Patch Changes
+
+- [#161](https://github.com/shadcn-ui/lint/pull/161) [`5e5eacf`](https://github.com/shadcn-ui/lint/commit/5e5eacfce9d117963c3b05706fe6e4cc585d75b5) Thanks [@shadcn](https://github.com/shadcn)! - Stop following a chain of consts after 64 links and treat the rest as dynamic, so a generated chain such as `const v2 = cn(v1)` no longer overflows the stack and aborts the run.
+
+- [#148](https://github.com/shadcn-ui/lint/pull/148) [`2120be8`](https://github.com/shadcn-ui/lint/commit/2120be8897607cd0368bc6f4ff82e302810c18cc) Thanks [@shadcn](https://github.com/shadcn)! - Resolve components through barrel chains thousands of files deep. A chain deeper than the call stack used to resolve to nothing.
+
+- [#154](https://github.com/shadcn-ui/lint/pull/154) [`afd9dc8`](https://github.com/shadcn-ui/lint/commit/afd9dc8beb4c5b301e0162b34b471de06848864b) Thanks [@shadcn](https://github.com/shadcn)! - Stop following package `exports` conditions 32 levels deep, so a manifest nested thousands of levels has no target instead of overflowing the stack in every rule.
+
+- [#147](https://github.com/shadcn-ui/lint/pull/147) [`da8344d`](https://github.com/shadcn-ui/lint/commit/da8344d5a2c7393131a64e63a27ae6d1728e00f9) Thanks [@shadcn](https://github.com/shadcn)! - Read an export list past a `}` inside a comment, so `export { A /* } */, B }` and a `// }` line in a multi-line list keep every name after it.
+
+- [#152](https://github.com/shadcn-ui/lint/pull/152) [`ab2050f`](https://github.com/shadcn-ui/lint/commit/ab2050f68033e3f336624b22475814572f3356df) Thanks [@shadcn](https://github.com/shadcn)! - Read class tokens and theme values in one pass, so a token of thousands of unclosed brackets such as `w-[w-[w-[` or `bg-red-500/[/[/[` no longer takes seconds to lint.
+
+- [#150](https://github.com/shadcn-ui/lint/pull/150) [`7bf3502`](https://github.com/shadcn-ui/lint/commit/7bf3502ebf62743c438ebf2c58dc09959cc8d6ca) Thanks [@shadcn](https://github.com/shadcn)! - Ignore a tsconfig `baseUrl` that is not a string, a `paths` value that is not an object, and `paths` targets that are not strings, instead of throwing from every rule.
+
+- [#146](https://github.com/shadcn-ui/lint/pull/146) [`3cbaf51`](https://github.com/shadcn-ui/lint/commit/3cbaf51ce76d301985a10aacbf470c9b208fb9fe) Thanks [@shadcn](https://github.com/shadcn)! - Read imports, export lists, and default exports in linear time, so a module with a long run of spaces or many unclosed `export {` lists no longer stalls the lint for seconds.
+
+- [#151](https://github.com/shadcn-ui/lint/pull/151) [`420aeda`](https://github.com/shadcn-ui/lint/commit/420aeda5d874da9dcadbda9133060f4aa84631fc) Thanks [@shadcn](https://github.com/shadcn)! - Skip classes longer than 10,000 characters or with more than 64 variants in `no-unknown-classes`, and a class that makes Tailwind throw, instead of stalling the Tailwind worker or turning it off for the whole theme.
+
+- [#155](https://github.com/shadcn-ui/lint/pull/155) [`ffd23a9`](https://github.com/shadcn-ui/lint/commit/ffd23a9a7412d7a10c86c233de4fc6686b3dae92) Thanks [@shadcn](https://github.com/shadcn)! - Follow a package `exports` or `imports` target only when it is `./` relative and stays inside the package, the way Node does, and never stat a UNC path outside the project.
+
+- [#145](https://github.com/shadcn-ui/lint/pull/145) [`0c06f22`](https://github.com/shadcn-ui/lint/commit/0c06f22294df1c49c8b11a84ba6ad49dd0b7fbb2) Thanks [@shadcn](https://github.com/shadcn)! - Read a const once per class site, so a chain like `const b = on ? a : a` no longer takes exponential time, and a class reached through both branches is reported once.
+
+- [#153](https://github.com/shadcn-ui/lint/pull/153) [`f3e26c5`](https://github.com/shadcn-ui/lint/commit/f3e26c5829d93011a2e8a5cdfbcf256e34c84d2b) Thanks [@shadcn](https://github.com/shadcn)! - Stop resolving a theme variable once its value would grow past 100,000 characters, such as one that names another variable ten times at each of six levels, and treat it as unresolved instead of building megabytes or overflowing the longest string V8 allows.
+
+- [#149](https://github.com/shadcn-ui/lint/pull/149) [`6e1a943`](https://github.com/shadcn-ui/lint/commit/6e1a94375043c73a2bde8a038d4a2fcc3fa642aa) Thanks [@shadcn](https://github.com/shadcn)! - Read a stylesheet whose `@import` has no closing `;` in one pass. Each `@import` rescanned the rest of the file for one, so a large unterminated stylesheet took seconds to lint.
+
 ## 0.2.3
 
 ### Patch Changes
