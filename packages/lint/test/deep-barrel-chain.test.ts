@@ -8,6 +8,9 @@ import { definingExportOf, exportsOf } from "../src/project/modules"
 
 // Deeper than the call stack holds when each barrel recurses into the next.
 const DEPTH = 10_000
+// Writing and removing that many files can pass vitest's 10s hook
+// limit on a Windows runner.
+const SETUP_TIMEOUT = 60_000
 
 let root: string
 
@@ -28,12 +31,12 @@ beforeEach(() => {
     path.join(root, "leaf.tsx"),
     "export const Leaf = () => null"
   )
-})
+}, SETUP_TIMEOUT)
 
 afterEach(() => {
   resetFsMemo()
   fs.rmSync(root, { recursive: true, force: true })
-})
+}, SETUP_TIMEOUT)
 
 test("a barrel chain deeper than the call stack resolves to its leaf", () => {
   const leaf = { file: path.join(root, "leaf.tsx"), name: "Leaf" }
