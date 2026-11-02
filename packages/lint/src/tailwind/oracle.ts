@@ -10,7 +10,14 @@ import { pathToFileURL } from "node:url"
 
 import { splitVariants } from "../grammar/classes"
 import { didYouMean } from "../grammar/similar"
-import { packageRoot, resolveFile } from "../project/resolve"
+import {
+  isInside,
+  isPackageTarget,
+  isStrayUncPath,
+  packageRoot,
+  packageTarget,
+  resolveFile,
+} from "../project/resolve"
 import { parseImports } from "../project/theme"
 
 type DesignSystem = {
@@ -220,8 +227,10 @@ function stylesheetAt(dir: string, name: string) {
   )
 }
 
+// Only a target Node accepts: one that would leave the package falls
+// through to the next condition.
 function styleTarget(entry: unknown): string | null {
-  if (typeof entry === "string") return entry
+  if (typeof entry === "string") return isPackageTarget(entry) ? entry : null
   if (!entry || typeof entry !== "object") return null
   const record = entry as Record<string, unknown>
   for (const key of ["style", "default"]) {
@@ -234,9 +243,13 @@ function styleTarget(entry: unknown): string | null {
 // The exports entry for a subpath: the exact key, else the longest
 // pattern key whose `*` matches, expanded the way Node expands it, so
 // `"./*.css": "./dist/*.css"` serves `demo-widgets/styles.css`.
-function exportedStyle(exports: Record<string, unknown>, subpath: string) {
+function exportedStyle(
+  pkgDir: string,
+  exports: Record<string, unknown>,
+  subpath: string
+) {
   const exact = styleTarget(exports[`./${subpath}`])
-  if (exact) return exact
+  if (exact) return packageTarget(pkgDir, exact)
   const patterns = Object.keys(exports)
     .filter((key) => key.startsWith("./") && key.includes("*"))
     .sort((a, b) => b.length - a.length)
@@ -252,10 +265,12 @@ function exportedStyle(exports: Record<string, unknown>, subpath: string) {
       continue
     const target = styleTarget(exports[key])
     if (!target) continue
-    return target.replace(
-      "*",
+    const file = packageTarget(
+      pkgDir,
+      target,
       subpath.slice(prefix.length, subpath.length - suffix.length)
     )
+    if (file) return file
   }
   return null
 }
@@ -278,7 +293,9 @@ export function resolveStylesheet(base: string, id: string) {
   if (id === "tailwindcss")
     return resolveStylesheet(base, "tailwindcss/index.css")
   if (id.startsWith(".") || path.isAbsolute(id)) {
-    return stylesheetAt(path.dirname(path.resolve(base, id)), path.basename(id))
+    const file = path.resolve(base, id)
+    if (isStrayUncPath(id, base) || isStrayUncPath(file, base)) return null
+    return stylesheetAt(path.dirname(file), path.basename(id))
   }
   const match = id.match(/^(@[^/]+\/[^/]+|[^/]+)(?:\/(.*))?$/)
   if (!match) return null
@@ -297,13 +314,12 @@ export function resolveStylesheet(base: string, id: string) {
   if (subpath) {
     const target =
       exports && typeof exports === "object"
-        ? exportedStyle(exports as Record<string, unknown>, subpath)
+        ? exportedStyle(pkgDir, exports as Record<string, unknown>, subpath)
         : null
-    if (target) return existingFile(path.join(pkgDir, target))
-    return stylesheetAt(
-      path.dirname(path.join(pkgDir, subpath)),
-      path.basename(subpath)
-    )
+    if (target) return existingFile(target)
+    const file = path.join(pkgDir, subpath)
+    if (!isInside(pkgDir, file)) return null
+    return stylesheetAt(path.dirname(file), path.basename(subpath))
   }
   const root =
     typeof exports === "string"
@@ -311,9 +327,13 @@ export function resolveStylesheet(base: string, id: string) {
       : exports && typeof exports === "object"
         ? styleTarget((exports as Record<string, unknown>)["."] ?? exports)
         : null
-  for (const target of [root, pkg.style, pkg.main]) {
+  const rootFile = root ? packageTarget(pkgDir, root) : null
+  if (rootFile && existingFile(rootFile)) return rootFile
+  for (const target of [pkg.style, pkg.main]) {
     if (typeof target !== "string") continue
-    const file = existingFile(path.join(pkgDir, target))
+    const joined = path.join(pkgDir, target)
+    if (!isInside(pkgDir, joined)) continue
+    const file = existingFile(joined)
     if (file) return file
   }
   return stylesheetAt(pkgDir, "index")
