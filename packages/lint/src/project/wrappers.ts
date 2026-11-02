@@ -429,11 +429,16 @@ function build(
           deps
         )
       : null
+    const member = importedName.member
+      ? definingExportOf(importedName.source, importedName.member, file, deps)
+      : null
     const component = componentFromImport(
       index,
       binding,
       importedName,
-      patterns
+      patterns,
+      member,
+      ui
     )
     if (component) return { target: component }
     if (!binding) {
