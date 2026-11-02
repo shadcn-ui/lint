@@ -112,10 +112,12 @@ export function createComponentTracker(
 ) {
   const filename = fileOf(context)
   const ui = options.ui ?? []
-  const index = componentsFor(filename)
-  // A tag with no import, such as an auto-imported <UiButton>, is also
-  // looked up in settings.shadcn.ui. An import still resolves as before.
-  const tagIndex = ui.length ? componentsFor(filename, ui) : index
+  // settings.shadcn.ui owns what it names: a tag with no import, such as
+  // an auto-imported <UiButton>, and an import that resolves into it,
+  // even through the app's own barrel. An import that resolves nowhere is
+  // matched by name against components.json's directory only.
+  const index = componentsFor(filename, ui)
+  const unresolvedIndex = ui.length ? componentsFor(filename) : index
   const patterns = (options.componentImports ?? []).map(regexpOf)
   const ignored = (options.ignoreImports ?? []).map(regexpOf)
   const imports = new Map<string, ComponentImport>()
@@ -214,11 +216,13 @@ export function createComponentTracker(
         const wrapper = property === null ? name : `${root}.${property}`
         return { component: target.component, file: target.file, wrapper }
       }
-      if (index.has(name) || index.has(imported.original)) {
+      if (unresolvedIndex.has(name) || unresolvedIndex.has(imported.original)) {
         return {
           component: name,
           file:
-            index.files.get(name) ?? index.files.get(imported.original) ?? null,
+            unresolvedIndex.files.get(name) ??
+            unresolvedIndex.files.get(imported.original) ??
+            null,
           wrapper: null,
         }
       }
@@ -229,14 +233,14 @@ export function createComponentTracker(
     // A globally registered <ui-button> is UiButton, the way Vue reads it.
     const name =
       property === null
-        ? !tagIndex.has(root) && element.alias && tagIndex.has(element.alias)
+        ? !index.has(root) && element.alias && index.has(element.alias)
           ? element.alias
           : root
         : `${root}${property.replace(/\./g, "")}`
-    if (tagIndex.has(name)) {
+    if (index.has(name)) {
       return {
         component: name,
-        file: tagIndex.files.get(name) ?? null,
+        file: index.files.get(name) ?? null,
         wrapper: null,
       }
     }

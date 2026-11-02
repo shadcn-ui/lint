@@ -83,6 +83,52 @@ describe("settings.shadcn.ui", () => {
     ).toEqual([])
   })
 
+  test("follows the app's own barrel back to a component it names", () => {
+    // src/components re-exports the ds button. The barrel's source matches
+    // no prefix; the file it resolves to is what the setting names.
+    const barrel = `import { Button } from "@/components"\nexport const A = () => <Button className="bg-highlight">Go</Button>`
+    expect(lint(NO_JSON, NO_JSON_PAGE, barrel, rules)).toEqual([])
+    const found = lint(NO_JSON, NO_JSON_PAGE, barrel, rules, {
+      shadcn: { ui: "@/ds" },
+    })
+    expect(found).toMatchObject([{ ruleId: "shadcn/no-restyle", line: 2 }])
+    expect(found[0].message).toContain("is not allowed on <Button>")
+
+    // So does a wrapper in the app that renders it through the barrel.
+    const wrapped = `import { SaveButton } from "@/components/save-button"\nexport const A = () => <SaveButton className="bg-highlight">Go</SaveButton>`
+    expect(lint(NO_JSON, NO_JSON_PAGE, wrapped, rules)).toEqual([])
+    expect(
+      lint(NO_JSON, NO_JSON_PAGE, wrapped, rules, { shadcn: { ui: "@/ds" } })
+    ).toMatchObject([{ ruleId: "shadcn/no-restyle", line: 2 }])
+
+    // The same name from a file outside the ui directory is not one.
+    const lookalike = `import { Button } from "@/lookalike"\nexport const A = () => <Button className="bg-highlight">Go</Button>`
+    expect(
+      lint(NO_JSON, NO_JSON_PAGE, lookalike, rules, { shadcn: { ui: "@/ds" } })
+    ).toEqual([])
+  })
+
+  test("a spacing message lists the components it names", () => {
+    const spacing = `import { Button } from "@/ds"\nexport const A = () => <Button className="p-4">Go</Button>`
+    const found = lint(
+      NO_JSON,
+      NO_JSON_PAGE,
+      spacing,
+      {
+        "shadcn/no-restyle": [
+          "error",
+          {
+            allow: ["layout"],
+            contracts: [{ pattern: "^Car.$", allow: ["spacing"] }],
+          },
+        ],
+      },
+      { shadcn: { ui: "@/ds" } }
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0].message).toMatch(/, or Card for space around it\./)
+  })
+
   test("adds to a rule's own patterns instead of replacing them", () => {
     const found = lint(
       NO_JSON,
