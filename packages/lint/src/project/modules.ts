@@ -191,11 +191,33 @@ export function exportsOf(
   return cached.value
 }
 
+// A barrel chain can run thousands of files deep, past what the call
+// stack holds, so each file's walk yields the files it needs and runs on
+// a stack of its own.
 function collectExports(
   file: string,
   visiting: Set<string>,
   deps?: Set<string>
 ) {
+  const walks = [walkExports(file, visiting, deps)]
+  let inner: ModuleExports = new Map()
+  for (;;) {
+    const step = walks[walks.length - 1].next(inner)
+    if (!step.done) {
+      walks.push(walkExports(step.value, visiting, deps))
+      continue
+    }
+    walks.pop()
+    inner = step.value
+    if (!walks.length) return inner
+  }
+}
+
+function* walkExports(
+  file: string,
+  visiting: Set<string>,
+  deps?: Set<string>
+): Generator<string, ModuleExports, ModuleExports> {
   const exports: ModuleExports = new Map()
   if (visiting.has(file)) return exports
   deps?.add(file)
@@ -211,7 +233,7 @@ function collectExports(
       imported && imported.name !== "*"
         ? resolveFrom(file, imported.spec)
         : null
-    const inner = target ? exportsOf(target, visiting, deps) : null
+    const inner = target ? yield target : null
     exports.set(
       "default",
       inner?.get(imported!.name) ??
@@ -226,7 +248,7 @@ function collectExports(
       const imported = module.imports.get(local)
       if (imported && imported.name !== "*") {
         const target = resolveFrom(file, imported.spec)
-        const inner = target ? exportsOf(target, visiting, deps) : null
+        const inner = target ? yield target : null
         exports.set(
           exported,
           inner?.get(imported.name) ??
@@ -249,7 +271,7 @@ function collectExports(
     }
     const target = resolveFrom(file, spec)
     if (!target) continue
-    const inner = exportsOf(target, visiting, deps)
+    const inner = yield target
     exports.set(exported, inner.get(local) ?? { file: target, name: local })
   }
   for (const [exported, spec] of module.namespaces) {
@@ -259,7 +281,7 @@ function collectExports(
   for (const spec of module.stars) {
     const target = resolveFrom(file, spec)
     if (!target) continue
-    for (const [name, binding] of exportsOf(target, visiting, deps)) {
+    for (const [name, binding] of yield target) {
       if (name !== "default" && !exports.has(name)) exports.set(name, binding)
     }
   }
