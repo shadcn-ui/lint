@@ -36,19 +36,22 @@ type ParsedModule = {
 
 const parsed = new Map<string, { mtimeMs: number; module: ParsedModule }>()
 
+// These run over package dist files too, so each must stay linear: no
+// two whitespace runs may touch, and a list never crosses a `{`.
 const DECLARATION_RE =
   /export\s+(?:default\s+)?(?:async\s+)?(?:function\*?|const|let|var|class|enum)\s+([A-Za-z_$][\w$]*)/g
 const DEFAULT_DECLARATION_RE =
   /export\s+default\s+(?:async\s+)?(?:function\*?|class)\s+([A-Za-z_$][\w$]*)/
-const DEFAULT_IDENTIFIER_RE = /export\s+default\s+([A-Za-z_$][\w$]*)\s*;?\s*$/m
+const DEFAULT_IDENTIFIER_RE =
+  /export\s+default\s+([A-Za-z_$][\w$]*)\s*(?:;\s*)?$/m
 // `export default memo(Button)`: the component is inside the call.
 const DEFAULT_WRAPPED_RE =
   /export\s+default\s+(?:React\.)?(?:memo|forwardRef)\(\s*(?:function\s+)?([A-Za-z_$][\w$]*)/
 const NAMED_RE =
-  /export\s*(type\s+)?\{([^}]*)\}\s*(?:from\s*["']([^"']+)["'])?/g
+  /export\s*(type\s+)?\{([^{}]*)\}\s*(?:from\s*["']([^"']+)["'])?/g
 const STAR_RE = /export\s*\*\s*(?:as\s+([\w$]+)\s+)?from\s*["']([^"']+)["']/g
 const IMPORT_RE =
-  /import\s+(?!type\s)(?:([\w$]+)\s*,?\s*)?(?:\*\s*as\s+([\w$]+)|\{([^}]*)\})?\s*from\s*["']([^"']+)["']/g
+  /import\s+(?!type\s)(?:([\w$]+)\s*(?:,\s*)?)?(?:(?:\*\s*as\s+([\w$]+)|\{([^{}]*)\})\s*)?from\s*["']([^"']+)["']/g
 
 // A list may carry comments: a barrel may separate its short names
 // from its long ones with a bare `//`.
@@ -59,7 +62,7 @@ function parseNamed(list: string) {
   for (const raw of list.replace(COMMENT_RE, "").split(",")) {
     const item = raw.trim()
     if (!item || item.startsWith("type ")) continue
-    const [local, exported] = item.split(/\s+as\s+/).map((s) => s.trim())
+    const [local, exported] = item.split(/(?<!\s)\s+as\s+/).map((s) => s.trim())
     if (!local) continue
     out.push({ exported: exported ?? local, local })
   }
