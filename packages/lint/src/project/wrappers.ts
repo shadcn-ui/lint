@@ -384,9 +384,10 @@ function build(
       })
     }
   }
-  const index = componentsFor(file)
-  // A tag with no import is also looked up in settings.shadcn.ui.
-  const tagIndex = ui.length ? componentsFor(file, ui) : index
+  // settings.shadcn.ui owns tags and resolved imports alike. An import
+  // that resolves nowhere is matched by name in components.json's only.
+  const index = componentsFor(file, ui)
+  const unresolvedIndex = ui.length ? componentsFor(file) : index
   const { bindings, candidates } = indexLocalBindings(ast)
   const declaring = new Set<string>()
   const asking = new Set<string>()
@@ -409,11 +410,11 @@ function build(
     const imported = imports.get(name.root)
     if (!imported) {
       if (name.property !== null) return null
-      if (tagIndex.has(name.root)) {
+      if (index.has(name.root)) {
         return {
           target: {
             component: name.root,
-            file: tagIndex.files.get(name.root) ?? null,
+            file: index.files.get(name.root) ?? null,
           },
         }
       }
@@ -438,11 +439,11 @@ function build(
     if (!binding) {
       // Not cached: the file the name points at may yet be created.
       complete = false
-      return index.has(importedName.name)
+      return unresolvedIndex.has(importedName.name)
         ? {
             target: {
               component: importedName.name,
-              file: index.files.get(importedName.name) ?? null,
+              file: unresolvedIndex.files.get(importedName.name) ?? null,
             },
           }
         : null

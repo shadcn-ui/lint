@@ -196,7 +196,8 @@ export const noRestyle = {
                     contracts,
                     component,
                     token,
-                    filename
+                    filename,
+                    options.ui
                   ),
                 },
               },
@@ -228,7 +229,8 @@ function aroundFor(
   contracts: ReturnType<typeof compileContracts>,
   component: string,
   token: string,
-  filename: string | undefined
+  filename: string | undefined,
+  ui: string[] | undefined
 ) {
   const accepts = (name: string) => contracts.decide(name, token).kind === "ok"
   const places: string[] = []
@@ -247,7 +249,7 @@ function aroundFor(
   const primitives = contracts.primitivesFor(
     token,
     container ? [component, container.name] : [component],
-    () => (filename ? componentsFor(filename).files.keys() : [])
+    () => (filename ? componentsFor(filename, ui).files.keys() : [])
   )
   if (primitives.length) places.push(listOf(primitives))
   const last = places.pop()
