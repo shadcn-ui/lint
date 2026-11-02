@@ -1035,6 +1035,7 @@ export function collectClassStrings(
           if (hopped) resolvedCalls--
           return
         }
+        if (resolve && visitVariantCall(node, valuesMode)) return
         unread(node)
         return
       }
@@ -1074,6 +1075,49 @@ export function collectClassStrings(
       default:
         unread(node)
     }
+  }
+
+  // `restyle({ tone })` through `const restyle = cva(...)`: every
+  // variant is a possible output, so the definition is read whole, as a
+  // hop so its own site keeps the vocabulary check. A class passed in
+  // the call is merged in. A tv with slots returns functions, not
+  // classes, so it is left unread.
+  const visitVariantCall = (node: any, valuesMode: boolean) => {
+    if (node.callee?.type !== "Identifier") return false
+    const resolved = resolveIdentifier(node.callee, context, path)
+    if (!resolved || resolved.steps.length) return false
+    const init = unwrapTs(resolved.init)
+    if (init?.type !== "CallExpression") return false
+    const callee = dottedName(init.callee)
+    if (!callee || !valueHelpers.has(callee)) return false
+    const hasSlots = init.arguments.some((arg: any) => {
+      const config = resolveObject(arg, context, path)
+      if (!config) return false
+      const slots = resolveProperty(config, "slots", context, path)
+      return slots.value !== undefined || slots.uncertain
+    })
+    if (hasSlots) return false
+    readBinding(resolved.variable, [], valuesMode, () =>
+      visit(init, valuesMode)
+    )
+    for (const arg of node.arguments) {
+      const props = unwrapTs(arg)
+      if (props?.type !== "ObjectExpression") {
+        unread(arg)
+        continue
+      }
+      for (const prop of props.properties) {
+        if (prop.type !== "Property") {
+          unread(prop)
+          continue
+        }
+        const key = keyName(prop)
+        if (key === null) unread(prop)
+        else if (key === "class" || key === "className")
+          visit(prop.value, false)
+      }
+    }
+    return true
   }
 
   // In a cva or tv config, `defaultVariants` and the selectors inside
