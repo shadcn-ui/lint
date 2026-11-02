@@ -31,6 +31,11 @@ describe("require-static-classes", () => {
           filename: PAGE,
           code: `${button}\nconst layout = "mt-4"\nexport const A = () => <Button className={layout}>Go</Button>`,
         },
+        // A same-file cva result is read where it is defined.
+        {
+          filename: PAGE,
+          code: `${button}\nimport { cva } from "class-variance-authority"\nconst tone = cva("mt-2", { variants: { gap: { sm: "mb-2" } } })\nexport const A = () => <Button className={tone({ gap: "sm" })}>Go</Button>`,
+        },
         // Plain elements are out of scope.
         {
           filename: PAGE,
@@ -61,6 +66,12 @@ describe("require-static-classes", () => {
         {
           filename: PAGE,
           code: `${button}\nexport const A = () => <Button className={makeClasses()}>Go</Button>`,
+          errors: [{ messageId: "dynamicClasses" }],
+        },
+        // A reassigned variant function is not resolvable.
+        {
+          filename: PAGE,
+          code: `${button}\nimport { cva } from "class-variance-authority"\nlet tone = cva("mt-2")\ntone = cva("mb-2")\nexport const A = () => <Button className={tone()}>Go</Button>`,
           errors: [{ messageId: "dynamicClasses" }],
         },
         // A reassigned variable is not resolvable.

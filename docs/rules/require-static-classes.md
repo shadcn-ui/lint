@@ -111,13 +111,20 @@ export function Field({ className, labelClass }: FieldProps) {
 
 ### Variant functions
 
-The linter reads strings inside `cva()` and `tv()` definitions. It does
-not resolve every function those factories return:
+The linter reads strings inside `cva()` and `tv()` definitions. A call
+to one defined in the same file is read there too: every variant is a
+possible output, so each is checked. A function imported from another
+module, or a `tv` with `slots`, is not resolved:
 
 ```tsx
 import { cva } from "class-variance-authority"
 
-const buttonVariants = cva("w-full")
+import { buttonVariants } from "@/components/ui/button"
+
+const layout = cva("w-full")
+
+// Read: the definition is in this file.
+<Button className={layout()}>Save changes</Button>
 
 // Reported by require-static-classes at this call site.
 <Button className={buttonVariants()}>Save changes</Button>
