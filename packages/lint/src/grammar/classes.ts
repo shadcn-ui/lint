@@ -52,10 +52,14 @@ export function normalizeClass(token: string) {
 // mt-[13px], bg-[#333]. The v4 paren shorthand bg-(--x) is deliberately
 // NOT arbitrary: it names a CSS variable, which is almost always a real
 // token. Raw colors laundered through one are caught where they are set.
+// Searched for rather than matched, so a token of a thousand unclosed
+// brackets costs one pass, not one per bracket.
 export function isArbitraryValue(token: string) {
   if (!token.includes("[")) return false
   const { base } = splitVariants(token)
-  return /-\[[^\]]*\]/.test(base) || /^\[[^\]]+:[^\]]+\]$/.test(base)
+  const open = base.indexOf("-[")
+  if (open !== -1 && base.includes("]", open + 2)) return true
+  return /^\[[^\]]+\]$/.test(base) && base.slice(2, -2).includes(":")
 }
 
 // The utilities that take a color. Longest alternatives first, so
@@ -92,7 +96,9 @@ const PALETTE = [
   "rose",
 ]
 
-export const OPACITY_MODIFIER = /\/(?:[\w.%]+|\[[^\]]*\]|\([^)]*\))$/
+// A bracket or paren holds no other: each match attempt then stops at
+// the next one, so /[/[/[ is not searched once per slash.
+export const OPACITY_MODIFIER = /\/(?:[\w.%]+|\[[^[\]]*\]|\([^()]*\))$/
 
 const PALETTE_RE = new RegExp(
   `${COLOR_PREFIX.source}(?:${PALETTE.join("|")})-\\d{2,3}(?:${OPACITY_MODIFIER.source})?$`

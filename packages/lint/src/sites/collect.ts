@@ -954,7 +954,7 @@ export function collectClassStrings(
           // A glued interpolation leaves no class of its own.
           if (i > 0 && !/^\s/.test(text)) text = text.replace(/^\S+/, "")
           if (i < node.expressions.length && !/\s$/.test(text))
-            text = text.replace(/\S+$/, "")
+            text = text.replace(/(?<!\S)\S+$/, "")
           if (text.trim()) push(text, quasi)
         })
         node.expressions.forEach((expr: any, i: number) => {
