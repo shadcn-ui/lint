@@ -13,6 +13,7 @@ import { componentsFor } from "../project/components"
 import { NODE_MODULES } from "../project/fs"
 import { definingExportOf, type ExportBinding } from "../project/modules"
 import {
+  addsNoClasses,
   wrapperPropOf,
   wrapperTargetOf,
   type WrapperTarget,
@@ -1303,7 +1304,9 @@ export function classSiteVisitors(
   // element rendered in its place still wears the component's own
   // classes, so the component itself judges them: `<Button
   // render={<a />} className="p-4" />` is a Button, and so is the `<a>`
-  // when the classes are written on it instead.
+  // when the classes are written on it instead. A component that adds
+  // no classes, a trigger that only hands its props to Base UI, has no
+  // look to own, so the plain element is left to itself.
   const resolvedOf = (element: any, attribute = "className") => {
     if (!element) return null
     const rendered = reader.renderedElementOf?.(element)
@@ -1318,9 +1321,17 @@ export function classSiteVisitors(
     const own = tracker.resolveName(reader.nameOf(element), attribute)
     if (own) return own
     const owner = reader.parentElementOf(element)
-    return owner && reader.renderedElementOf?.(owner) === element
-      ? tracker.resolveName(reader.nameOf(owner), attribute)
-      : null
+    if (!owner || reader.renderedElementOf?.(owner) !== element) return null
+    const judge = tracker.resolveName(reader.nameOf(owner), attribute)
+    if (
+      judge?.file &&
+      !judge.wrapper &&
+      reader.nameOf(element)?.component === false &&
+      addsNoClasses(judge.file, judge.component)
+    ) {
+      return null
+    }
+    return judge
   }
 
   const enclosingOf = (

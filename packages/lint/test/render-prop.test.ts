@@ -1,13 +1,20 @@
-import { describe, test } from "vitest"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
+import { describe, expect, test } from "vitest"
 
+import { resetFsMemo } from "../src/project/fs"
+import { addsNoClasses } from "../src/project/wrappers"
 import { noRestyle } from "../src/rules/no-restyle"
-import { button, createTester, PAGE } from "./helpers"
+import { button, createTester, PAGE, PROJECT } from "./helpers"
 
 const tester = createTester()
 const rule = noRestyle as any
 
 const layout = [{ allow: ["layout"] }]
 const dialog = `import { DialogTrigger } from "@/components/ui/dialog"`
+const popover = `import { PopoverAnchor, PopoverClose, PopoverTrigger } from "@/components/ui/popover"`
+const vendor = `import { VendorTrigger } from "@/components/ui/vendor-trigger"`
 
 describe("render prop", () => {
   test("classes belong to the component the render prop renders", () => {
@@ -140,5 +147,134 @@ describe("render prop", () => {
         },
       ],
     })
+  })
+
+  test("a component that adds no classes leaves a plain element to itself", () => {
+    tester.run("no-restyle", rule, {
+      valid: [
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\nexport const A = () => <DialogTrigger render={<button className="rounded-full px-2 text-sm" />} />`,
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${popover}\nexport const A = () => <PopoverTrigger render={<button aria-label="Account" className="rounded-full" />} />`,
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\nexport const A = () => <DialogTrigger render={(props) => <a {...props} className="bg-primary" />} />`,
+        },
+      ],
+      invalid: [
+        // The classes reach a styled component either way.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\n${button}\nexport const A = () => <DialogTrigger render={<Button className="p-8" />} />`,
+          errors: [{ messageId: "spacingClassWithSizes" }],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nexport const A = () => <Button render={<a href="/docs" className="p-8" />} />`,
+          errors: [{ messageId: "spacingClassWithSizes" }],
+        },
+        // A component the rule cannot resolve is not a plain element.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\nexport const A = () => <DialogTrigger render={<Unknown className="rounded-full" />} />`,
+          errors: [
+            {
+              message:
+                /^"rounded-full" is not allowed on <DialogTrigger>: <DialogTrigger> owns its shape\./,
+            },
+          ],
+        },
+        // The classes are on Button, which renders the trigger.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${dialog}\n${button}\nexport const A = () => <Button className="rounded-none" render={<DialogTrigger render={<button />} />} />`,
+          errors: [
+            {
+              message:
+                /^"rounded-none" is not allowed on <Button>: <Button> forwards className to <DialogTrigger>/,
+            },
+          ],
+        },
+        // A trigger with classes of its own, one wrapped in a call, and
+        // one from a package are not proven classless.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${popover}\nexport const A = () => <PopoverClose render={<button className="rounded-full" />} />`,
+          errors: [
+            {
+              message:
+                /^"rounded-full" is not allowed on <PopoverClose>: <PopoverClose> owns its shape\./,
+            },
+          ],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${popover}\nexport const A = () => <PopoverAnchor render={<button className="rounded-full" />} />`,
+          errors: [
+            {
+              message:
+                /^"rounded-full" is not allowed on <PopoverAnchor>: <PopoverAnchor> owns its shape\./,
+            },
+          ],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${vendor}\nexport const A = () => <VendorTrigger render={<button className="rounded-full" />} />`,
+          errors: [
+            {
+              message:
+                /^"rounded-full" is not allowed on <VendorTrigger>: <VendorTrigger> owns its shape\./,
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  test("the proof follows the file and fails closed", () => {
+    expect(
+      addsNoClasses(
+        path.join(PROJECT, "components/ui/popover.tsx"),
+        "PopoverTrigger"
+      )
+    ).toBe(true)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classless-"))
+    const file = path.join(dir, "trigger.tsx")
+    try {
+      expect(addsNoClasses(file, "Trigger")).toBe(false)
+      fs.writeFileSync(file, "export function Trigger(")
+      resetFsMemo()
+      expect(addsNoClasses(file, "Trigger")).toBe(false)
+      fs.writeFileSync(
+        file,
+        `import { Popover } from "@base-ui/react"\nexport function Trigger({ ...props }) {\n  return <Popover.Trigger data-slot="trigger" {...props} />\n}\n`
+      )
+      fs.utimesSync(file, new Date(), new Date(Date.now() + 5000))
+      resetFsMemo()
+      expect(addsNoClasses(file, "Trigger")).toBe(true)
+      fs.writeFileSync(
+        file,
+        `import { Popover } from "@base-ui/react"\nexport function Trigger({ ...props }) {\n  return <Popover.Trigger className="p-2" {...props} />\n}\n`
+      )
+      fs.utimesSync(file, new Date(), new Date(Date.now() + 10000))
+      resetFsMemo()
+      expect(addsNoClasses(file, "Trigger")).toBe(false)
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

@@ -125,7 +125,9 @@ The rule follows imports, re-exports, and wrappers that forward
 `className`, including a Base UI `render` prop: the classes on
 `<DialogTrigger render={<Button />} className="...">` belong to Button. A
 plain element such as `render={<a />}`, or a `render` value the rule
-cannot read, leaves them on the component itself. A wrapper
+cannot read, leaves them on the component itself. Classes written on a
+plain element rendered by a component that adds no classes, such as a
+trigger that only spreads its props onto Base UI, are not checked. A wrapper
 uses the underlying component's contract and variant suggestions. Each
 class prop follows its own path: a wrapper's `headerClassName` handed to
 CardHeader is checked against CardHeader, and one the wrapper does not
