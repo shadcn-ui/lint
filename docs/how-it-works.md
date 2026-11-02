@@ -7,7 +7,10 @@ them. It analyzes source code without running your app.
 
 `components.json` points to your UI directory. The linter reads its
 exported components and resolves imports through `@/`, tsconfig `paths`,
-package `imports`, and workspace package `exports`.
+package `imports`, and workspace package `exports`. It reads `paths` from
+the root `tsconfig.json`, `jsconfig.json` or `tsconfig.base.json`, the
+first that has any, so an Nx workspace's `tsconfig.base.json` is read past
+a solution-style `tsconfig.json`.
 
 It follows re-exports and renamed imports back to the defining file:
 
