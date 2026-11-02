@@ -197,11 +197,16 @@ export function createComponentTracker(
       if (imported.namespace && property === null) importedName.name = root
       const { exportName, name } = importedName
       const binding = exportName ? bindingOf(root, exportName) : null
+      const member = importedName.member
+        ? bindingOf(root, importedName.member)
+        : null
       const component = componentFromImport(
         index,
         binding,
         importedName,
-        patterns
+        patterns,
+        member,
+        ui
       )
       if (component) return { ...component, wrapper: null }
       if (binding) {
