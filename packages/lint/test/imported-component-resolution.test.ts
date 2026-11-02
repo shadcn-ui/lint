@@ -356,3 +356,28 @@ test("nested namespace members resolve through grouped barrels", () => {
     wrapped: { component: "ButtonRoot", file: null },
   })
 })
+
+test("named namespace members resolve before their names are joined", () => {
+  const primitives = "@/components/ui/primitives"
+  // `export * as Controls from "./button"`.
+  clearWrapperCache()
+  expect(
+    identities(`import { Controls } from "${primitives}"`, "Controls.Button")
+  ).toEqual({
+    tracked: { component: "Button", file: BUTTON, wrapper: null },
+    wrapped: { component: "Button", file: BUTTON },
+  })
+  // A package part is not the ui component its joined name matches,
+  // imported directly or through the ui file's re-export.
+  clearWrapperCache()
+  expect(
+    identities('import { Field } from "parts-kit/field"', "Field.Label")
+  ).toEqual({ tracked: null, wrapped: null })
+  clearWrapperCache()
+  expect(
+    identities(
+      `import { FieldPrimitive } from "${primitives}"`,
+      "FieldPrimitive.Label"
+    )
+  ).toEqual({ tracked: null, wrapped: null })
+})
