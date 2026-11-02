@@ -138,14 +138,26 @@ function readTsconfigChain(
   if (!json || typeof json !== "object") return []
   const dir = path.dirname(file)
   const options = json.compilerOptions ?? {}
-  const base = options.baseUrl ? path.resolve(dir, options.baseUrl) : dir
-  const own: PathEntry[] = Object.entries(options.paths ?? {}).map(
-    ([pattern, targets]) => ({
-      pattern,
-      targets: Array.isArray(targets) ? targets.map(String) : [],
-      base,
-    })
-  )
+  // TypeScript rejects a baseUrl, paths map or target that is not the
+  // type it expects; here it is ignored, since path.resolve throws on a
+  // non-string baseUrl.
+  const base =
+    typeof options.baseUrl === "string" && options.baseUrl
+      ? path.resolve(dir, options.baseUrl)
+      : dir
+  const paths =
+    options.paths &&
+    typeof options.paths === "object" &&
+    !Array.isArray(options.paths)
+      ? options.paths
+      : {}
+  const own: PathEntry[] = Object.entries(paths).map(([pattern, targets]) => ({
+    pattern,
+    targets: Array.isArray(targets)
+      ? targets.filter((target) => typeof target === "string")
+      : [],
+    base,
+  }))
   const parents = ([] as string[]).concat(json.extends ?? [])
   const inherited = parents.flatMap((parent) => {
     // A tsconfig's own `paths` never apply to its `extends`.
