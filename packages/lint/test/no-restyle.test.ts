@@ -148,6 +148,19 @@ describe("no-restyle", () => {
           code: `${button}\nexport const A = ({ active }: { active: boolean }) => { const tone = active ? "bg-primary" : "mt-2"; return <Button className={tone}>Go</Button> }`,
           errors: [{ messageId: "appearanceClassWithVariants" }],
         },
+        // Every variant of a called cva result is a possible output.
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nimport { cva } from "class-variance-authority"\nconst tone = cva("mt-2", { variants: { tone: { loud: "bg-primary", quiet: "mb-2" } } })\nexport const A = () => <Button className={tone({ tone: "quiet" })}>Go</Button>`,
+          errors: [{ messageId: "appearanceClassWithVariants" }],
+        },
+        {
+          filename: PAGE,
+          options: layout,
+          code: `${button}\nimport { tv } from "tailwind-variants"\nconst tone = tv({ base: "mt-2", variants: { shape: { flat: "rounded-none" } } })\nexport const A = () => <Button className={tone()}>Go</Button>`,
+          errors: [{ messageId: "appearanceClassWithVariants" }],
+        },
       ],
     })
   })
