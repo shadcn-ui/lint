@@ -520,7 +520,7 @@ function derivedValueOf(init: any) {
 
 // One hop to a same-file const's initializer. `path` holds the variables
 // on the current route, so a self-reference stops while the same variable
-// read from both branches of a ternary resolves twice. A destructured
+// read from both branches of a ternary resolves on each. A destructured
 // binding gets its own slot of the initializer, and any steps a reader
 // still has to follow through a conditional.
 export function resolveIdentifier(node: any, context: any, path: Set<any>) {
@@ -796,6 +796,17 @@ export function resolveMemberValue(node: any, context: any, path: Set<any>) {
   return { key, value: found.value, variable }
 }
 
+// The variables on the current route. A read that stops at one of them
+// depends on the route it took, so every such stop is counted.
+class Route extends Set<any> {
+  stops = 0
+  has(value: any) {
+    const found = super.has(value)
+    if (found) this.stops++
+    return found
+  }
+}
+
 export function collectClassStrings(
   expression: any,
   context: any,
@@ -814,13 +825,53 @@ export function collectClassStrings(
   const contextualStrings: ClassString[] = []
   const vocabularyStrings: ClassString[] = []
   const unresolved: any[] = []
-  const path = new Set<any>()
+  const path = new Route()
   let resolvedCalls = 0
+  // A literal reached twice, through both branches of `on ? c : c`, is
+  // one class at this site.
+  const contextualNodes = new Set<any>()
+  const vocabularyNodes = new Set<any>()
+  const unresolvedNodes = new Set<any>()
+  // Each binding is read once per site, for each way it is read. Read on
+  // every route instead, `const b = on ? a : a` doubles the work with
+  // each link of a chain. A read that stopped at a variable on its route
+  // could read more from another, so it is not remembered.
+  const readBindings = new Map<any, Set<string>>()
 
   const push = (value: string, node: any) => {
     const string = { value, node }
-    contextualStrings.push(string)
-    if (resolvedCalls === 0) vocabularyStrings.push(string)
+    if (!contextualNodes.has(node)) {
+      contextualNodes.add(node)
+      contextualStrings.push(string)
+    }
+    if (resolvedCalls === 0 && !vocabularyNodes.has(node)) {
+      vocabularyNodes.add(node)
+      vocabularyStrings.push(string)
+    }
+  }
+
+  const unread = (node: any) => {
+    if (unresolvedNodes.has(node)) return
+    unresolvedNodes.add(node)
+    unresolved.push(node)
+  }
+
+  const readBinding = (
+    variable: any,
+    steps: PatternStep[],
+    valuesMode: boolean,
+    read: () => void
+  ) => {
+    const key = `${valuesMode}:${resolvedCalls > 0}:${JSON.stringify(steps)}`
+    let keys = readBindings.get(variable)
+    if (keys?.has(key)) return
+    const stops = path.stops
+    path.add(variable)
+    read()
+    path.delete(variable)
+    if (path.stops !== stops) return
+    if (!keys) readBindings.set(variable, (keys = new Set()))
+    keys.add(key)
   }
 
   // The slot a destructured binding reads, followed through the branches
@@ -851,26 +902,27 @@ export function collectClassStrings(
           ? resolveIdentifier(value, context, path)
           : null
         if (!resolved) {
-          unresolved.push(value)
+          unread(value)
           return
         }
-        path.add(resolved.variable)
-        visitThrough(resolved.init, [...resolved.steps, ...steps], valuesMode)
-        path.delete(resolved.variable)
+        const route = [...resolved.steps, ...steps]
+        readBinding(resolved.variable, route, valuesMode, () =>
+          visitThrough(resolved.init, route, valuesMode)
+        )
         return
       }
       case "ArrayExpression":
       case "ObjectExpression": {
         const projected = projectStatic(value, steps)
         if (projected.steps.length === steps.length) {
-          unresolved.push(value)
+          unread(value)
           return
         }
         visitThrough(projected.init, projected.steps, valuesMode)
         return
       }
       default:
-        unresolved.push(node)
+        unread(node)
     }
   }
 
@@ -884,7 +936,7 @@ export function collectClassStrings(
       if (path.has(forwarded.variable)) return
       path.add(forwarded.variable)
       for (const alternative of forwarded.alternatives) {
-        if ("unresolved" in alternative) unresolved.push(alternative.unresolved)
+        if ("unresolved" in alternative) unread(alternative.unresolved)
         else visit(alternative.value, valuesMode)
       }
       path.delete(forwarded.variable)
@@ -902,7 +954,7 @@ export function collectClassStrings(
           // A glued interpolation leaves no class of its own.
           if (i > 0 && !/^\s/.test(text)) text = text.replace(/^\S+/, "")
           if (i < node.expressions.length && !/\s$/.test(text))
-            text = text.replace(/\S+$/, "")
+            text = text.replace(/(?<!\S)\S+$/, "")
           if (text.trim()) push(text, quasi)
         })
         node.expressions.forEach((expr: any, i: number) => {
@@ -912,7 +964,7 @@ export function collectClassStrings(
             (before !== "" && !/\s$/.test(before)) ||
             (after !== "" && !/^\s/.test(after))
           if (glued) {
-            if (!unresolved.includes(node)) unresolved.push(node)
+            unread(node)
           } else visit(expr, valuesMode)
         })
         return
@@ -933,7 +985,7 @@ export function collectClassStrings(
           for (const arg of node.arguments) visit(arg, valuesMode)
           return
         }
-        unresolved.push(node)
+        unread(node)
         return
       case "ObjectExpression":
         for (const entry of objectEntries(node, context, path)) {
@@ -942,7 +994,7 @@ export function collectClassStrings(
             // so an unreadable one still leaves the value to check.
             if (valuesMode && entry.unknown.type === "Property") {
               visit(entry.unknown.value, valuesMode)
-            } else unresolved.push(entry.unknown)
+            } else unread(entry.unknown)
           } else if (valuesMode) {
             visit(entry.value, valuesMode)
           } else {
@@ -966,25 +1018,25 @@ export function collectClassStrings(
           if (hopped) resolvedCalls--
           return
         }
-        unresolved.push(node)
+        unread(node)
         return
       }
       case "Identifier": {
         if (node.name === "undefined") return
         const resolved = resolve ? resolveIdentifier(node, context, path) : null
         if (!resolved) {
-          unresolved.push(node)
+          unread(node)
           return
         }
-        path.add(resolved.variable)
-        visitThrough(resolved.init, resolved.steps, valuesMode)
-        path.delete(resolved.variable)
+        readBinding(resolved.variable, resolved.steps, valuesMode, () =>
+          visitThrough(resolved.init, resolved.steps, valuesMode)
+        )
         return
       }
       case "MemberExpression": {
         const found = resolveMemberValue(node, context, path)
         if (!found.key || "unresolved" in found) {
-          unresolved.push(node)
+          unread(node)
           return
         }
         if (found.variable) path.add(found.variable)
@@ -1003,7 +1055,7 @@ export function collectClassStrings(
         visit(node.expression, valuesMode)
         return
       default:
-        unresolved.push(node)
+        unread(node)
     }
   }
 
@@ -1017,7 +1069,7 @@ export function collectClassStrings(
     }
     for (const prop of node.properties) {
       if (prop.type !== "Property") {
-        unresolved.push(prop)
+        unread(prop)
         continue
       }
       switch (keyName(prop)) {

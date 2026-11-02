@@ -8,11 +8,17 @@ const arbitraryValueRegex = /^\[(?:(\w[\w-]*):)?(.+)\]$/i
 const arbitraryVariableRegex = /^\((?:(\w[\w-]*):)?(.+)\)$/i
 const fractionRegex = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/
 const tshirtUnitRegex = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/
+// tailwind-merge's \d+ before the unit and .+ inside the function retry
+// from every digit and every function name, which is quadratic on a
+// long value. One digit gives the same answers, and only the first
+// function can close: a later one's ")" closes the first one too.
 const lengthUnitRegex =
-  /\d+(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|\b(calc|min|max|clamp)\(.+\)|^0$/
+  /\d(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|^0$/
+const lengthFunctionRegex = /\b(calc|min|max|clamp)\(/
 const colorFunctionRegex = /^(rgba?|hsla?|hwb|(ok)?(lab|lch)|color-mix)\(.+\)$/
-const shadowRegex =
-  /^(inset_)?-?((\d+)?\.?(\d+)[a-z]+|0)_-?((\d+)?\.?(\d+)[a-z]+|0)/
+// (\d*\.)?\d+ for tailwind-merge's (\d+)?\.?(\d+): the same numbers,
+// without trying every split of a run of digits.
+const shadowRegex = /^(inset_)?-?((\d*\.)?\d+[a-z]+|0)_-?((\d*\.)?\d+[a-z]+|0)/
 const imageRegex =
   /^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/
 
@@ -24,8 +30,13 @@ export const isPercent = (v: string) =>
 export const isTshirtSize = (v: string) => tshirtUnitRegex.test(v)
 export const isAny = () => true
 
+const isLengthFunction = (v: string) => {
+  const match = lengthFunctionRegex.exec(v)
+  return !!match && v.includes(")", match.index + match[0].length + 1)
+}
 const isLengthOnly = (v: string) =>
-  lengthUnitRegex.test(v) && !colorFunctionRegex.test(v)
+  (lengthUnitRegex.test(v) || isLengthFunction(v)) &&
+  !colorFunctionRegex.test(v)
 const isNever = () => false
 const isShadow = (v: string) => shadowRegex.test(v)
 const isImage = (v: string) => imageRegex.test(v)

@@ -36,19 +36,22 @@ type ParsedModule = {
 
 const parsed = new Map<string, { mtimeMs: number; module: ParsedModule }>()
 
+// These run over package dist files too, so each must stay linear: no
+// two whitespace runs may touch, and a list never crosses a `{`.
 const DECLARATION_RE =
   /export\s+(?:default\s+)?(?:async\s+)?(?:function\*?|const|let|var|class|enum)\s+([A-Za-z_$][\w$]*)/g
 const DEFAULT_DECLARATION_RE =
   /export\s+default\s+(?:async\s+)?(?:function\*?|class)\s+([A-Za-z_$][\w$]*)/
-const DEFAULT_IDENTIFIER_RE = /export\s+default\s+([A-Za-z_$][\w$]*)\s*;?\s*$/m
+const DEFAULT_IDENTIFIER_RE =
+  /export\s+default\s+([A-Za-z_$][\w$]*)\s*(?:;\s*)?$/m
 // `export default memo(Button)`: the component is inside the call.
 const DEFAULT_WRAPPED_RE =
   /export\s+default\s+(?:React\.)?(?:memo|forwardRef)\(\s*(?:function\s+)?([A-Za-z_$][\w$]*)/
 const NAMED_RE =
-  /export\s*(type\s+)?\{([^}]*)\}\s*(?:from\s*["']([^"']+)["'])?/g
+  /export\s*(type\s+)?\{([^{}]*)\}\s*(?:from\s*["']([^"']+)["'])?/g
 const STAR_RE = /export\s*\*\s*(?:as\s+([\w$]+)\s+)?from\s*["']([^"']+)["']/g
 const IMPORT_RE =
-  /import\s+(?!type\s)(?:([\w$]+)\s*,?\s*)?(?:\*\s*as\s+([\w$]+)|\{([^}]*)\})?\s*from\s*["']([^"']+)["']/g
+  /import\s+(?!type\s)(?:([\w$]+)\s*(?:,\s*)?)?(?:(?:\*\s*as\s+([\w$]+)|\{([^{}]*)\})\s*)?from\s*["']([^"']+)["']/g
 
 // A list may carry comments: a barrel may separate its short names
 // from its long ones with a bare `//`.
@@ -59,11 +62,68 @@ function parseNamed(list: string) {
   for (const raw of list.replace(COMMENT_RE, "").split(",")) {
     const item = raw.trim()
     if (!item || item.startsWith("type ")) continue
-    const [local, exported] = item.split(/\s+as\s+/).map((s) => s.trim())
+    const [local, exported] = item.split(/(?<!\s)\s+as\s+/).map((s) => s.trim())
     if (!local) continue
     out.push({ exported: exported ?? local, local })
   }
   return out
+}
+
+// `export { A /* } */, B }`: a list closes at the first `}` outside a
+// comment, which may lie past the one NAMED_RE stops at. -1 when the
+// list runs into a `{` or the end of the file first.
+const BLOCK_END_RE = /\*\//g
+const LINE_END_RE = /[\n\r]/g
+const FROM_RE = /\s*(?:from\s*["']([^"']+)["'])?/y
+
+function listCloser(source: string) {
+  const offsets = new Map<RegExp, number[]>()
+  // Bisects the file's offsets, so repeated lookups stay linear.
+  const next = (re: RegExp, from: number) => {
+    let found = offsets.get(re)
+    if (!found) {
+      found = Array.from(source.matchAll(re), (match) => match.index)
+      offsets.set(re, found)
+    }
+    let low = 0
+    let high = found.length
+    while (low < high) {
+      const mid = (low + high) >> 1
+      if (found[mid] < from) low = mid + 1
+      else high = mid
+    }
+    return found[low] ?? -1
+  }
+  // The walk after a comment does not depend on where it began, so each
+  // comment's tail is walked once however many lists reach it.
+  const resumed = new Map<number, number>()
+  return (open: number) => {
+    const pending: number[] = []
+    let close = -1
+    for (let i = open + 1; i < source.length; i++) {
+      const char = source[i]
+      if (char === "}") {
+        close = i
+        break
+      }
+      if (char === "{") break
+      const after = source[i + 1]
+      if (char !== "/" || (after !== "*" && after !== "/")) continue
+      const block = after === "*"
+      const at = next(block ? BLOCK_END_RE : LINE_END_RE, i + 2)
+      if (at < 0) break
+      const end = at + (block ? 2 : 1)
+      const known = resumed.get(end)
+      if (known !== undefined) {
+        close = known
+        break
+      }
+      pending.push(end)
+      i = end - 1
+    }
+    for (const end of pending) resumed.set(end, close)
+    return close
+  }
 }
 
 function parseModule(file: string): ParsedModule {
@@ -104,11 +164,25 @@ function parseModule(file: string): ParsedModule {
     module.local.add(defaultIdentifier[1])
   }
   if (module.sfc) module.defaultName = sfcNameOf(file)
+  const closeOf = listCloser(source)
+  let consumed = 0
   for (const match of source.matchAll(NAMED_RE)) {
-    if (match[1]) continue
+    if (match.index < consumed) continue
+    let list = match[2]
     // No `from` clause: the empty specifier means this file's own name.
-    const spec = match[3] ?? ""
-    for (const { exported, local } of parseNamed(match[2])) {
+    let spec = match[3] ?? ""
+    if (list.includes("/")) {
+      const open = source.indexOf("{", match.index)
+      const close = closeOf(open)
+      if (close > open + 1 + list.length) {
+        list = source.slice(open + 1, close)
+        FROM_RE.lastIndex = close + 1
+        spec = FROM_RE.exec(source)?.[1] ?? ""
+        consumed = FROM_RE.lastIndex
+      }
+    }
+    if (match[1]) continue
+    for (const { exported, local } of parseNamed(list)) {
       module.named.push({ exported, local, spec })
     }
   }
@@ -191,11 +265,33 @@ export function exportsOf(
   return cached.value
 }
 
+// A barrel chain can run thousands of files deep, past what the call
+// stack holds, so each file's walk yields the files it needs and runs on
+// a stack of its own.
 function collectExports(
   file: string,
   visiting: Set<string>,
   deps?: Set<string>
 ) {
+  const walks = [walkExports(file, visiting, deps)]
+  let inner: ModuleExports = new Map()
+  for (;;) {
+    const step = walks[walks.length - 1].next(inner)
+    if (!step.done) {
+      walks.push(walkExports(step.value, visiting, deps))
+      continue
+    }
+    walks.pop()
+    inner = step.value
+    if (!walks.length) return inner
+  }
+}
+
+function* walkExports(
+  file: string,
+  visiting: Set<string>,
+  deps?: Set<string>
+): Generator<string, ModuleExports, ModuleExports> {
   const exports: ModuleExports = new Map()
   if (visiting.has(file)) return exports
   deps?.add(file)
@@ -211,7 +307,7 @@ function collectExports(
       imported && imported.name !== "*"
         ? resolveFrom(file, imported.spec)
         : null
-    const inner = target ? exportsOf(target, visiting, deps) : null
+    const inner = target ? yield target : null
     exports.set(
       "default",
       inner?.get(imported!.name) ??
@@ -226,7 +322,7 @@ function collectExports(
       const imported = module.imports.get(local)
       if (imported && imported.name !== "*") {
         const target = resolveFrom(file, imported.spec)
-        const inner = target ? exportsOf(target, visiting, deps) : null
+        const inner = target ? yield target : null
         exports.set(
           exported,
           inner?.get(imported.name) ??
@@ -249,7 +345,7 @@ function collectExports(
     }
     const target = resolveFrom(file, spec)
     if (!target) continue
-    const inner = exportsOf(target, visiting, deps)
+    const inner = yield target
     exports.set(exported, inner.get(local) ?? { file: target, name: local })
   }
   for (const [exported, spec] of module.namespaces) {
@@ -259,7 +355,7 @@ function collectExports(
   for (const spec of module.stars) {
     const target = resolveFrom(file, spec)
     if (!target) continue
-    for (const [name, binding] of exportsOf(target, visiting, deps)) {
+    for (const [name, binding] of yield target) {
       if (name !== "default" && !exports.has(name)) exports.set(name, binding)
     }
   }

@@ -396,6 +396,96 @@ describe("components.json with a bare ui alias", () => {
   })
 })
 
+// A tsconfig TypeScript would reject still must not crash every rule:
+// the malformed option is read as absent.
+describe("tsconfig with malformed paths options", () => {
+  let root: string
+  function write(name: string, source: string) {
+    const file = path.join(root, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, source)
+    return file
+  }
+  beforeEach(() => {
+    resetFsMemo()
+    root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-tsconfig-"))
+    )
+    write("package.json", "{}")
+    write("components.json", JSON.stringify({ aliases: { ui: "@/ui" } }))
+    write("src/ui/button.tsx", "export function Button() { return null }")
+  })
+  afterEach(() => {
+    resetFsMemo()
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  function lint(file: string) {
+    return new Linter({ cwd: root }).verify(
+      'import { Button } from "@/ui/button"\nexport const Page = () => <Button className="rounded-full" />',
+      {
+        files: ["**/*.tsx"],
+        languageOptions: {
+          parser,
+          parserOptions: { ecmaFeatures: { jsx: true } },
+        },
+        plugins: { shadcn: plugin },
+        rules: { "shadcn/no-restyle": "error" },
+      } as any,
+      { filename: file }
+    )
+  }
+
+  test.each([
+    ["a number", 1],
+    ["a boolean", true],
+    ["an object", {}],
+    ["an array", ["."]],
+    ["empty", ""],
+  ])("a baseUrl that is %s is ignored", (_, baseUrl) => {
+    write(
+      "tsconfig.json",
+      JSON.stringify({
+        compilerOptions: { baseUrl, paths: { "@/*": ["./src/*"] } },
+      })
+    )
+    const page = write("src/app/page.tsx", "")
+    expect(tsconfigPaths(root)).toEqual([
+      { pattern: "@/*", targets: ["./src/*"], base: root },
+    ])
+    expect(lint(page).map((m) => m.ruleId)).toEqual(["shadcn/no-restyle"])
+  })
+
+  test.each([
+    ["a number", 1],
+    ["a string", "./src/*"],
+    ["an array", ["./src/*"]],
+    ["null", null],
+  ])("a paths map that is %s is ignored", (_, paths) => {
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { paths } }))
+    const page = write("src/app/page.tsx", "")
+    expect(tsconfigPaths(root)).toEqual([])
+    expect(() => lint(page)).not.toThrow()
+  })
+
+  test("targets that are not a list of strings are skipped", () => {
+    write(
+      "tsconfig.json",
+      JSON.stringify({
+        compilerOptions: {
+          paths: { "@/*": [1, null, { x: 1 }, "./src/*"], "#/*": "./src/*" },
+        },
+      })
+    )
+    const page = write("src/app/page.tsx", "")
+    expect(tsconfigPaths(root)).toEqual([
+      { pattern: "@/*", targets: ["./src/*"], base: root },
+      { pattern: "#/*", targets: [], base: root },
+    ])
+    expect(lint(page).map((m) => m.ruleId)).toEqual(["shadcn/no-restyle"])
+  })
+})
+
 // Conditions nest a few levels in a real manifest. One nested past any
 // reason has no target, and finding that out must not overflow the stack.
 describe("package exports with deeply nested conditions", () => {

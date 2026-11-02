@@ -171,6 +171,9 @@ clean result. See [caching](../how-it-works.md#caching).
   [no-restyle](./no-restyle.md) for component rules.
 - Markers, arbitrary properties, and known CSS class selectors bypass
   the Tailwind query. This rule does not validate their CSS behavior.
+- A class longer than 10,000 characters or with more than 64 variants,
+  far past real-world use, is not checked. Neither is a class that
+  makes Tailwind or one of its plugins throw.
 - `allow: ["layout"]` can exempt `hovr:flex` because matching uses the
   base class. Allow external classes by name rather than broad category.
 - Unclassified names such as `flex-cols` are not layout. On a component,
