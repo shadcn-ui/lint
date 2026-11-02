@@ -72,7 +72,9 @@ export const DEFAULT_MERGE_FUNCTIONS = [
 // Object arguments carry classes as values (cva), not keys (clsx).
 export const DEFAULT_VARIANT_FUNCTIONS = ["cva", "tv"]
 
-const CLASS_ATTRIBUTE = /^(class:list|[^:]*class(name)?s?)$/i
+// Any name ending in class, className or classes, but a data-* or
+// aria-* attribute is never a class list: `data-class` is a selector hook.
+const CLASS_ATTRIBUTE = /^(class:list|(?!data-|aria-)[^:]*class(name)?s?)$/i
 
 export function isClassAttribute(name: string) {
   return CLASS_ATTRIBUTE.test(name)

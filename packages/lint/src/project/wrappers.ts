@@ -42,7 +42,9 @@ type FileWrappers = Map<string, Forwards>
 
 const NO_FORWARDS: Forwards = { props: new Map(), spread: null }
 
-const CLASS_PROP = /^[^:]*class(name)?s?$/i
+// A class prop by name, as collect reads class attributes: never a
+// data-* or aria-* attribute.
+const CLASS_PROP = /^(?!data-|aria-)[^:]*class(name)?s?$/i
 const MAIN_CLASS_PROP = /^(class|className|class:list)$/
 
 // The prop of a wrapper an attribute sets. `class` and `className` are
