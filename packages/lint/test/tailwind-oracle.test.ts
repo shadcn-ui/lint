@@ -309,4 +309,33 @@ describe("resolveStylesheet", () => {
     )
     expect(resolveStylesheet(src, "demo-widgets/missing.css")).toBeNull()
   })
+
+  // Spelled out as text: JSON.stringify recurses too.
+  test("style conditions nested 20,000 deep have no target", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-"))
+    temporary.push(root)
+    const pkg = path.join(root, "node_modules/deep-styles")
+    fs.mkdirSync(path.join(pkg, "dist"), { recursive: true })
+    fs.writeFileSync(path.join(pkg, "dist/theme.css"), "")
+    fs.writeFileSync(path.join(pkg, "index.css"), "")
+    const nested = (depth: number) =>
+      `${'{"style":'.repeat(depth)}"./dist/theme.css"${"}".repeat(depth)}`
+    const manifest = (depth: number) =>
+      fs.writeFileSync(
+        path.join(pkg, "package.json"),
+        `{ "exports": { ".": ${nested(depth)}, "./theme.css": ${nested(depth)} } }`
+      )
+    manifest(3)
+    expect(resolveStylesheet(root, "deep-styles")).toBe(
+      path.join(pkg, "dist/theme.css")
+    )
+    expect(resolveStylesheet(root, "deep-styles/theme.css")).toBe(
+      path.join(pkg, "dist/theme.css")
+    )
+    manifest(20000)
+    expect(resolveStylesheet(root, "deep-styles")).toBe(
+      path.join(pkg, "index.css")
+    )
+    expect(resolveStylesheet(root, "deep-styles/theme.css")).toBeNull()
+  })
 })

@@ -188,25 +188,34 @@ function readPackageJson(dir: string) {
   return json
 }
 
-function pickTarget(value: any): string | null {
+// Real exports nest conditions a few levels deep. Past this a manifest
+// has no target, rather than one that overflows the stack to find.
+export const MAX_CONDITION_DEPTH = 32
+
+const PREFERRED_CONDITIONS = ["import", "default", "require", "node", "types"]
+
+// Each condition is tried once: tried again among the rest, a chain of
+// `import` conditions with no target doubles the walk at every level.
+function pickTarget(value: any, depth = 0): string | null {
   if (typeof value === "string") return value
+  if (depth >= MAX_CONDITION_DEPTH) return null
   if (Array.isArray(value)) {
     for (const item of value) {
-      const picked = pickTarget(item)
+      const picked = pickTarget(item, depth + 1)
       if (picked) return picked
     }
     return null
   }
   if (value && typeof value === "object") {
-    for (const key of ["import", "default", "require", "node", "types"]) {
+    for (const key of PREFERRED_CONDITIONS) {
       if (key in value) {
-        const picked = pickTarget(value[key])
+        const picked = pickTarget(value[key], depth + 1)
         if (picked) return picked
       }
     }
     for (const key of Object.keys(value)) {
-      if (key.startsWith(".")) continue
-      const picked = pickTarget(value[key])
+      if (key.startsWith(".") || PREFERRED_CONDITIONS.includes(key)) continue
+      const picked = pickTarget(value[key], depth + 1)
       if (picked) return picked
     }
   }

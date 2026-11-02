@@ -10,7 +10,11 @@ import { pathToFileURL } from "node:url"
 
 import { splitVariants } from "../grammar/classes"
 import { didYouMean } from "../grammar/similar"
-import { packageRoot, resolveFile } from "../project/resolve"
+import {
+  MAX_CONDITION_DEPTH,
+  packageRoot,
+  resolveFile,
+} from "../project/resolve"
 import { parseImports } from "../project/theme"
 
 type DesignSystem = {
@@ -213,12 +217,13 @@ function stylesheetAt(dir: string, name: string) {
   )
 }
 
-function styleTarget(entry: unknown): string | null {
+function styleTarget(entry: unknown, depth = 0): string | null {
   if (typeof entry === "string") return entry
   if (!entry || typeof entry !== "object") return null
+  if (depth >= MAX_CONDITION_DEPTH) return null
   const record = entry as Record<string, unknown>
   for (const key of ["style", "default"]) {
-    const target = styleTarget(record[key])
+    const target = styleTarget(record[key], depth + 1)
     if (target) return target
   }
   return null
