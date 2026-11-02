@@ -1,5 +1,31 @@
 # @shadcn/lint
 
+## 0.2.5
+
+### Patch Changes
+
+- [#177](https://github.com/shadcn-ui/lint/pull/177) [`c4cf640`](https://github.com/shadcn-ui/lint/commit/c4cf640a91afee235e4461bb06d44751b7991688) Thanks [@shadcn](https://github.com/shadcn)! - Follow a call to a `cva` or `tv` result defined in the same file, so `no-restyle` checks every variant it can produce and `require-static-classes` no longer reports it as dynamic.
+
+- [#172](https://github.com/shadcn-ui/lint/pull/172) [`19eee07`](https://github.com/shadcn-ui/lint/commit/19eee07d319c6ba3fdbdf20b541af2e546b9f1c1) Thanks [@shadcn](https://github.com/shadcn)! - Leave a plain element alone when it is the `render` target of a component that adds no classes, such as a `PopoverTrigger` that only spreads its props onto Base UI, so `no-restyle` and `require-static-classes` no longer judge it by that component.
+
+- [#164](https://github.com/shadcn-ui/lint/pull/164) [`f0586bf`](https://github.com/shadcn-ui/lint/commit/f0586bfa87da80a89a3a4e3c6ce52eacef81a529) Thanks [@shadcn](https://github.com/shadcn)! - Stop warning about a contract entry the theme's Tailwind build generates, such as `prose` from a plugin.
+
+- [#162](https://github.com/shadcn-ui/lint/pull/162) [`0fd4874`](https://github.com/shadcn-ui/lint/commit/0fd487474a451935ab518fa7ce24ac4c9dc05d52) Thanks [@shadcn](https://github.com/shadcn)! - Stop reading `data-*` and `aria-*` attributes such as `data-class` as class lists.
+
+- [#168](https://github.com/shadcn-ui/lint/pull/168) [`d26410c`](https://github.com/shadcn-ui/lint/commit/d26410c7a389440be6f6a63ddf92416bb8fbc556) Thanks [@shadcn](https://github.com/shadcn)! - Read a component's variants and sizes from a `buttonVariants` factory it imports from another project module, through a relative path or an alias.
+
+- [#176](https://github.com/shadcn-ui/lint/pull/176) [`d5e6111`](https://github.com/shadcn-ui/lint/commit/d5e6111ac7ed8837bb66c84454cac469be7dc700) Thanks [@shadcn](https://github.com/shadcn)! - Resolve `<X.Member>` through its namespace before joining names, so a re-exported package's raw parts are no longer judged as the ui component their joined name matches.
+
+- [#170](https://github.com/shadcn-ui/lint/pull/170) [`0c421e1`](https://github.com/shadcn-ui/lint/commit/0c421e1f442f2a3eadf952d9dc17f2dafcebba2c) Thanks [@shadcn](https://github.com/shadcn)! - Recognize a component that `settings.shadcn.ui` names when it's imported through the app's own barrel, as a `components.json` ui directory already was.
+
+- [#166](https://github.com/shadcn-ui/lint/pull/166) [`9231259`](https://github.com/shadcn-ui/lint/commit/92312596a972432e66d2bfde86be9a0bd0a2fbe2) Thanks [@shadcn](https://github.com/shadcn)! - Keep the numeric spacing scale when a theme sets `--spacing` after `--*: initial` or `--spacing-*: initial`, so `p-4` stays a spacing and `border-spacing-0` is no longer reported as an undeclared color.
+
+- [#169](https://github.com/shadcn-ui/lint/pull/169) [`2af84e3`](https://github.com/shadcn-ui/lint/commit/2af84e3f08dcf1605d45882051d99e1d209cb8e2) Thanks [@shadcn](https://github.com/shadcn)! - Resolve a theme's `@import` the way Tailwind does, through a package's `style` condition or field, so `@import "tailwindcss"` reads its stylesheet instead of `dist/lib.mjs` and names from the JavaScript bundle no longer count as known classes.
+
+- [#165](https://github.com/shadcn-ui/lint/pull/165) [`1940709`](https://github.com/shadcn-ui/lint/commit/19407096570e2579beae45a514008db17b657bf7) Thanks [@shadcn](https://github.com/shadcn)! - Wait longer for a slow Tailwind worker, and warn when a worker failure falls back to the bundled grammar. Set `SHADCN_LINT_TAILWIND_TIMEOUT` in milliseconds to change the wait.
+
+- [#167](https://github.com/shadcn-ui/lint/pull/167) [`dd47489`](https://github.com/shadcn-ui/lint/commit/dd47489bded7d9a13de04873624808a137919ce3) Thanks [@shadcn](https://github.com/shadcn)! - Read tsconfig `paths` from a root `tsconfig.base.json`, as in an Nx workspace, when the root `tsconfig.json` or `jsconfig.json` has none.
+
 ## 0.2.4
 
 ### Patch Changes
