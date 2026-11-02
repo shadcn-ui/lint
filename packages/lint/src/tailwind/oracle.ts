@@ -14,6 +14,7 @@ import {
   isInside,
   isPackageTarget,
   isStrayUncPath,
+  MAX_CONDITION_DEPTH,
   packageRoot,
   packageTarget,
   resolveFile,
@@ -229,12 +230,13 @@ function stylesheetAt(dir: string, name: string) {
 
 // Only a target Node accepts: one that would leave the package falls
 // through to the next condition.
-function styleTarget(entry: unknown): string | null {
+function styleTarget(entry: unknown, depth = 0): string | null {
   if (typeof entry === "string") return isPackageTarget(entry) ? entry : null
   if (!entry || typeof entry !== "object") return null
+  if (depth >= MAX_CONDITION_DEPTH) return null
   const record = entry as Record<string, unknown>
   for (const key of ["style", "default"]) {
-    const target = styleTarget(record[key])
+    const target = styleTarget(record[key], depth + 1)
     if (target) return target
   }
   return null
