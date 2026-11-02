@@ -158,7 +158,8 @@ Using `deny` alone lets other unknown classes pass, including typos.
 If Tailwind or the theme cannot load, the rule uses the bundled class
 grammar, discovered `@utility` names, and CSS class selectors. A failed
 theme build produces a warning. Other projects in the same run continue
-using their own themes.
+using their own themes. A Tailwind worker that crashes or times out also
+produces a warning; see [the worker's timeouts](../how-it-works.md#tailwind-classes).
 
 This fallback checks less: it accepts arbitrary variant prefixes and
 some invented values, and provides no spelling suggestions. For example,

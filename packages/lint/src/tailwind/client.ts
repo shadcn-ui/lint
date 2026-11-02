@@ -28,8 +28,11 @@ type Bridge = {
 let bridge: Bridge | null | false = null
 let restarts = 0
 
-const FIRST_TIMEOUT = 15_000
-const TIMEOUT = 5_000
+// Only there to catch a dead worker. A loaded machine can take seconds
+// over a warm answer, and a timeout costs the file its project classes.
+// SHADCN_LINT_TAILWIND_TIMEOUT, in milliseconds, replaces both.
+const FIRST_TIMEOUT = 60_000
+const TIMEOUT = 30_000
 const RETRY_AFTER = 5_000
 const REFRESH_AFTER = 1_000
 
@@ -57,14 +60,20 @@ function stop() {
   memos.clear()
 }
 
-// One restart is allowed; after that the oracle is off.
+// One restart is allowed; after that the oracle is off. Either way the
+// question in flight falls back to the bundled grammar, so both say so.
 function transportFailed(reason: string) {
   stop()
   if (restarts++ >= 1) {
     bridge = false
     warnOnce(
       "tailwind:off",
-      `The Tailwind worker failed twice (${reason}); no-unknown-classes is using the grammar bundled with @shadcn/lint for the rest of this run.`
+      `The Tailwind worker failed twice (${reason}); the Tailwind build is unavailable, so rules use the grammar bundled with @shadcn/lint for the rest of this run.`
+    )
+  } else {
+    warnOnce(
+      `tailwind:restart:${reason}`,
+      `The Tailwind worker failed (${reason}) and is restarting; the Tailwind build was unavailable, so rules checked the current file with the grammar bundled with @shadcn/lint and may report project classes as unknown.`
     )
   }
   return null
@@ -105,8 +114,11 @@ function start() {
   }
 }
 
-function timeoutFor(live: Bridge) {
-  return live.cold ? FIRST_TIMEOUT : TIMEOUT
+function timeoutFor(cold: boolean) {
+  // Anything but a positive number of milliseconds is ignored.
+  const override = Number(process.env.SHADCN_LINT_TAILWIND_TIMEOUT)
+  if (Number.isFinite(override) && override > 0) return override
+  return cold ? FIRST_TIMEOUT : TIMEOUT
 }
 
 function ask(cssFile: string, candidates: string[]): Answer | null {
@@ -116,9 +128,12 @@ function ask(cssFile: string, candidates: string[]): Answer | null {
   const shared = new SharedArrayBuffer(4)
   const flag = new Int32Array(shared)
   live.port.postMessage({ id, cssFile, candidates, shared })
-  const waited = Atomics.wait(flag, 0, 0, timeoutFor(live))
+  const timeout = timeoutFor(live.cold)
+  const waited = Atomics.wait(flag, 0, 0, timeout)
   live.cold = false
-  if (waited === "timed-out") return transportFailed("timed out")
+  if (waited === "timed-out") {
+    return transportFailed(`timed out after ${timeout / 1000} s`)
+  }
   const received = receiveMessageOnPort(live.port) as
     { message: { id: number; answer: Answer } } | undefined
   if (!received || received.message.id !== id) {
@@ -241,7 +256,7 @@ export function failOracleTransportForTests() {
 
 export function oracleStateForTests() {
   return {
-    nextTimeout: bridge ? timeoutFor(bridge) : FIRST_TIMEOUT,
+    nextTimeout: timeoutFor(bridge ? bridge.cold : true),
     restarts,
   }
 }

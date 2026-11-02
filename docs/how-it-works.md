@@ -118,6 +118,12 @@ Tailwind runs in a worker thread because its loader is asynchronous.
 Answers are cached per theme. If Tailwind or the theme cannot load, the
 rule warns and uses a [grammar fallback](./rules/no-unknown-classes.md).
 
+The linter waits up to 60 seconds for the worker's first answer and 30
+seconds for later ones. A worker that misses that wait is restarted once,
+with a warning, and the file being checked uses the grammar fallback. Set
+`SHADCN_LINT_TAILWIND_TIMEOUT` to a number of milliseconds to change both
+waits.
+
 A theme CSS that declares tokens without importing Tailwind — the usual
 shape for a component package — knows no base utilities, so the rule
 would report every stock class. When `components.json` names such a file,
