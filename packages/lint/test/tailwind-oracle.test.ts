@@ -274,6 +274,63 @@ describe("tailwind oracle", () => {
     expect(answer.unknown.map((u) => u.token)).toEqual(["rounded-pil"])
   })
 
+  // Tailwind overflows its stack on thousands of variants and takes
+  // seconds on a value hundreds of kilobytes long.
+  test("a class past the limits is not judged", async () => {
+    const answer = await query(CSS, [
+      `${"hover:".repeat(5000)}p-4`,
+      `w-[calc(${"1px+".repeat(60_000)}1px)]`,
+      `${"hover:".repeat(64)}flx`,
+      "flex",
+      "flx",
+    ])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown.map((entry) => entry.token)).toEqual([
+      `${"hover:".repeat(64)}flx`,
+      "flx",
+    ])
+  })
+
+  test("a candidate Tailwind throws on costs only its own answer", async () => {
+    resetOracle()
+    const root = fs.mkdtempSync(path.join(PROJECT, ".throwing-plugin-"))
+    temporary.push(root)
+    fs.writeFileSync(
+      path.join(root, "app.css"),
+      `@import "tailwindcss";\n@plugin "./plugin.mjs";\n`
+    )
+    fs.writeFileSync(
+      path.join(root, "plugin.mjs"),
+      [
+        `export default function ({ matchUtilities }) {`,
+        `  matchUtilities(`,
+        `    {`,
+        `      boom: (value) => {`,
+        `        if (value === "bad") throw new Error("boom")`,
+        `        return { color: value }`,
+        `      },`,
+        `    },`,
+        `    { values: { bad: "bad", red: "red" } }`,
+        `  )`,
+        `}`,
+      ].join("\n")
+    )
+    const answer = await query(path.join(root, "app.css"), [
+      "boom-red",
+      "boom-bad",
+      "hovr:boom-bad",
+      "flex",
+      "flx",
+    ])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown).toEqual([
+      { token: "hovr:boom-bad", suggestion: null, baseKnown: false },
+      { token: "flx", suggestion: "flex", baseKnown: false },
+    ])
+  })
+
   test("a theme that cannot be read is unavailable, not wrong", async () => {
     const answer = await query("/nonexistent/app/globals.css", ["flex"])
     expect(answer.ok).toBe(false)

@@ -86,6 +86,13 @@ const SIGNATURE_TTL = 1000
 
 const FONT_SIZE = /(?:^|[;{\s])font-size\s*:/
 
+// Far past any real class. Tailwind parses a candidate recursively, once
+// per variant, and slows quadratically on a long value, so one hostile
+// token could stall the worker or overflow its stack. A class past
+// either limit is not judged, the way an arbitrary property is not.
+const MAX_CANDIDATE_LENGTH = 10_000
+const MAX_VARIANTS = 64
+
 const loaded = new Map<string, Loaded>()
 let generations = 0
 
@@ -439,6 +446,31 @@ function variantKnown(system: Loaded, variant: string) {
   )
 }
 
+function checkable(candidate: string) {
+  return (
+    candidate.length <= MAX_CANDIDATE_LENGTH &&
+    splitVariants(candidate).variants.length <= MAX_VARIANTS
+  )
+}
+
+// Undefined when Tailwind throws on this one candidate, from a plugin or
+// its own parser: that costs the candidate its answer, not the theme.
+function cssOf(system: Loaded, candidate: string) {
+  try {
+    return system.ds.candidatesToCss([candidate])[0]
+  } catch {
+    return undefined
+  }
+}
+
+function cssOfAll(system: Loaded, candidates: string[]) {
+  try {
+    return system.ds.candidatesToCss(candidates)
+  } catch {
+    return candidates.map((candidate) => cssOf(system, candidate))
+  }
+}
+
 // A base utility that exists on its own means the variant is misspelled;
 // otherwise the utility is, matched against every class Tailwind knows.
 function suggestionFor(system: Loaded, candidate: string) {
@@ -446,7 +478,7 @@ function suggestionFor(system: Loaded, candidate: string) {
   // With a prefix, the bare utility is only valid as tw:flex.
   const prefixed = system.prefix !== null && variants[0] === system.prefix
   const probe = prefixed ? `${system.prefix}:${base}` : base
-  if (variants.length && system.ds.candidatesToCss([probe])[0] !== null) {
+  if (variants.length && typeof cssOf(system, probe) === "string") {
     let changed = false
     const fixed = variants.map((variant, i) => {
       if (prefixed && i === 0) return variant
@@ -475,7 +507,7 @@ function baseKnownOf(system: Loaded, candidate: string) {
       ? `${system.prefix}:${base}`
       : base
   if (variants.length === (bare === base ? 0 : 1)) return false
-  return system.ds.candidatesToCss([bare])[0] !== null
+  return typeof cssOf(system, bare) === "string"
 }
 
 export async function query(
@@ -488,18 +520,20 @@ export async function query(
   } catch (error) {
     return { ok: false, reason: (error as Error).message }
   }
-  const css = system.ds.candidatesToCss(candidates)
+  const checked = candidates.filter(checkable)
+  const css = cssOfAll(system, checked)
   const unknown: Unknown[] = []
   const fontSizes: string[] = []
-  for (let i = 0; i < candidates.length; i++) {
+  for (let i = 0; i < checked.length; i++) {
+    if (css[i] === undefined) continue
     if (css[i] !== null) {
-      if (FONT_SIZE.test(css[i]!)) fontSizes.push(candidates[i])
+      if (FONT_SIZE.test(css[i]!)) fontSizes.push(checked[i])
       continue
     }
     unknown.push({
-      token: candidates[i],
-      suggestion: suggestionFor(system, candidates[i]),
-      baseKnown: baseKnownOf(system, candidates[i]),
+      token: checked[i],
+      suggestion: suggestionFor(system, checked[i]),
+      baseKnown: baseKnownOf(system, checked[i]),
     })
   }
   return {
