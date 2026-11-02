@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 import { resetFsMemo } from "../src/project/fs"
 import { resolveFile } from "../src/project/resolve"
-import { resolveStylesheet } from "../src/tailwind/oracle"
+import { resolveStylesheet } from "../src/project/stylesheets"
 
 let root: string
 

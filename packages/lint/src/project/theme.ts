@@ -12,7 +12,7 @@ import { lengthInPx } from "../grammar/lengths"
 import { FONT_SIZES, RADII } from "../grammar/tailwind-theme"
 import { projectFor } from "./components-json"
 import { isFile, mtimeOf, TTL } from "./fs"
-import { packageRoot, resolveFile } from "./resolve"
+import { resolveStylesheetImport } from "./stylesheets"
 import { themeScalesOf } from "./theme-scales"
 import { warnOnce } from "./warn"
 
@@ -58,7 +58,7 @@ type ThemeRead = {
   modules: boolean
   files: string[]
   // Retried with the signature, so a corrected alias invalidates too.
-  missingImports: { spec: string; fromDir: string; rootDir: string }[]
+  missingImports: { spec: string; fromDir: string }[]
   colors?: Map<string, Lab>
   scales?: Record<ScaleKind, Map<string, number>>
   themeScales?: ConfigExtension
@@ -419,14 +419,13 @@ function readTheme(
   if (/@(?:config|plugin)\s/.test(stripComments(css))) read.modules = true
   // Imports come first in the cascade.
   const dir = path.dirname(cssFile)
-  const root = packageRoot(cssFile) ?? dir
   for (const spec of parseImports(css)) {
     if (spec === "tailwindcss" || spec.startsWith("tailwindcss/")) {
       read.tailwind = true
     }
-    const target = resolveFile(spec, dir, root, [".css"])
+    const target = resolveStylesheetImport(dir, spec)
     if (!target) {
-      read.missingImports.push({ spec, fromDir: dir, rootDir: root })
+      read.missingImports.push({ spec, fromDir: dir })
       continue
     }
     const own = ownPackageOf(spec, target, imports, ownPackage)
@@ -467,8 +466,8 @@ function signatureOf(read: ThemeRead) {
   return [
     ...read.files.map((file) => `${file}:${mtimeOf(file) ?? "missing"}`),
     ...read.missingImports.map(
-      ({ spec, fromDir, rootDir }) =>
-        `${fromDir}:${spec}:${resolveFile(spec, fromDir, rootDir, [".css"]) ?? "missing"}`
+      ({ spec, fromDir }) =>
+        `${fromDir}:${spec}:${resolveStylesheetImport(fromDir, spec) ?? "missing"}`
     ),
   ].join("|")
 }
