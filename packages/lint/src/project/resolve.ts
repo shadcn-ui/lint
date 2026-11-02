@@ -138,26 +138,14 @@ function readTsconfigChain(
   if (!json || typeof json !== "object") return []
   const dir = path.dirname(file)
   const options = json.compilerOptions ?? {}
-  // TypeScript rejects a baseUrl, paths map or target that is not the
-  // type it expects; here it is ignored, since path.resolve throws on a
-  // non-string baseUrl.
-  const base =
-    typeof options.baseUrl === "string" && options.baseUrl
-      ? path.resolve(dir, options.baseUrl)
-      : dir
-  const paths =
-    options.paths &&
-    typeof options.paths === "object" &&
-    !Array.isArray(options.paths)
-      ? options.paths
-      : {}
-  const own: PathEntry[] = Object.entries(paths).map(([pattern, targets]) => ({
-    pattern,
-    targets: Array.isArray(targets)
-      ? targets.filter((target) => typeof target === "string")
-      : [],
-    base,
-  }))
+  const base = options.baseUrl ? path.resolve(dir, options.baseUrl) : dir
+  const own: PathEntry[] = Object.entries(options.paths ?? {}).map(
+    ([pattern, targets]) => ({
+      pattern,
+      targets: Array.isArray(targets) ? targets.map(String) : [],
+      base,
+    })
+  )
   const parents = ([] as string[]).concat(json.extends ?? [])
   const inherited = parents.flatMap((parent) => {
     // A tsconfig's own `paths` never apply to its `extends`.
@@ -200,25 +188,32 @@ function readPackageJson(dir: string) {
   return json
 }
 
-function pickTarget(value: any): string | null {
+function pickTarget(value: any, preferStyle = false): string | null {
   if (typeof value === "string") return value
   if (Array.isArray(value)) {
     for (const item of value) {
-      const picked = pickTarget(item)
+      const picked = pickTarget(item, preferStyle)
       if (picked) return picked
     }
     return null
   }
   if (value && typeof value === "object") {
+    // A stylesheet import resolves through a package's `style`
+    // condition first: without this, tailwindcss resolves to its
+    // JavaScript entry (dist/lib.mjs), which is then read as CSS.
+    if (preferStyle && "style" in value) {
+      const picked = pickTarget(value["style"], preferStyle)
+      if (picked) return picked
+    }
     for (const key of ["import", "default", "require", "node", "types"]) {
       if (key in value) {
-        const picked = pickTarget(value[key])
+        const picked = pickTarget(value[key], preferStyle)
         if (picked) return picked
       }
     }
     for (const key of Object.keys(value)) {
       if (key.startsWith(".")) continue
-      const picked = pickTarget(value[key])
+      const picked = pickTarget(value[key], preferStyle)
       if (picked) return picked
     }
   }
@@ -226,7 +221,11 @@ function pickTarget(value: any): string | null {
 }
 
 // Through an exports/imports map, longest key first.
-function mapSubpath(map: Record<string, any>, subpath: string) {
+function mapSubpath(
+  map: Record<string, any>,
+  subpath: string,
+  preferStyle = false
+) {
   const keys = Object.keys(map)
     .filter((key) => key.startsWith(".") || key.startsWith("#"))
     .sort((a, b) => b.length - a.length)
@@ -234,7 +233,7 @@ function mapSubpath(map: Record<string, any>, subpath: string) {
   for (const key of keys) {
     const captured = matchPattern(key, subpath)
     if (captured === null) continue
-    const target = pickTarget(map[key])
+    const target = pickTarget(map[key], preferStyle)
     if (target) out.push(expand(target, captured))
   }
   return out
@@ -267,6 +266,10 @@ function splitPackageSpecifier(spec: string) {
 
 type ResolveOptions = {
   skipPaths?: boolean
+  // Stylesheet imports only: prefer a package's `style` export
+  // condition over its JavaScript entry. Script imports keep the
+  // default condition order, so this never changes JS resolution.
+  preferStyle?: boolean
 }
 
 // In priority order, before extension probing. `rootDir` is the project
@@ -303,11 +306,15 @@ export function candidatesFor(
   if (spec.startsWith("#")) {
     const imports = readPackageJson(rootDir)?.imports
     if (imports && typeof imports === "object") {
-      for (const target of mapSubpath(imports, spec)) {
+      for (const target of mapSubpath(imports, spec, options.preferStyle)) {
         out.push(path.resolve(rootDir, target))
       }
       // A directory alias against a wildcard key ("#components/*").
-      for (const target of mapSubpath(imports, `${spec}/*`)) {
+      for (const target of mapSubpath(
+        imports,
+        `${spec}/*`,
+        options.preferStyle
+      )) {
         out.push(path.dirname(path.resolve(rootDir, target)))
       }
     }
@@ -336,11 +343,15 @@ export function candidatesFor(
   const subpath = pkg.subpath ? `./${pkg.subpath}` : "."
   const exportsMap = readPackageJson(dir)?.exports
   if (exportsMap && typeof exportsMap === "object") {
-    for (const target of mapSubpath(exportsMap, subpath)) {
+    for (const target of mapSubpath(exportsMap, subpath, options.preferStyle)) {
       out.push(path.resolve(dir, target))
     }
     // A directory alias against a wildcard key ("./components/*").
-    for (const target of mapSubpath(exportsMap, `${subpath}/*`)) {
+    for (const target of mapSubpath(
+      exportsMap,
+      `${subpath}/*`,
+      options.preferStyle
+    )) {
       out.push(path.dirname(path.resolve(dir, target)))
     }
   }
@@ -402,7 +413,7 @@ export function resolveFile(
   extensions = EXTENSIONS,
   options: ResolveOptions = {}
 ) {
-  const key = `resolve:${fromDir}|${rootDir}|${spec}|${extensions.join(",")}|${options.skipPaths ? 1 : 0}`
+  const key = `resolve:${fromDir}|${rootDir}|${spec}|${extensions.join(",")}|${options.skipPaths ? 1 : 0}|${options.preferStyle ? 1 : 0}`
   return memoize(key, () =>
     resolveFileUncached(spec, fromDir, rootDir, extensions, options)
   )

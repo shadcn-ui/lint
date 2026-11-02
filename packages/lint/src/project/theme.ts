@@ -252,42 +252,20 @@ export function resolveVariables(
   return failed ? null : out
 }
 
-// An @import up to the end of its quoted id. The rest of the rule runs
-// to the next `;`, found with one indexOf: a `[^;]*` after each @import
-// rescans the rest of a file that has no `;` once per @import in it.
-const IMPORT_HEAD = /@import\s+(?:url\(\s*)?["']([^"']+)["']/g
-
 // Comments go first: a partial whose comment spells out the consumer's
 // `@import "tailwindcss"` does not import Tailwind.
 export function parseImports(css: string) {
   const out: string[] = []
-  const text = stripComments(css)
-  const re = new RegExp(IMPORT_HEAD)
-  for (let match = re.exec(text); match; match = re.exec(text)) {
-    const end = text.indexOf(";", re.lastIndex)
-    // No `;` ends this @import, so none ends a later one either.
-    if (end === -1) break
-    out.push(match[1])
-    re.lastIndex = end + 1
-  }
+  const re = /@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?[^;]*;/g
+  for (const match of stripComments(css).matchAll(re)) out.push(match[1])
   return out
 }
 
-// The prefix a Tailwind import declares before the `;` that ends it, if
-// any.
+// The prefix a Tailwind import declares, if any.
 export function parseTailwindPrefix(css: string) {
-  const text = stripComments(css)
-  const re = new RegExp(IMPORT_HEAD)
-  for (let match = re.exec(text); match; match = re.exec(text)) {
-    if (!/^tailwindcss(?:\/|$)/.test(match[1])) continue
-    const end = text.indexOf(";", re.lastIndex)
-    const rest = text.slice(re.lastIndex, end === -1 ? text.length : end)
-    const prefix = /\bprefix\(\s*([\w-]+)\s*\)/.exec(rest)
-    if (prefix) return prefix[1]
-    // A Tailwind @import inside `rest` ends at the same `;`.
-    if (end === -1) break
-    re.lastIndex = end
-  }
+  const re =
+    /@import\s+(?:url\(\s*)?["']tailwindcss(?:\/[^"']*)?["']\s*\)?[^;]*?\bprefix\(\s*([\w-]+)\s*\)/g
+  for (const match of stripComments(css).matchAll(re)) return match[1]
   return null
 }
 
@@ -411,7 +389,12 @@ function readTheme(
     if (spec === "tailwindcss" || spec.startsWith("tailwindcss/")) {
       read.tailwind = true
     }
-    const target = resolveFile(spec, dir, root, [".css"])
+    // Stylesheet imports resolve through a package's `style`
+    // condition first, so `@import "tailwindcss"` reads index.css
+    // instead of the package's JavaScript entry.
+    const target = resolveFile(spec, dir, root, [".css"], {
+      preferStyle: true,
+    })
     if (!target) {
       read.missingImports.push({ spec, fromDir: dir, rootDir: root })
       continue
@@ -455,7 +438,7 @@ function signatureOf(read: ThemeRead) {
     ...read.files.map((file) => `${file}:${mtimeOf(file) ?? "missing"}`),
     ...read.missingImports.map(
       ({ spec, fromDir, rootDir }) =>
-        `${fromDir}:${spec}:${resolveFile(spec, fromDir, rootDir, [".css"]) ?? "missing"}`
+        `${fromDir}:${spec}:${resolveFile(spec, fromDir, rootDir, [".css"], { preferStyle: true }) ?? "missing"}`
     ),
   ].join("|")
 }
