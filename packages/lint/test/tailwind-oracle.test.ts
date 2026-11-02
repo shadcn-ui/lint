@@ -24,6 +24,11 @@ const PATTERN = path.resolve(
   "fixtures/exports-pattern"
 )
 
+const SUBPATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures/subpath-imports"
+)
+
 const temporary: string[] = []
 
 afterAll(() => {
@@ -152,6 +157,22 @@ describe("tailwind oracle", () => {
     resetOracle()
     const answer = await query(path.join(PATTERN, "src/app.css"), [
       "p-card",
+      "p-crad",
+    ])
+    expect(answer.ok).toBe(true)
+    if (!answer.ok) return
+    expect(answer.unknown).toEqual([
+      { token: "p-crad", suggestion: "p-card", baseKnown: false },
+    ])
+  })
+
+  // A stylesheet can import through the package's own "imports" map
+  // ("#ds/*"), the way Node and Vite resolve it.
+  test("builds a theme importing through a subpath import", async () => {
+    resetOracle()
+    const answer = await query(path.join(SUBPATH, "src/app.css"), [
+      "p-card",
+      "kit-frame",
       "p-crad",
     ])
     expect(answer.ok).toBe(true)
