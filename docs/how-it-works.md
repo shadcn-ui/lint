@@ -151,6 +151,12 @@ the same file. Spacing findings suggest values from the `size` axis.
 The file can come from the UI directory or a resolved import, including
 a barrel. Variant suggestions work without `components.json`.
 
+A factory kept in its own module counts too. When `button.tsx` imports
+`buttonVariants` from `./button-variants` or `@/components/ui/button-variants`,
+that factory is read for `Button`. Only the name that matches the
+component is followed, and only into the project: a factory imported
+from a package is not read.
+
 In a `.svelte` or `.vue` component the scripts are read, including
 Svelte's `<script module>`. When the component's own file has no
 definition, the barrel beside it is read for the one named after the

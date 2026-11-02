@@ -487,6 +487,12 @@ export function definingExportOf(
   return binding ?? { file: target, name }
 }
 
+// The specifier and imported name behind a local binding, as written:
+// `{ spec: "./button-variants", name: "buttonVariants" }`.
+export function importOf(file: string, local: string) {
+  return moduleOf(file)?.imports.get(local) ?? null
+}
+
 export function definingFileOf(spec: string, name: string, fromFile: string) {
   return definingExportOf(spec, name, fromFile)?.file ?? null
 }
