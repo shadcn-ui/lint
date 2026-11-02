@@ -1,16 +1,21 @@
 // A contract entry that matches nothing enforces nothing. A bare word one
 // slip away from a category or class group is a configuration error with
 // a suggestion; any other literal nothing knows warns once and matches a
-// class named exactly that; everything the grammar or the project's CSS
-// knows passes silently. The vocabulary rules' `allow` option keeps
-// accepting custom class names.
+// class named exactly that; everything the grammar, the project's CSS
+// or its Tailwind build knows passes silently. The vocabulary rules'
+// `allow` option keeps accepting custom class names.
 
+import * as path from "node:path"
 import { afterEach, describe, expect, test } from "vitest"
 
 import { resetWarnings, setWarningSink } from "../src/project/warn"
 import { compileContracts, createMatcher } from "../src/rules/contracts"
 import { noRestyle } from "../src/rules/no-restyle"
+import { oracleAvailable } from "../src/tailwind/client"
 import { button, createTester, PAGE } from "./helpers"
+
+const PLUGIN_PAGE = path.join(__dirname, "fixtures/plugin-theme/app/page.tsx")
+const BROKEN_PAGE = path.join(__dirname, "fixtures/broken-theme/app/page.tsx")
 
 const warnings: string[] = []
 setWarningSink((m) => warnings.push(m))
@@ -189,6 +194,38 @@ describe("a plugin's one-word class", () => {
         },
       ],
     })
+  })
+
+  // The theme's Tailwind build answers for plugin output, which no CSS
+  // declares (#135).
+  test.skipIf(!oracleAvailable())(
+    "is known without a word when the theme's plugin generates it",
+    () => {
+      const contracts = compileContracts(
+        [
+          {
+            pattern: "^Article$",
+            allow: ["layout", "prose", "prose-undeclared"],
+          },
+        ],
+        { fromFile: PLUGIN_PAGE }
+      )
+      expect(contracts.decide("Article", "prose")).toEqual({ kind: "ok" })
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).toContain('"prose-undeclared"')
+    }
+  )
+
+  // A build that cannot load must not accept entries silently.
+  test("still warns when the theme's build fails", () => {
+    const contracts = compileContracts(
+      [{ pattern: "^Article$", allow: ["prose"] }],
+      { fromFile: BROKEN_PAGE }
+    )
+    expect(contracts.decide("Article", "prose")).toEqual({ kind: "ok" })
+    expect(warnings.some((w) => w.includes('Contract entry "prose"'))).toBe(
+      true
+    )
   })
 })
 
