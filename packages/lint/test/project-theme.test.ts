@@ -6,6 +6,7 @@ import {
   parseClassSelectors,
   parseDeclarations,
   parseImports,
+  parseTailwindPrefix,
   scaleFor,
   spacingBaseFor,
   stripComments,
@@ -133,6 +134,44 @@ describe("comments are stripped without reading into strings", () => {
 @theme inline { --color-brand: #123456; }
 @import "./tokens.css";`)
     ).toEqual(["./tokens.css"])
+  })
+})
+
+// A rule's end is its `;`. Looked for again after every @import, a file
+// that never ends one took seconds to read.
+describe("an @import with no `;` costs one scan", () => {
+  test("a stylesheet of unterminated @imports reads quickly", () => {
+    const css = "@import 'a' ".repeat(20000)
+    const tailwind = '@import "tailwindcss" '.repeat(20000)
+    const start = performance.now()
+    expect(parseImports(css)).toEqual([])
+    expect(parseTailwindPrefix(css)).toBeNull()
+    expect(parseImports(tailwind)).toEqual([])
+    expect(parseTailwindPrefix(tailwind)).toBeNull()
+    expect(performance.now() - start).toBeLessThan(1000)
+  })
+
+  test("terminated @imports and their prefix still read", () => {
+    expect(
+      parseImports(
+        `@import "tailwindcss" prefix(tw);\n@import url("./a.css") layer(base);\n@import './b;c.css' supports(display: grid);\n@import "./open.css"`
+      )
+    ).toEqual(["tailwindcss", "./a.css", "./b;c.css"])
+    expect(parseImports(`@import "./a.css" @import "./b.css";`)).toEqual([
+      "./a.css",
+    ])
+    expect(
+      parseTailwindPrefix(
+        `@import "./a.css";\n@import "tailwindcss"\n  prefix(tw);`
+      )
+    ).toBe("tw")
+    expect(
+      parseTailwindPrefix(`@import url('tailwindcss/theme') prefix( tw )`)
+    ).toBe("tw")
+    expect(
+      parseTailwindPrefix(`@import "tailwindcss"; .x { a: prefix(tw) }`)
+    ).toBeNull()
+    expect(parseTailwindPrefix(`@import "tailwind" prefix(tw);`)).toBeNull()
   })
 })
 
