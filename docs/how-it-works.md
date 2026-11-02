@@ -290,6 +290,19 @@ the component or on the element:
 <Button render={<a href="/" className="p-4" />} />
 ```
 
+A component that provably adds no classes has no look to own, so a
+plain element it renders is left to itself. The proof is strict: a
+plain function whose body only returns a self-closing Base UI part with
+its props spread and static `data-*` attributes, the way a shadcn
+`PopoverTrigger` does. A wrapper call around it, a class of its own, a
+package component, or a file that cannot be read keeps the component's
+contract in charge.
+
+```tsx
+// Passes: PopoverTrigger adds no classes, so the button owns its look.
+<PopoverTrigger render={<button className="rounded-full" />} />
+```
+
 When the value cannot be read, a variable or a function that renders
 without spreading its props, the classes stay on the trigger and its
 own contract decides.
