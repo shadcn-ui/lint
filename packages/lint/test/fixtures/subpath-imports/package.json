@@ -1,0 +1,5 @@
+{
+  "name": "subpath-imports",
+  "private": true,
+  "imports": { "#ds/*": "./ds/*" }
+}
