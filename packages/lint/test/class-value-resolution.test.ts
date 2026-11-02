@@ -172,6 +172,53 @@ describe("forwarded values retain their local alternatives", () => {
   })
 })
 
+describe("a call to a same-file variant function is read", () => {
+  const cva = `import { cva } from "class-variance-authority"`
+  const ruleIds = (code: string) => lint(`${cva}\n${code}`).map((m) => m.ruleId)
+  const count = (ids: (string | null)[], rule: string) =>
+    ids.filter((id) => id === `shadcn/${rule}`).length
+
+  test.each([
+    [
+      'const restyle = cva("bg-red-500 rounded-none")\nexport const A = () => <Button className={restyle()} />',
+      2,
+    ],
+    [
+      'const restyleTone = cva("", { variants: { tone: { loud: "bg-red-500" } } })\nexport const B = () => <Button className={restyleTone({ tone: "loud" })} />',
+      1,
+    ],
+    [
+      'const asString = "bg-red-500 rounded-none"\nexport const C = () => <Button className={asString} />',
+      2,
+    ],
+  ])("checks every class it can produce: %s", (code, restyles) => {
+    const ids = ruleIds(code)
+    expect(count(ids, "no-restyle")).toBe(restyles)
+    expect(count(ids, "require-static-classes")).toBe(0)
+    // The raw color is reported once, where it is written.
+    expect(count(ids, "no-raw-colors")).toBe(1)
+  })
+
+  test("a className passed in the call is read with it", () => {
+    const ids = ruleIds(
+      'const tone = cva("mt-2")\nexport const A = () => <Button className={tone({ className: "rounded-none" })} />'
+    )
+    expect(count(ids, "no-restyle")).toBe(1)
+    expect(count(ids, "require-static-classes")).toBe(0)
+  })
+
+  test.each([
+    // A reassigned binding may hold anything by the time it is called.
+    'let restyle = cva("mt-2")\nrestyle = cva("bg-red-500")\nexport const A = () => <Button className={restyle()} />',
+    // tv with slots returns functions, not classes.
+    'import { tv } from "tailwind-variants"\nconst card = tv({ slots: { base: "mt-2" } })\nexport const A = () => <Button className={card()} />',
+    // An argument the call cannot see into.
+    'const tone = cva("mt-2")\nexport const A = (props: any) => <Button className={tone(props)} />',
+  ])("leaves what it cannot read unresolved: %s", (code) => {
+    expect(count(ruleIds(code), "require-static-classes")).toBe(1)
+  })
+})
+
 describe("partly understood values stay unresolved", () => {
   test("require-static-classes sees the unreadable part", () => {
     tester.run("require-static-classes", requireStaticClasses as any, {
