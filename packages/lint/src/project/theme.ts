@@ -229,11 +229,20 @@ export function parseDeclarations(css: string) {
   return { values, scopedNames, themeNames, declarations }
 }
 
-// Null when a variable has no value and no fallback.
+// Far past any real theme value. A value that names a variable k times,
+// each naming another k times, grows as k^6 through six levels: k = 10
+// builds 4MB, and a larger k passes V8's longest string. Every
+// substitution spends its length and one more from a budget shared by
+// the whole resolution.
+const RESOLVE_BUDGET = 100_000
+
+// Null when a variable has no value and no fallback, or when resolving
+// the value would spend more than the budget.
 export function resolveVariables(
   value: string,
   values: Map<string, string>,
-  depth = 0
+  depth = 0,
+  budget = { left: RESOLVE_BUDGET }
 ): string | null {
   if (!value.includes("var(")) return value
   if (depth > 6) return null
@@ -241,13 +250,15 @@ export function resolveVariables(
   const out = value.replace(
     /var\(\s*--([\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\)[^()]*)*))?\)/g,
     (_, name: string, fallback: string | undefined) => {
+      if (failed) return ""
       const inner = values.get(name) ?? fallback
       if (inner === undefined) {
         failed = true
         return ""
       }
-      const resolved = resolveVariables(inner.trim(), values, depth + 1)
-      if (resolved === null) failed = true
+      const resolved = resolveVariables(inner.trim(), values, depth + 1, budget)
+      budget.left -= 1 + (resolved?.length ?? 0)
+      if (resolved === null || budget.left < 0) failed = true
       return resolved ?? ""
     }
   )

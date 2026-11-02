@@ -122,6 +122,27 @@ describe("parseDeclarations", () => {
     expect(resolveVariables("var(--missing)", values)).toBeNull()
     expect(resolveVariables("hsl(var(--nope))", values)).toBeNull()
   })
+
+  // Each level names the next k times, so the value at the bottom is
+  // copied k^levels times: 4MB for ten names over six levels.
+  test("resolveVariables gives up on a value that fans out", () => {
+    const fanOut = (k: number, levels: number, bottom: string) => {
+      const values = new Map<string, string>()
+      for (let level = 0; level < levels; level++) {
+        values.set(`v${level}`, `var(--v${level + 1}) `.repeat(k).trim())
+      }
+      values.set(`v${levels}`, bottom)
+      return values
+    }
+    expect(resolveVariables("var(--v0)", fanOut(10, 6, "1px"))).toBeNull()
+    // Past V8's longest string, and 1000^6 substitutions of nothing.
+    expect(resolveVariables("var(--v0)", fanOut(40, 6, "1px"))).toBeNull()
+    expect(resolveVariables("var(--v0)", fanOut(1000, 6, " "))).toBeNull()
+    // A value that stays small still resolves.
+    expect(resolveVariables("var(--v0)", fanOut(10, 3, "1px"))).toBe(
+      Array(1000).fill("1px").join(" ")
+    )
+  })
 })
 
 describe("nearestColorTokens", () => {
