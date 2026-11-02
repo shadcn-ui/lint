@@ -172,6 +172,89 @@ describe("variants from props", () => {
     expect(variantNamesFor(file, "EmptyMedia")).toEqual(["default", "icon"])
   })
 
+  // shadcn-ui/lint#136: buttonVariants kept in its own module so
+  // button.tsx exports only components.
+  test("the factory named after the component is read from a relative import", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    fs.writeFileSync(
+      path.join(dir, "button-variants.ts"),
+      `import { cva } from "class-variance-authority"
+       export const toggleVariants = cva("", { variants: { variant: { on: "", off: "" } } })
+       export const buttonVariants = cva("", {
+         variants: {
+           variant: { default: "", outline: "" },
+           size: { default: "", sm: "", lg: "" },
+         },
+       })`
+    )
+    const file = path.join(dir, "button.tsx")
+    fs.writeFileSync(
+      file,
+      `import type { VariantProps } from "class-variance-authority"
+       import { buttonVariants } from "./button-variants"
+       export function Button({ className, variant, size, ...props }: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants>) {
+         return <button className={buttonVariants({ variant, size, className })} {...props} />
+       }
+       export function ButtonGroup(props: React.ComponentProps<"div">) {
+         return <div {...props} />
+       }`
+    )
+    expect(variantNamesFor(file, "Button")).toEqual(["default", "outline"])
+    expect(sizeNamesFor(file, "Button")).toEqual(["default", "sm", "lg"])
+    // Only the exact name: the module's other factories are no one's here.
+    expect(variantNamesFor(file, "ButtonGroup")).toBeNull()
+  })
+
+  test("the factory named after the component is read through a path alias", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    fs.writeFileSync(path.join(dir, "package.json"), "{}")
+    fs.writeFileSync(
+      path.join(dir, "tsconfig.json"),
+      JSON.stringify({ compilerOptions: { paths: { "@/*": ["./*"] } } })
+    )
+    fs.mkdirSync(path.join(dir, "components", "ui"), { recursive: true })
+    fs.writeFileSync(
+      path.join(dir, "components", "ui", "button-variants.ts"),
+      `import { cva } from "class-variance-authority"
+       export const buttonVariants = cva("", {
+         variants: { variant: { default: "", outline: "" }, size: { sm: "", lg: "" } },
+       })`
+    )
+    const file = path.join(dir, "components", "ui", "button.tsx")
+    fs.writeFileSync(
+      file,
+      `import { buttonVariants } from "@/components/ui/button-variants"
+       export function Button({ className, ...props }: React.ComponentProps<"button">) {
+         return <button className={buttonVariants({ className })} {...props} />
+       }`
+    )
+    expect(variantNamesFor(file, "Button")).toEqual(["default", "outline"])
+    expect(sizeNamesFor(file, "Button")).toEqual(["sm", "lg"])
+  })
+
+  test("a factory imported from a package is not read", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
+    const pkg = path.join(dir, "node_modules", "ui-kit")
+    fs.mkdirSync(pkg, { recursive: true })
+    fs.writeFileSync(
+      path.join(pkg, "package.json"),
+      `{ "name": "ui-kit", "main": "index.js" }`
+    )
+    fs.writeFileSync(
+      path.join(pkg, "index.js"),
+      `export const buttonVariants = cva("", { variants: { variant: { default: "", outline: "" } } })`
+    )
+    const file = path.join(dir, "button.tsx")
+    fs.writeFileSync(
+      file,
+      `import { buttonVariants } from "ui-kit"
+       export function Button({ className, ...props }: React.ComponentProps<"button">) {
+         return <button className={buttonVariants({ className })} {...props} />
+       }`
+    )
+    expect(variantNamesFor(file, "Button")).toBeNull()
+  })
+
   test("a cva the component uses stands in, whatever its name", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shadcn-lint-variants-"))
     const file = path.join(dir, "chip.tsx")

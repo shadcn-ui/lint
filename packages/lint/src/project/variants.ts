@@ -7,8 +7,8 @@ import * as path from "node:path"
 
 import { walk } from "./ast"
 import { barrelOf } from "./components"
-import { mtimeOf } from "./fs"
-import { exportsOf } from "./modules"
+import { mtimeOf, NODE_MODULES } from "./fs"
+import { definingExportOf, exportsOf, importOf } from "./modules"
 import { isSfc, parseSource } from "./parser"
 
 export type VariantDefinition = {
@@ -348,29 +348,54 @@ export function variantDefinitionsOf(file: string) {
   return fileVariantsOf(file)?.definitions ?? []
 }
 
+// A `buttonVariants` may live in the barrel beside Button.vue. Only the
+// factory named after the component: a barrel speaks for many
+// components, so its first factory is no one's by default.
+function barrelDefinitionFor(file: string, expected: string) {
+  const barrel = isSfc(file) ? barrelOf(path.dirname(file)) : null
+  if (!barrel) return null
+  const exported = [...exportsOf(barrel).values()]
+  if (!exported.some((binding) => binding.file === file)) return null
+  return variantDefinitionsOf(barrel).find((d) => d.name === expected) ?? null
+}
+
+// A `buttonVariants` kept in button-variants.ts, so button.tsx exports
+// only components. Only the factory named after the component, and only
+// from the project, relative or through an alias: a package's factories
+// are not the project's.
+function importedDefinitionFor(file: string, expected: string) {
+  const imported = importOf(file, expected)
+  if (!imported) return null
+  const binding = definingExportOf(imported.spec, imported.name, file)
+  if (!binding || NODE_MODULES.test(binding.file)) return null
+  return (
+    variantDefinitionsOf(binding.file).find(
+      (d) => d.name === binding.name && d.source === "factory"
+    ) ?? null
+  )
+}
+
 // The definition for a component: the cva named after it
 // (buttonVariants for Button), else the component's own props (Text),
-// else the first cva the component uses. An SFC is its file's only
-// component, so any cva in it is the component's. Another component's
-// props or cva never apply.
+// else the cva named after it imported from the project, else the
+// first cva the component uses. An SFC is its file's only component, so
+// any cva in it is the component's. Another component's props or cva
+// never apply.
 function definitionFor(file: string, component: string) {
   const expected =
     component.charAt(0).toLowerCase() + component.slice(1) + "Variants"
   const read = fileVariantsOf(file)
   const definitions = read?.definitions ?? []
   if (!definitions.length) {
-    // A `buttonVariants` may live in the barrel beside Button.vue.
-    // Only the factory named after the component: a barrel speaks for
-    // many components, so its first factory is no one's by default.
-    const barrel = isSfc(file) ? barrelOf(path.dirname(file)) : null
-    if (!barrel) return null
-    const exported = [...exportsOf(barrel).values()]
-    if (!exported.some((binding) => binding.file === file)) return null
-    return variantDefinitionsOf(barrel).find((d) => d.name === expected) ?? null
+    return (
+      barrelDefinitionFor(file, expected) ??
+      importedDefinitionFor(file, expected)
+    )
   }
   return (
     definitions.find((d) => d.name === expected) ??
     definitions.find((d) => d.name === component && d.source === "props") ??
+    importedDefinitionFor(file, expected) ??
     definitions.find(
       (d) =>
         d.source === "factory" &&

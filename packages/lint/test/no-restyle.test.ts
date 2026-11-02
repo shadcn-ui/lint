@@ -1,3 +1,6 @@
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
 import { describe, test } from "vitest"
 
 import { noRestyle } from "../src/rules/no-restyle"
@@ -363,6 +366,81 @@ describe("no-restyle", () => {
       ],
     })
   })
+})
+
+// shadcn-ui/lint#136: buttonVariants kept in button-variants.ts so
+// button.tsx exports only components. Button gets the same sizes and
+// variants as Toggle, whose factory sits in its own file.
+test("a factory imported into the component file lists its sizes and variants", () => {
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "lint-imported-factory-"))
+  )
+  const write = (name: string, source: string) => {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true })
+    fs.writeFileSync(path.join(root, name), source)
+  }
+  const axes = `{
+    variants: {
+      variant: { default: "bg-black text-white", outline: "border" },
+      size: { default: "h-9 px-4", sm: "h-8 px-3", lg: "h-10 px-6" },
+    },
+  }`
+  try {
+    write("package.json", JSON.stringify({ private: true }))
+    write(
+      "components.json",
+      JSON.stringify({
+        tailwind: { css: "app/globals.css" },
+        aliases: { components: "@/components", ui: "@/components/ui" },
+      })
+    )
+    write(
+      "tsconfig.json",
+      JSON.stringify({ compilerOptions: { paths: { "@/*": ["./*"] } } })
+    )
+    write("app/globals.css", `@import "tailwindcss";`)
+    write(
+      "components/ui/button-variants.ts",
+      `import { cva } from "class-variance-authority"
+export const buttonVariants = cva("inline-flex items-center rounded-md", ${axes})`
+    )
+    write(
+      "components/ui/button.tsx",
+      `import type { VariantProps } from "class-variance-authority"
+import { buttonVariants } from "@/components/ui/button-variants"
+export function Button({ className, variant, size, ...props }: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants>) {
+  return <button className={buttonVariants({ variant, size, className })} {...props} />
+}`
+    )
+    write(
+      "components/ui/toggle.tsx",
+      `import { cva, type VariantProps } from "class-variance-authority"
+const toggleVariants = cva("inline-flex items-center rounded-md", ${axes})
+export function Toggle({ className, variant, size, ...props }: React.ComponentProps<"button"> & VariantProps<typeof toggleVariants>) {
+  return <button className={toggleVariants({ variant, size, className })} {...props} />
+}`
+    )
+    const spacing = (name: string) =>
+      new RegExp(
+        `^"p-8" is not allowed on <${name}>: <${name}> owns its spacing\\. Use a size \\(default, sm, lg\\), or margin here or gap on the parent for space around it\\.`
+      )
+    const shape = (name: string) =>
+      new RegExp(
+        `^"border-2" is not allowed on <${name}>: <${name}> owns its shape\\. Use a variant: default, outline\\.`
+      )
+    tester.run("no-restyle", rule, {
+      valid: [],
+      invalid: ["Button", "Toggle"].map((name) => ({
+        filename: path.join(root, "app/page.tsx"),
+        options: layout,
+        code: `import { ${name} } from "@/components/ui/${name.toLowerCase()}"
+export const A = () => <${name} className="p-8 border-2" />`,
+        errors: [{ message: spacing(name) }, { message: shape(name) }],
+      })),
+    })
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
 })
 
 describe("contract entries that are both a class and a group", () => {
