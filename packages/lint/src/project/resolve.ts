@@ -219,11 +219,21 @@ function readTsconfigChain(
   return [...own, ...inherited]
 }
 
+// An Nx workspace keeps its paths in tsconfig.base.json, which each
+// project's tsconfig.json extends. Its root tsconfig.json, when there is
+// one, is often solution-style: only `references`, no paths. So the first
+// file whose `extends` chain has paths wins, not the first that exists.
 export function tsconfigPaths(rootDir: string) {
-  const file = ["tsconfig.json", "jsconfig.json"]
-    .map((name) => path.join(rootDir, name))
-    .find((candidate) => isFile(candidate))
-  if (!file) return []
+  for (const name of ["tsconfig.json", "jsconfig.json", "tsconfig.base.json"]) {
+    const file = path.join(rootDir, name)
+    if (!isFile(file)) continue
+    const entries = readTsconfig(file)
+    if (entries.length) return entries
+  }
+  return []
+}
+
+function readTsconfig(file: string) {
   // An empty file list is the seed below, which never validates.
   const cached = tsconfigCache.get(file)
   if (cached?.files.length && signatureOf(cached.files) === cached.signature) {
