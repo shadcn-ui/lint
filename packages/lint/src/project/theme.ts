@@ -252,20 +252,42 @@ export function resolveVariables(
   return failed ? null : out
 }
 
+// An @import up to the end of its quoted id. The rest of the rule runs
+// to the next `;`, found with one indexOf: a `[^;]*` after each @import
+// rescans the rest of a file that has no `;` once per @import in it.
+const IMPORT_HEAD = /@import\s+(?:url\(\s*)?["']([^"']+)["']/g
+
 // Comments go first: a partial whose comment spells out the consumer's
 // `@import "tailwindcss"` does not import Tailwind.
 export function parseImports(css: string) {
   const out: string[] = []
-  const re = /@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?[^;]*;/g
-  for (const match of stripComments(css).matchAll(re)) out.push(match[1])
+  const text = stripComments(css)
+  const re = new RegExp(IMPORT_HEAD)
+  for (let match = re.exec(text); match; match = re.exec(text)) {
+    const end = text.indexOf(";", re.lastIndex)
+    // No `;` ends this @import, so none ends a later one either.
+    if (end === -1) break
+    out.push(match[1])
+    re.lastIndex = end + 1
+  }
   return out
 }
 
-// The prefix a Tailwind import declares, if any.
+// The prefix a Tailwind import declares before the `;` that ends it, if
+// any.
 export function parseTailwindPrefix(css: string) {
-  const re =
-    /@import\s+(?:url\(\s*)?["']tailwindcss(?:\/[^"']*)?["']\s*\)?[^;]*?\bprefix\(\s*([\w-]+)\s*\)/g
-  for (const match of stripComments(css).matchAll(re)) return match[1]
+  const text = stripComments(css)
+  const re = new RegExp(IMPORT_HEAD)
+  for (let match = re.exec(text); match; match = re.exec(text)) {
+    if (!/^tailwindcss(?:\/|$)/.test(match[1])) continue
+    const end = text.indexOf(";", re.lastIndex)
+    const rest = text.slice(re.lastIndex, end === -1 ? text.length : end)
+    const prefix = /\bprefix\(\s*([\w-]+)\s*\)/.exec(rest)
+    if (prefix) return prefix[1]
+    // A Tailwind @import inside `rest` ends at the same `;`.
+    if (end === -1) break
+    re.lastIndex = end
+  }
   return null
 }
 
