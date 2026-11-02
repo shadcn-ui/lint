@@ -1,5 +1,6 @@
 // A theme's @import graph comes from the repository being linted: a
-// cycle or a fan-out ends the read, and what was read still counts.
+// cycle or a fan-out ends the read, and what was read still counts. A
+// package's @import reaches its stylesheet, never its script entry.
 
 import * as fs from "node:fs"
 import { createRequire } from "node:module"
@@ -8,7 +9,11 @@ import * as path from "node:path"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 import { resetFsMemo } from "../src/project/fs"
-import { colorTokensFor, knownClassesFor } from "../src/project/theme"
+import {
+  colorTokensFor,
+  declaresClass,
+  knownClassesFor,
+} from "../src/project/theme"
 import { query, resetOracle } from "../src/tailwind/oracle"
 
 let root: string
@@ -82,6 +87,90 @@ describe("theme @import graphs", () => {
     const tokens = colorTokensFor(page) ?? new Set<string>()
     expect(tokens.has("part-0")).toBe(true)
     expect(tokens.has(`part-${parts - 1}`)).toBe(false)
+  })
+})
+
+describe("a package @import reads the package's stylesheet", () => {
+  // Minified JavaScript is full of `.name`: read as CSS, every property
+  // access would be a class the project declares.
+  const BUNDLE = "export const f = (a) => a.value.map((b) => b.length)\n"
+
+  test("tailwindcss takes its style condition, not dist/lib.mjs", () => {
+    const page = project("app.css")
+    write(
+      "app.css",
+      `@import "tailwindcss";\n@theme { --color-primary: #111; }\n`
+    )
+    write(
+      "node_modules/tailwindcss/package.json",
+      JSON.stringify({
+        name: "tailwindcss",
+        exports: {
+          ".": {
+            types: "./dist/lib.d.mts",
+            style: "./index.css",
+            require: "./dist/lib.js",
+            import: "./dist/lib.mjs",
+          },
+        },
+      })
+    )
+    write("node_modules/tailwindcss/index.css", ".sr-only {}\n")
+    write("node_modules/tailwindcss/dist/lib.mjs", BUNDLE)
+    expect(declaresClass(page, "sr-only")).toBe(true)
+    for (const name of ["value", "map", "length"]) {
+      expect(declaresClass(page, name)).toBe(false)
+    }
+  })
+
+  test("a style condition under another name wins over import", () => {
+    const page = project("app.css")
+    write("app.css", `@import "kit";\n`)
+    write(
+      "node_modules/kit/package.json",
+      JSON.stringify({
+        name: "kit",
+        exports: { ".": { import: "./dist/kit.mjs", style: "./dist/kit.css" } },
+      })
+    )
+    write("node_modules/kit/dist/kit.css", ".kit-card {}\n")
+    write("node_modules/kit/dist/kit.mjs", BUNDLE)
+    expect(declaresClass(page, "kit-card")).toBe(true)
+    expect(declaresClass(page, "value")).toBe(false)
+  })
+
+  test("a top-level style field wins over main", () => {
+    const page = project("app.css")
+    write("app.css", `@import "fielded";\n`)
+    write(
+      "node_modules/fielded/package.json",
+      JSON.stringify({
+        name: "fielded",
+        style: "./css/fielded.css",
+        main: "./index.js",
+      })
+    )
+    write("node_modules/fielded/css/fielded.css", ".fielded-card {}\n")
+    write("node_modules/fielded/index.js", BUNDLE)
+    expect(declaresClass(page, "fielded-card")).toBe(true)
+    expect(declaresClass(page, "value")).toBe(false)
+  })
+
+  test("a package with no stylesheet is a missing import", () => {
+    const page = project("app.css")
+    write("app.css", `@import "scripted";\n.own-card {}\n`)
+    write(
+      "node_modules/scripted/package.json",
+      JSON.stringify({
+        name: "scripted",
+        main: "./dist/index.js",
+        exports: { ".": { import: "./dist/index.mjs" } },
+      })
+    )
+    write("node_modules/scripted/dist/index.mjs", BUNDLE)
+    write("node_modules/scripted/dist/index.js", BUNDLE)
+    expect(declaresClass(page, "own-card")).toBe(true)
+    expect(declaresClass(page, "value")).toBe(false)
   })
 })
 

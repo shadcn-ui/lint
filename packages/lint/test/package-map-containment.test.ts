@@ -11,7 +11,7 @@ import {
   packageTarget,
   resolveFile,
 } from "../src/project/resolve"
-import { resolveStylesheet } from "../src/tailwind/oracle"
+import { resolveStylesheet } from "../src/project/stylesheets"
 
 let tmp: string
 let app: string

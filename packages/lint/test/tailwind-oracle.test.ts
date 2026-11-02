@@ -9,7 +9,8 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterAll, describe, expect, test, vi } from "vitest"
 
-import { query, resetOracle, resolveStylesheet } from "../src/tailwind/oracle"
+import { resolveStylesheet } from "../src/project/stylesheets"
+import { query, resetOracle } from "../src/tailwind/oracle"
 import { PROJECT } from "./helpers"
 
 const CSS = path.join(PROJECT, "app/globals.css")
