@@ -69,6 +69,63 @@ function parseNamed(list: string) {
   return out
 }
 
+// `export { A /* } */, B }`: a list closes at the first `}` outside a
+// comment, which may lie past the one NAMED_RE stops at. -1 when the
+// list runs into a `{` or the end of the file first.
+const BLOCK_END_RE = /\*\//g
+const LINE_END_RE = /[\n\r]/g
+const FROM_RE = /\s*(?:from\s*["']([^"']+)["'])?/y
+
+function listCloser(source: string) {
+  const offsets = new Map<RegExp, number[]>()
+  // Bisects the file's offsets, so repeated lookups stay linear.
+  const next = (re: RegExp, from: number) => {
+    let found = offsets.get(re)
+    if (!found) {
+      found = Array.from(source.matchAll(re), (match) => match.index)
+      offsets.set(re, found)
+    }
+    let low = 0
+    let high = found.length
+    while (low < high) {
+      const mid = (low + high) >> 1
+      if (found[mid] < from) low = mid + 1
+      else high = mid
+    }
+    return found[low] ?? -1
+  }
+  // The walk after a comment does not depend on where it began, so each
+  // comment's tail is walked once however many lists reach it.
+  const resumed = new Map<number, number>()
+  return (open: number) => {
+    const pending: number[] = []
+    let close = -1
+    for (let i = open + 1; i < source.length; i++) {
+      const char = source[i]
+      if (char === "}") {
+        close = i
+        break
+      }
+      if (char === "{") break
+      const after = source[i + 1]
+      if (char !== "/" || (after !== "*" && after !== "/")) continue
+      const block = after === "*"
+      const at = next(block ? BLOCK_END_RE : LINE_END_RE, i + 2)
+      if (at < 0) break
+      const end = at + (block ? 2 : 1)
+      const known = resumed.get(end)
+      if (known !== undefined) {
+        close = known
+        break
+      }
+      pending.push(end)
+      i = end - 1
+    }
+    for (const end of pending) resumed.set(end, close)
+    return close
+  }
+}
+
 function parseModule(file: string): ParsedModule {
   const module: ParsedModule = {
     local: new Set(),
@@ -107,11 +164,25 @@ function parseModule(file: string): ParsedModule {
     module.local.add(defaultIdentifier[1])
   }
   if (module.sfc) module.defaultName = sfcNameOf(file)
+  const closeOf = listCloser(source)
+  let consumed = 0
   for (const match of source.matchAll(NAMED_RE)) {
-    if (match[1]) continue
+    if (match.index < consumed) continue
+    let list = match[2]
     // No `from` clause: the empty specifier means this file's own name.
-    const spec = match[3] ?? ""
-    for (const { exported, local } of parseNamed(match[2])) {
+    let spec = match[3] ?? ""
+    if (list.includes("/")) {
+      const open = source.indexOf("{", match.index)
+      const close = closeOf(open)
+      if (close > open + 1 + list.length) {
+        list = source.slice(open + 1, close)
+        FROM_RE.lastIndex = close + 1
+        spec = FROM_RE.exec(source)?.[1] ?? ""
+        consumed = FROM_RE.lastIndex
+      }
+    }
+    if (match[1]) continue
+    for (const { exported, local } of parseNamed(list)) {
       module.named.push({ exported, local, spec })
     }
   }
