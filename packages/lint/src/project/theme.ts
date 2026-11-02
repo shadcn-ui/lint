@@ -202,21 +202,23 @@ export function parseDeclarations(css: string) {
       start = i + 1
     } else if (char === "}" || char === ";") {
       const statement = stripped.slice(start, i)
-      const match = statement.match(
-        /^\s*--((?:[\w-]+\*?)|\*)\s*:\s*([\s\S]+?)\s*$/
-      )
+      // Greedy, then trimmed: a lazy value retries the trailing \s*$ at
+      // every character of a run of whitespace inside it.
+      const match = statement.match(/^\s*--((?:[\w-]+\*?)|\*)\s*:\s*([\s\S]+)$/)
       const scope = stack[stack.length - 1]
       if (match && !scope?.dark) {
+        // A value of only whitespace keeps its one character.
+        const value = match[2].trimEnd() || match[2]
         const scoped = scope?.scoped ?? false
         if (!scoped || !values.has(match[1]) || scopedNames.has(match[1])) {
-          values.set(match[1], match[2])
+          values.set(match[1], value)
           if (scoped) scopedNames.add(match[1])
           else scopedNames.delete(match[1])
         }
         if (scope?.theme) themeNames.add(match[1])
         declarations.push({
           name: match[1],
-          value: match[2],
+          value,
           theme: scope?.theme ?? false,
         })
       }
@@ -227,11 +229,20 @@ export function parseDeclarations(css: string) {
   return { values, scopedNames, themeNames, declarations }
 }
 
-// Null when a variable has no value and no fallback.
+// Far past any real theme value. A value that names a variable k times,
+// each naming another k times, grows as k^6 through six levels: k = 10
+// builds 4MB, and a larger k passes V8's longest string. Every
+// substitution spends its length and one more from a budget shared by
+// the whole resolution.
+const RESOLVE_BUDGET = 100_000
+
+// Null when a variable has no value and no fallback, or when resolving
+// the value would spend more than the budget.
 export function resolveVariables(
   value: string,
   values: Map<string, string>,
-  depth = 0
+  depth = 0,
+  budget = { left: RESOLVE_BUDGET }
 ): string | null {
   if (!value.includes("var(")) return value
   if (depth > 6) return null
@@ -239,33 +250,57 @@ export function resolveVariables(
   const out = value.replace(
     /var\(\s*--([\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\)[^()]*)*))?\)/g,
     (_, name: string, fallback: string | undefined) => {
+      if (failed) return ""
       const inner = values.get(name) ?? fallback
       if (inner === undefined) {
         failed = true
         return ""
       }
-      const resolved = resolveVariables(inner.trim(), values, depth + 1)
-      if (resolved === null) failed = true
+      const resolved = resolveVariables(inner.trim(), values, depth + 1, budget)
+      budget.left -= 1 + (resolved?.length ?? 0)
+      if (resolved === null || budget.left < 0) failed = true
       return resolved ?? ""
     }
   )
   return failed ? null : out
 }
 
+// An @import up to the end of its quoted id. The rest of the rule runs
+// to the next `;`, found with one indexOf: a `[^;]*` after each @import
+// rescans the rest of a file that has no `;` once per @import in it.
+const IMPORT_HEAD = /@import\s+(?:url\(\s*)?["']([^"']+)["']/g
+
 // Comments go first: a partial whose comment spells out the consumer's
 // `@import "tailwindcss"` does not import Tailwind.
 export function parseImports(css: string) {
   const out: string[] = []
-  const re = /@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?[^;]*;/g
-  for (const match of stripComments(css).matchAll(re)) out.push(match[1])
+  const text = stripComments(css)
+  const re = new RegExp(IMPORT_HEAD)
+  for (let match = re.exec(text); match; match = re.exec(text)) {
+    const end = text.indexOf(";", re.lastIndex)
+    // No `;` ends this @import, so none ends a later one either.
+    if (end === -1) break
+    out.push(match[1])
+    re.lastIndex = end + 1
+  }
   return out
 }
 
-// The prefix a Tailwind import declares, if any.
+// The prefix a Tailwind import declares before the `;` that ends it, if
+// any.
 export function parseTailwindPrefix(css: string) {
-  const re =
-    /@import\s+(?:url\(\s*)?["']tailwindcss(?:\/[^"']*)?["']\s*\)?[^;]*?\bprefix\(\s*([\w-]+)\s*\)/g
-  for (const match of stripComments(css).matchAll(re)) return match[1]
+  const text = stripComments(css)
+  const re = new RegExp(IMPORT_HEAD)
+  for (let match = re.exec(text); match; match = re.exec(text)) {
+    if (!/^tailwindcss(?:\/|$)/.test(match[1])) continue
+    const end = text.indexOf(";", re.lastIndex)
+    const rest = text.slice(re.lastIndex, end === -1 ? text.length : end)
+    const prefix = /\bprefix\(\s*([\w-]+)\s*\)/.exec(rest)
+    if (prefix) return prefix[1]
+    // A Tailwind @import inside `rest` ends at the same `;`.
+    if (end === -1) break
+    re.lastIndex = end
+  }
   return null
 }
 

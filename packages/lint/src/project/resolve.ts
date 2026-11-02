@@ -113,6 +113,56 @@ function expand(target: string, captured: string) {
   return target.replace("*", captured)
 }
 
+// A UNC path reaches the network on Windows: stat one and the OS sends
+// the user's credentials to whatever host it names.
+export function isUncPath(file: string) {
+  return /^[\\/]{2}/.test(file)
+}
+
+export function isInside(dir: string, file: string) {
+  const relative = path.relative(dir, file)
+  return (
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative)
+  )
+}
+
+// A UNC path outside the directories being linted. A project that lives
+// on a share still reaches its own files.
+export function isStrayUncPath(file: string, ...within: string[]) {
+  return isUncPath(file) && !within.some((dir) => isInside(dir, file))
+}
+
+const BAD_SEGMENT = /^(?:\.|%2e){1,2}$|^node_modules$/i
+
+// What Node refuses in a target or a `*` capture: walking up, reaching
+// into node_modules, and percent-encoded separators.
+function safeSegments(text: string) {
+  return (
+    !/%2f|%5c/i.test(text) &&
+    !text.split(/[\\/]/).some((segment) => BAD_SEGMENT.test(segment))
+  )
+}
+
+// An exports or imports target Node accepts as a file: "./" relative.
+export function isPackageTarget(target: string) {
+  return target.startsWith("./") && safeSegments(target.slice(2))
+}
+
+// The file a target names, expanded with its `*` capture, or null when
+// either would leave the package. Node treats that as no match.
+export function packageTarget(dir: string, target: string, captured = "") {
+  if (!isPackageTarget(target) || !safeSegments(captured)) return null
+  const file = path.resolve(dir, expand(target, captured))
+  return isInside(dir, file) ? file : null
+}
+
+// An imports target may also name a package, never a path or a URL.
+function isBareTarget(target: string) {
+  return /^[^./\\#][^:\\]*$/.test(target)
+}
+
 // Each entry keeps the directory its own tsconfig resolves against, and
 // the signature covers the whole `extends` chain.
 type PathEntry = { pattern: string; targets: string[]; base: string }
@@ -138,14 +188,26 @@ function readTsconfigChain(
   if (!json || typeof json !== "object") return []
   const dir = path.dirname(file)
   const options = json.compilerOptions ?? {}
-  const base = options.baseUrl ? path.resolve(dir, options.baseUrl) : dir
-  const own: PathEntry[] = Object.entries(options.paths ?? {}).map(
-    ([pattern, targets]) => ({
-      pattern,
-      targets: Array.isArray(targets) ? targets.map(String) : [],
-      base,
-    })
-  )
+  // TypeScript rejects a baseUrl, paths map or target that is not the
+  // type it expects; here it is ignored, since path.resolve throws on a
+  // non-string baseUrl.
+  const base =
+    typeof options.baseUrl === "string" && options.baseUrl
+      ? path.resolve(dir, options.baseUrl)
+      : dir
+  const paths =
+    options.paths &&
+    typeof options.paths === "object" &&
+    !Array.isArray(options.paths)
+      ? options.paths
+      : {}
+  const own: PathEntry[] = Object.entries(paths).map(([pattern, targets]) => ({
+    pattern,
+    targets: Array.isArray(targets)
+      ? targets.filter((target) => typeof target === "string")
+      : [],
+    base,
+  }))
   const parents = ([] as string[]).concat(json.extends ?? [])
   const inherited = parents.flatMap((parent) => {
     // A tsconfig's own `paths` never apply to its `extends`.
@@ -188,11 +250,17 @@ function readPackageJson(dir: string) {
   return json
 }
 
-function pickTarget(value: any, preferStyle = false): string | null {
-  if (typeof value === "string") return value
+// The first target `valid` accepts, so an invalid one falls through to
+// the next fallback.
+function pickTarget(
+  value: any,
+  valid: (target: string) => boolean,
+  preferStyle = false
+): string | null {
+  if (typeof value === "string") return valid(value) ? value : null
   if (Array.isArray(value)) {
     for (const item of value) {
-      const picked = pickTarget(item, preferStyle)
+      const picked = pickTarget(item, valid, preferStyle)
       if (picked) return picked
     }
     return null
@@ -202,39 +270,52 @@ function pickTarget(value: any, preferStyle = false): string | null {
     // condition first: without this, tailwindcss resolves to its
     // JavaScript entry (dist/lib.mjs), which is then read as CSS.
     if (preferStyle && "style" in value) {
-      const picked = pickTarget(value["style"], preferStyle)
+      const picked = pickTarget(value["style"], valid, preferStyle)
       if (picked) return picked
     }
     for (const key of ["import", "default", "require", "node", "types"]) {
       if (key in value) {
-        const picked = pickTarget(value[key], preferStyle)
+        const picked = pickTarget(value[key], valid, preferStyle)
         if (picked) return picked
       }
     }
     for (const key of Object.keys(value)) {
       if (key.startsWith(".")) continue
-      const picked = pickTarget(value[key], preferStyle)
+      const picked = pickTarget(value[key], valid, preferStyle)
       if (picked) return picked
     }
   }
   return null
 }
 
-// Through an exports/imports map, longest key first.
+// Through an exports/imports map, longest key first: files inside `dir`,
+// or with `bare`, package specifiers an imports map points at.
 function mapSubpath(
   map: Record<string, any>,
   subpath: string,
+  dir: string,
+  bare = false,
   preferStyle = false
 ) {
   const keys = Object.keys(map)
     .filter((key) => key.startsWith(".") || key.startsWith("#"))
     .sort((a, b) => b.length - a.length)
-  const out: string[] = []
+  const out: { file?: string; spec?: string }[] = []
   for (const key of keys) {
     const captured = matchPattern(key, subpath)
-    if (captured === null) continue
-    const target = pickTarget(map[key], preferStyle)
-    if (target) out.push(expand(target, captured))
+    if (captured === null || !safeSegments(captured)) continue
+    const target = pickTarget(
+      map[key],
+      (t) => isPackageTarget(t) || (bare && isBareTarget(t)),
+      preferStyle
+    )
+    if (!target) continue
+    if (!target.startsWith("./")) {
+      out.push({ spec: expand(target, captured) })
+      continue
+    }
+    const file = packageTarget(dir, target, captured)
+    if (file) out.push({ file })
   }
   return out
 }
@@ -280,6 +361,17 @@ export function candidatesFor(
   rootDir: string,
   options: ResolveOptions = {}
 ) {
+  return collectCandidates(spec, fromDir, rootDir, options).filter(
+    (candidate) => !isStrayUncPath(candidate, rootDir, fromDir)
+  )
+}
+
+function collectCandidates(
+  spec: string,
+  fromDir: string,
+  rootDir: string,
+  options: ResolveOptions
+) {
   const out: string[] = []
   if (
     spec.startsWith("./") ||
@@ -306,16 +398,33 @@ export function candidatesFor(
   if (spec.startsWith("#")) {
     const imports = readPackageJson(rootDir)?.imports
     if (imports && typeof imports === "object") {
-      for (const target of mapSubpath(imports, spec, options.preferStyle)) {
-        out.push(path.resolve(rootDir, target))
+      for (const target of mapSubpath(
+        imports,
+        spec,
+        rootDir,
+        true,
+        options.preferStyle
+      )) {
+        if (target.file) out.push(target.file)
+        // A package target resolves as a package, never as a path.
+        else if (target.spec)
+          packageCandidates(
+            target.spec,
+            rootDir,
+            out,
+            rootDir,
+            options.preferStyle
+          )
       }
       // A directory alias against a wildcard key ("#components/*").
       for (const target of mapSubpath(
         imports,
         `${spec}/*`,
+        rootDir,
+        false,
         options.preferStyle
       )) {
-        out.push(path.dirname(path.resolve(rootDir, target)))
+        if (target.file) out.push(path.dirname(target.file))
       }
     }
     return out
@@ -332,37 +441,55 @@ export function candidatesFor(
     out.push(path.join(rootDir, "src/lib", kit[1] ?? ""))
     return out
   }
+  packageCandidates(spec, rootDir, out, fromDir, options.preferStyle)
+  return out
+}
+
+function packageCandidates(
+  spec: string,
+  rootDir: string,
+  out: string[],
+  fromDir = rootDir,
+  preferStyle = false
+) {
   const pkg = splitPackageSpecifier(spec)
-  if (!pkg) return out
+  if (!pkg) return
   const dir =
     selfPackageDirectory(pkg.name, rootDir) ??
     selfPackageDirectory(pkg.name, fromDir) ??
     packageDirectory(pkg.name, rootDir) ??
     packageDirectory(pkg.name, fromDir)
-  if (!dir) return out
+  if (!dir) return
   const subpath = pkg.subpath ? `./${pkg.subpath}` : "."
   const exportsMap = readPackageJson(dir)?.exports
   if (exportsMap && typeof exportsMap === "object") {
-    for (const target of mapSubpath(exportsMap, subpath, options.preferStyle)) {
-      out.push(path.resolve(dir, target))
+    for (const target of mapSubpath(
+      exportsMap,
+      subpath,
+      dir,
+      false,
+      preferStyle
+    )) {
+      if (target.file) out.push(target.file)
     }
     // A directory alias against a wildcard key ("./components/*").
     for (const target of mapSubpath(
       exportsMap,
       `${subpath}/*`,
-      options.preferStyle
+      dir,
+      false,
+      preferStyle
     )) {
-      out.push(path.dirname(path.resolve(dir, target)))
+      if (target.file) out.push(path.dirname(target.file))
     }
   }
-  if (pkg.subpath) {
-    out.push(path.join(dir, pkg.subpath))
-    out.push(path.join(dir, "src", pkg.subpath))
-  } else {
-    out.push(dir)
-    out.push(path.join(dir, "src"))
+  // The package's own files, never a path that walks out of it.
+  const own = pkg.subpath
+    ? [path.join(dir, pkg.subpath), path.join(dir, "src", pkg.subpath)]
+    : [dir, path.join(dir, "src")]
+  for (const file of own) {
+    if (isInside(dir, file)) out.push(file)
   }
-  return out
 }
 
 export function resolveDirectory(
