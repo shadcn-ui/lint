@@ -518,12 +518,33 @@ function derivedValueOf(init: any) {
   return call.arguments[0]
 }
 
+// How many consts a route follows before the next one is unreadable, the
+// way a dynamic value is. No written chain of aliases is this deep, and
+// following a generated one would overflow the stack.
+const MAX_ROUTE = 64
+
+// The variables on the current route. A read that stops at one of them,
+// or at the end of a route too long to follow, depends on the route it
+// took, so every such stop is counted.
+class Route extends Set<any> {
+  stops = 0
+  has(value: any) {
+    const found = super.has(value)
+    if (found) this.stops++
+    return found
+  }
+}
+
 // One hop to a same-file const's initializer. `path` holds the variables
 // on the current route, so a self-reference stops while the same variable
 // read from both branches of a ternary resolves on each. A destructured
 // binding gets its own slot of the initializer, and any steps a reader
 // still has to follow through a conditional.
 export function resolveIdentifier(node: any, context: any, path: Set<any>) {
+  if (path.size >= MAX_ROUTE) {
+    if (path instanceof Route) path.stops++
+    return null
+  }
   const variable = variableOf(node, context)
   if (!variable || path.has(variable)) return null
   const def = variable.defs?.[0]
@@ -796,17 +817,6 @@ export function resolveMemberValue(node: any, context: any, path: Set<any>) {
   return { key, value: found.value, variable }
 }
 
-// The variables on the current route. A read that stops at one of them
-// depends on the route it took, so every such stop is counted.
-class Route extends Set<any> {
-  stops = 0
-  has(value: any) {
-    const found = super.has(value)
-    if (found) this.stops++
-    return found
-  }
-}
-
 export function collectClassStrings(
   expression: any,
   context: any,
@@ -954,7 +964,7 @@ export function collectClassStrings(
           // A glued interpolation leaves no class of its own.
           if (i > 0 && !/^\s/.test(text)) text = text.replace(/^\S+/, "")
           if (i < node.expressions.length && !/\s$/.test(text))
-            text = text.replace(/\S+$/, "")
+            text = text.replace(/(?<!\S)\S+$/, "")
           if (text.trim()) push(text, quasi)
         })
         node.expressions.forEach((expr: any, i: number) => {
