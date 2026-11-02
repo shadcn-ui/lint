@@ -6,8 +6,9 @@ import { isMarkerClass, normalizeClass } from "../grammar/classes"
 import { resolveCnConfig, themedCnConfig } from "../grammar/classifier"
 import { didYouMean } from "../grammar/similar"
 import { projectClassifierFor } from "../project/namespaces"
-import { knownClassesFor } from "../project/theme"
+import { knownClassesFor, tailwindEntryFor } from "../project/theme"
 import { warnOnce } from "../project/warn"
+import { unknownClasses } from "../tailwind/client"
 import { checkMessage } from "./messages"
 
 type Classifier = ReturnType<typeof projectClassifierFor>
@@ -225,8 +226,9 @@ function compilePattern(pattern: string) {
 
 // An entry that matches nothing enforces nothing, silently, which is the
 // one failure an enforcement tool must not have. A near-miss of a real
-// name (spacig) is an error; any other unknown literal may be a plugin's
-// class (prose, btn), so it warns and matches by name.
+// name (spacig) is an error; any other literal the theme does not
+// generate may be an external class (btn), so it warns and matches by
+// name.
 function checkEntries(
   entries: string[] | undefined,
   groupIds: Set<string>,
@@ -241,6 +243,10 @@ function checkEntries(
     if (classifier.groupOf(entry)) continue
     const known = fromFile ? knownClassesFor(fromFile) : null
     if (known?.utilities.has(entry) || known?.classes.has(entry)) continue
+    // A plugin's class is in no CSS, but the theme's build generates it.
+    // A build that cannot load answers null and the entry still warns.
+    const entryFile = fromFile ? tailwindEntryFor(fromFile) : null
+    if (entryFile && unknownClasses(entryFile, [entry])?.length === 0) continue
     const hint = /^[A-Za-z][A-Za-z0-9]*$/.test(entry)
       ? didYouMean(entry, [...CATEGORIES, "layout", ...groupIds])
       : null

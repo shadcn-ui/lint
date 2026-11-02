@@ -116,10 +116,11 @@ that value.
 
 Invalid regexes and misspellings of a category or class group such as
 `spacig` produce a configuration error on line 1 and pause the rule for
-that file. Other unknown names, such as `prose` from a Tailwind plugin
-or a custom `btn`, may be real classes, so they produce a warning and
-match a class named exactly that. `no-unknown-classes` accepts unknown
-entries because they may name external classes.
+that file. A class the theme's Tailwind build generates, such as `prose`
+from a Tailwind plugin, is known like any other class. Other unknown
+names, such as a custom `btn`, may be real classes, so they produce a
+warning and match a class named exactly that. `no-unknown-classes`
+accepts unknown entries because they may name external classes.
 
 ### Recognition
 
