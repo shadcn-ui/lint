@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme static {
+  --*: initial;
+}
+
+@theme static {
+  --spacing: 0.25rem;
+  --spacing-sidebar: 15.5rem;
+  --color-primary: black;
+}

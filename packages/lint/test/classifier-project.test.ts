@@ -258,6 +258,37 @@ describe("theme scales refresh and fail safe", () => {
     expect(groupOf("rounded-lg", page)).toBeNull()
     expect(groupOf("rounded-fresh", page)).toBe("rounded")
   })
+
+  // Tailwind derives p-4 and border-spacing-0 from --spacing, so setting
+  // it after a reset brings the numeric scale back.
+  test("--spacing after a full reset keeps the numeric spacing scale", () => {
+    const { page } = createProject(`@theme static { --*: initial; }
+@theme static {
+  --spacing: 0.25rem;
+  --spacing-sidebar: 15.5rem;
+}`)
+    expect(groupOf("p-4", page)).toBe("p")
+    expect(groupOf("border-spacing-0", page)).toBe("border-spacing")
+    expect(groupOf("w-sidebar", page)).toBe("w")
+    expect(groupOf("rounded-lg", page)).toBeNull()
+  })
+
+  test("--spacing after a spacing reset keeps the numeric spacing scale", () => {
+    const { page } = createProject(
+      "@theme { --spacing-*: initial; --spacing: 0.25rem; --spacing-sidebar: 15.5rem; }"
+    )
+    expect(groupOf("p-4", page)).toBe("p")
+    expect(groupOf("border-spacing-0", page)).toBe("border-spacing")
+    expect(groupOf("w-sidebar", page)).toBe("w")
+  })
+
+  test("--spacing before a reset does not survive it", () => {
+    const { page } = createProject(
+      "@theme { --spacing: 0.25rem; --*: initial; --spacing-sidebar: 15.5rem; }"
+    )
+    expect(groupOf("p-4", page)).not.toBe("p")
+    expect(groupOf("p-sidebar", page)).toBe("p")
+  })
 })
 
 describe("resolveCnConfig", () => {

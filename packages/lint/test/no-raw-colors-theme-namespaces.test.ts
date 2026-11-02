@@ -71,6 +71,24 @@ describe("no-raw-colors and theme namespaces", () => {
     })
   })
 
+  // After `--*: initial`, --spacing brings the numeric scale back, so
+  // border-spacing-0 is a spacing and not an undeclared border color.
+  test("--spacing after a theme reset keeps border-spacing-0 a spacing", () => {
+    const page = path.join(
+      path.dirname(PROJECT),
+      "spacing-reset-theme/app/page.tsx"
+    )
+    createTester().run("no-raw-colors", noRawColors as any, {
+      valid: [
+        {
+          filename: page,
+          code: `export const A = () => <table className="border-spacing-0 p-4 w-sidebar" />`,
+        },
+      ],
+      invalid: [],
+    })
+  })
+
   // A namespace declared for one prefix does not open another.
   describe.skipIf(!oracle)("with the oracle", () => {
     test("an undeclared color is still an undeclared color", () => {

@@ -57,6 +57,15 @@ export function themeScalesOf(
       }
       continue
     }
+    // `--spacing` is the base Tailwind multiplies for `p-4` and the rest
+    // of the numeric scale, so setting it after a reset brings that
+    // scale back. Named spacing values declared after it still extend.
+    if (property === "spacing") {
+      if (!initial) {
+        reset.delete("spacing")
+      }
+      continue
+    }
     const namespace = NAMESPACES.find(([ns]) => property.startsWith(`${ns}-`))
     if (!namespace) {
       continue
