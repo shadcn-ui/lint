@@ -202,21 +202,23 @@ export function parseDeclarations(css: string) {
       start = i + 1
     } else if (char === "}" || char === ";") {
       const statement = stripped.slice(start, i)
-      const match = statement.match(
-        /^\s*--((?:[\w-]+\*?)|\*)\s*:\s*([\s\S]+?)\s*$/
-      )
+      // Greedy, then trimmed: a lazy value retries the trailing \s*$ at
+      // every character of a run of whitespace inside it.
+      const match = statement.match(/^\s*--((?:[\w-]+\*?)|\*)\s*:\s*([\s\S]+)$/)
       const scope = stack[stack.length - 1]
       if (match && !scope?.dark) {
+        // A value of only whitespace keeps its one character.
+        const value = match[2].trimEnd() || match[2]
         const scoped = scope?.scoped ?? false
         if (!scoped || !values.has(match[1]) || scopedNames.has(match[1])) {
-          values.set(match[1], match[2])
+          values.set(match[1], value)
           if (scoped) scopedNames.add(match[1])
           else scopedNames.delete(match[1])
         }
         if (scope?.theme) themeNames.add(match[1])
         declarations.push({
           name: match[1],
-          value: match[2],
+          value,
           theme: scope?.theme ?? false,
         })
       }

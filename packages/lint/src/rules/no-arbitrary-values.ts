@@ -86,9 +86,18 @@ const SPACING_GROUPS = new Set([
 
 // "rounded-tl-[10px]" -> utility "rounded-tl", inner "10px", suffix "".
 // "text-[13px]/5" keeps its "/5" line-height as the suffix.
+// The first "-[" decides: when no "]" follows it, none follows a later
+// one either.
 export function splitArbitrary(token: string) {
-  const match = normalizeClass(token).match(/^(.+?)-\[([^\]]*)\](.*)$/)
-  return match ? { utility: match[1], inner: match[2], suffix: match[3] } : null
+  const base = normalizeClass(token)
+  const open = base.indexOf("-[", 1)
+  const close = open === -1 ? -1 : base.indexOf("]", open + 2)
+  if (close === -1) return null
+  return {
+    utility: base.slice(0, open),
+    inner: base.slice(open + 2, close),
+    suffix: base.slice(close + 1),
+  }
 }
 
 // p-[13px] -> p-3.25, when it lands on a clean quarter step of the
