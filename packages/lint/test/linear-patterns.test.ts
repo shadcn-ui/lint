@@ -38,6 +38,13 @@ describe("hostile class tokens", () => {
     expect(isArbitraryValue("[:a:b]")).toBe(true)
     expect(isArbitraryValue("[:a]")).toBe(false)
     expect(isArbitraryValue("w-[13px")).toBe(false)
+    // The important marker, v4 trailing and legacy leading, is not part of
+    // the property: `[color:red]!` is as arbitrary as `[color:red]`.
+    expect(isArbitraryValue("[color:red]!")).toBe(true)
+    expect(isArbitraryValue("![color:red]")).toBe(true)
+    expect(isArbitraryValue("hover:[color:red]!")).toBe(true)
+    expect(isArbitraryValue("[:a]!")).toBe(false)
+    expect(quick(() => isArbitraryValue(`![${"a:".repeat(N)}!`))).toBe(false)
     expect(splitArbitrary("md:text-[13px]/5")).toEqual({
       utility: "text",
       inner: "13px",

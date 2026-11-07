@@ -59,7 +59,10 @@ export function isArbitraryValue(token: string) {
   const { base } = splitVariants(token)
   const open = base.indexOf("-[")
   if (open !== -1 && base.includes("]", open + 2)) return true
-  return /^\[[^\]]+\]$/.test(base) && base.slice(2, -2).includes(":")
+  // An arbitrary property keeps its important marker on either side
+  // ([color:red]!, legacy ![color:red]); it is not part of the property.
+  const property = base.replace(/^!/, "").replace(/!$/, "")
+  return /^\[[^\]]+\]$/.test(property) && property.slice(2, -2).includes(":")
 }
 
 // The utilities that take a color. Longest alternatives first, so
