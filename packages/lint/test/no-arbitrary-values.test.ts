@@ -223,6 +223,26 @@ describe("no-arbitrary-values", () => {
   })
 })
 
+test("an important arbitrary property is still an arbitrary value", () => {
+  // Adding `!` used to take `[color:red]` out of the rule entirely.
+  createTester().run("no-arbitrary-values", noArbitraryValues as any, {
+    valid: [],
+    invalid: [
+      {
+        filename: PAGE,
+        code: `export const A = () => <div className="[color:red]! hover:![color:red]" />`,
+        errors: [
+          { messageId: "arbitraryValue", data: { className: "[color:red]!" } },
+          {
+            messageId: "arbitraryValue",
+            data: { className: "hover:![color:red]" },
+          },
+        ],
+      },
+    ],
+  })
+})
+
 test("a two-segment spacing utility gets its scale replacement", () => {
   const code = `export const A = () => <div className="border-spacing-x-[8px]" />`
   createTester().run("no-arbitrary-values", noArbitraryValues as any, {
