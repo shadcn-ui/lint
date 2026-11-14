@@ -54,7 +54,7 @@ describe("parser", () => {
 
   test("both parsers read an alias, a lookup object and a props union", () => {
     const source = `
-      const VARIANTS = { primary: "", secondary: "" } as const
+      const VARIANTS = { primary: "", secondary: "" } as const satisfies Record<string, string>
       type ButtonVariant = keyof typeof VARIANTS
       type Base = { variant?: ButtonVariant }
       type ButtonProps = (Base & { href: string }) | (Base & { href?: undefined })
@@ -73,6 +73,49 @@ describe("parser", () => {
     ])
     for (const result of results.slice(1)) expect(result).toEqual(results[0])
     useParser(null)
+  })
+
+  describe.each(KINDS)("%s variant objects", (kind) => {
+    test.each([
+      [
+        "satisfies on an axis",
+        `{ variants: { size: { sm: "", lg: "" } satisfies Record<string, string> } }`,
+      ],
+      [
+        "as on an axis",
+        `{ variants: { size: { sm: "", lg: "" } as Record<string, string> } }`,
+      ],
+      [
+        "nested assertions on an axis",
+        `{ variants: { size: ({ sm: "", lg: "" } as const) satisfies Record<string, string> } }`,
+      ],
+      [
+        "satisfies on variants",
+        `{ variants: { size: { sm: "", lg: "" } } satisfies Record<string, Record<string, string>> }`,
+      ],
+      ["as on variants", `{ variants: { size: { sm: "", lg: "" } } as const }`],
+      [
+        "assertions at every level",
+        `({ variants: ({ size: ({ sm: "", lg: "" } as const) satisfies Record<string, string> } as const) satisfies Record<string, unknown> } as const) satisfies Record<string, unknown>`,
+      ],
+    ])("reads %s", (_name, config) => {
+      useParser(kind)
+      try {
+        for (const call of [`cva("", ${config})`, `tv(${config})`]) {
+          expect(
+            extractVariantDefinitions(`const buttonVariants = ${call}`)
+          ).toEqual([
+            {
+              name: "buttonVariants",
+              axes: { size: ["sm", "lg"] },
+              source: "factory",
+            },
+          ])
+        }
+      } finally {
+        useParser(null)
+      }
+    })
   })
 
   test("both parsers find the same wrappers", () => {
