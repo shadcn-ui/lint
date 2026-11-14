@@ -433,6 +433,19 @@ export function Toggle({ className, variant, size, ...props }: React.ComponentPr
   return <button className={toggleVariants({ variant, size, className })} {...props} />
 }`
     )
+    write(
+      "components/ui/wrappedbutton.tsx",
+      `import { cva, type VariantProps } from "class-variance-authority"
+const wrappedButtonVariants = cva("inline-flex", {
+  variants: {
+    variant: { default: "bg-black text-white", outline: "border" } as const,
+    size: { default: "h-9 px-4", sm: "h-8 px-3", lg: "h-10 px-6" } as const satisfies Record<string, string>,
+  } satisfies Record<string, Record<string, string>>,
+})
+export function WrappedButton({ className, variant, size }: VariantProps<typeof wrappedButtonVariants> & { className?: string }) {
+  return <button className={wrappedButtonVariants({ variant, size, className })} />
+}`
+    )
     const spacing = (name: string) =>
       new RegExp(
         `^"p-8" is not allowed on <${name}>: <${name}> owns its spacing\\. Use a size \\(default, sm, lg\\), or margin here or gap on the parent for space around it\\.`
@@ -443,7 +456,7 @@ export function Toggle({ className, variant, size, ...props }: React.ComponentPr
       )
     tester.run("no-restyle", rule, {
       valid: [],
-      invalid: ["Button", "Toggle"].map((name) => ({
+      invalid: ["Button", "Toggle", "WrappedButton"].map((name) => ({
         filename: path.join(root, "app/page.tsx"),
         options: layout,
         code: `import { ${name} } from "@/components/ui/${name.toLowerCase()}"

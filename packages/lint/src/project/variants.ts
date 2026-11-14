@@ -37,18 +37,32 @@ function keyName(node: any) {
   return null
 }
 
+function unwrapExpression(node: any) {
+  while (
+    node?.type === "TSAsExpression" ||
+    node?.type === "TSSatisfiesExpression" ||
+    node?.type === "ParenthesizedExpression"
+  ) {
+    node = node.expression
+  }
+  return node
+}
+
 function axesOf(config: any) {
   const axes: Record<string, string[]> = {}
+  config = unwrapExpression(config)
   if (config?.type !== "ObjectExpression") return axes
   const variants = config.properties.find(
     (p: any) => p.type === "Property" && keyName(p.key) === "variants"
   )
-  if (variants?.value?.type !== "ObjectExpression") return axes
-  for (const axis of variants.value.properties) {
+  const values = unwrapExpression(variants?.value)
+  if (values?.type !== "ObjectExpression") return axes
+  for (const axis of values.properties) {
     if (axis.type !== "Property") continue
     const axisName = keyName(axis.key)
-    if (!axisName || axis.value?.type !== "ObjectExpression") continue
-    axes[axisName] = axis.value.properties
+    const value = unwrapExpression(axis.value)
+    if (!axisName || value?.type !== "ObjectExpression") continue
+    axes[axisName] = value.properties
       .filter((p: any) => p.type === "Property")
       .map((p: any) => keyName(p.key))
       .filter((k: any): k is string => typeof k === "string")
@@ -211,11 +225,7 @@ function declarationsIn(ast: any) {
       node.type === "VariableDeclarator" &&
       node.id?.type === "Identifier"
     ) {
-      const init =
-        node.init?.type === "TSAsExpression" ||
-        node.init?.type === "TSSatisfiesExpression"
-          ? node.init.expression
-          : node.init
+      const init = unwrapExpression(node.init)
       if (init?.type === "ObjectExpression") objects.set(node.id.name, init)
     }
   })
@@ -289,7 +299,8 @@ function readVariants(source: string, file: string) {
       // cva(base, config); tv(config) or tv(base, config).
       const [first, second] = node.arguments
       const config =
-        node.callee.name === "tv" && first?.type === "ObjectExpression"
+        node.callee.name === "tv" &&
+        unwrapExpression(first)?.type === "ObjectExpression"
           ? first
           : second
       const axes = axesOf(config)
