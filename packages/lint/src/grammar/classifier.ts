@@ -267,8 +267,9 @@ function postfixIndex(base: string) {
 // Tailwind still generates these utilities under the names they had in
 // Tailwind 3, so a project that has not renamed them is writing real
 // classes. cn's config carries the current names only, and reads
-// `decoration-clone` as a text-decoration color, so the rename happens
-// before the lookup.
+// `decoration-clone` as a text-decoration color. cn 0.5.2 also dropped
+// `bg-gradient-to` from bg-image, so `bg-gradient-to-*` falls through to
+// bg-color. The rename happens before the lookup.
 const RENAMED = new Map([
   ["flex-grow", "grow"],
   ["flex-shrink", "shrink"],
@@ -278,12 +279,16 @@ const RENAMED = new Map([
 ])
 
 const RENAMED_SCALE = /^flex-(grow|shrink)-(.+)$/
+// A direction, plus a postfix such as /50, is the current bg-linear-to-*.
+const RENAMED_GRADIENT = /^bg-gradient-to-(.+)$/
 
 function currentName(base: string) {
   const renamed = RENAMED.get(base)
   if (renamed) return renamed
   const scale = RENAMED_SCALE.exec(base)
-  return scale ? `${scale[1]}-${scale[2]}` : base
+  if (scale) return `${scale[1]}-${scale[2]}`
+  const gradient = RENAMED_GRADIENT.exec(base)
+  return gradient ? `bg-linear-to-${gradient[1]}` : base
 }
 
 export function createClassifier(config = resolveCnConfig()) {

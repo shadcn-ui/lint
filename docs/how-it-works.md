@@ -201,8 +201,9 @@ are `motion`.
 
 Utilities Tailwind still generates under their Tailwind 3 names read as
 the utilities they are: `flex-grow` and `flex-shrink-0` classify with
-`grow` and `shrink`, `overflow-ellipsis` with `text-ellipsis`, and
-`decoration-slice` and `decoration-clone` as box decorations.
+`grow` and `shrink`, `overflow-ellipsis` with `text-ellipsis`,
+`decoration-slice` and `decoration-clone` as box decorations, and
+`bg-gradient-to-t` with `bg-linear-to-t`.
 
 ## Values in variables
 

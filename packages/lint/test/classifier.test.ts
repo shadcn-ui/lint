@@ -65,6 +65,10 @@ describe("groupOf", () => {
     ["decoration-slice", "box-decoration"],
     ["decoration-clone", "box-decoration"],
     ["decoration-sky-500", "text-decoration-color"],
+    ["bg-gradient-to-t", "bg-image"],
+    ["bg-gradient-to-br", "bg-image"],
+    ["hover:bg-gradient-to-r", "bg-image"],
+    ["*:data-[slot=card]:bg-gradient-to-t", "bg-image"],
   ])("%s -> %s", (token, group) => {
     expect(groupOf(token)).toBe(group)
   })
@@ -85,6 +89,30 @@ describe("groupOf", () => {
   test("looks up the class without its postfix modifier first", () => {
     expect(groupOf("text-sm/6")).toBe("font-size")
     expect(groupOf("text-white/50")).toBe("text-color")
+  })
+
+  // cn 0.5.2 removed this entry. Without the rename, the color catch-all
+  // claims bg-gradient-to-t.
+  test("a grammar without bg-gradient-to still reads it as a background image", () => {
+    const config = defaultConfig()
+    config.classGroups["bg-image"] = config.classGroups["bg-image"].filter(
+      (entry) =>
+        !(
+          typeof entry === "object" &&
+          entry !== null &&
+          !Array.isArray(entry) &&
+          Object.hasOwn(entry, "bg-gradient-to")
+        )
+    )
+    expect(JSON.stringify(config.classGroups["bg-image"])).not.toContain(
+      "bg-gradient-to"
+    )
+    const { groupOf: classify } = createClassifier(config)
+    expect(classify("bg-gradient-to-t")).toBe("bg-image")
+    expect(classify("bg-gradient-to-br")).toBe("bg-image")
+    expect(classify("*:data-[slot=card]:bg-gradient-to-t")).toBe("bg-image")
+    expect(classify("bg-linear-to-t")).toBe("bg-image")
+    expect(classify("bg-red-500")).toBe("bg-color")
   })
 })
 

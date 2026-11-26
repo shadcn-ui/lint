@@ -16,6 +16,7 @@ plans/
 !packages/lint/test/fixtures/monorepo/apps/admin/node_modules/
 !packages/lint/test/fixtures/monorepo/apps/web/node_modules/
 !packages/lint/test/fixtures/bad-cn/node_modules/
+!packages/lint/test/fixtures/cn-0.5.2/node_modules/
 
 dist-next/
 !packages/lint/test/fixtures/project/node_modules/
