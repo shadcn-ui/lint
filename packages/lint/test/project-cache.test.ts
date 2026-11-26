@@ -176,11 +176,14 @@ describe("incomplete project caches", () => {
     )
     expect(colorTokensFor(page)).toEqual(new Set(["primary"]))
     write("tokens.css", "@theme { --color-brand: red; }")
-    write(
+    const manifest = write(
       "package.json",
       JSON.stringify({ private: true, imports: { "#tokens": "./tokens.css" } })
     )
+    // Two writes in one timestamp tick keep the old mtime, and the
+    // package.json cache would still be the manifest from before imports.
     vi.setSystemTime(Date.now() + 1500)
+    fs.utimesSync(manifest, new Date(), new Date())
     expect(colorTokensFor(page)).toEqual(new Set(["brand", "primary"]))
   })
 

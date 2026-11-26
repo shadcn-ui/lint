@@ -1,0 +1,11 @@
+{
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "index.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  }
+}
