@@ -184,6 +184,26 @@ describe.skipIf(!buildUsable)("oxlint", { timeout: RUN_TIMEOUT }, () => {
     expect(out).toContain("shadcn(no-raw-colors)")
   })
 
+  test("follows TanStack Form registrations under Oxlint", () => {
+    const out = oxlint(
+      path.join(FIXTURES, "project"),
+      "app/tanstack-form.tsx",
+      {
+        "shadcn/no-restyle": [
+          "error",
+          {
+            contracts: [
+              { pattern: "^Button$", allow: ["layout"] },
+              { pattern: "^Field$", allow: ["layout"] },
+            ],
+          },
+        ],
+      }
+    )
+    expect(out).toContain("<form.Submit> forwards className to <Button>")
+    expect(out).toContain("<field.TextField> forwards className to <Field>")
+  })
+
   test("contracts and the layout keyword apply under Oxlint", () => {
     // A contract replaces the top-level list: an unclassified name on Card
     // is a finding under any list, and a layout class one that says what

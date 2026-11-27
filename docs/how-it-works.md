@@ -282,6 +282,15 @@ export function Panel({ className, headerClassName }: PanelProps) {
 A class prop the wrapper does not hand to a design-system component is
 not checked. In Svelte and Vue wrappers, only `class` is followed.
 
+TanStack Form JSX members such as `<form.SubmitButton>` and
+`<field.TextField>` can inherit the registered component's contract.
+The linter follows a directly destructured `useAppForm` from
+`createFormHook` in the same file or a directly imported module, and
+looks up the component in its literal `formComponents` or
+`fieldComponents` map. For field members it follows the first parameter
+of a direct `<form.AppField>` child callback. Custom hook factories and
+computed or spread maps are not inferred.
+
 A `render` prop forwards the same way. Base UI renders another component
 in a trigger's place, and the `className` goes with it:
 

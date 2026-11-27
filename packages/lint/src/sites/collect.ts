@@ -12,6 +12,7 @@ import {
 import { componentsFor } from "../project/components"
 import { NODE_MODULES } from "../project/fs"
 import { definingExportOf, type ExportBinding } from "../project/modules"
+import { namedImportOf, registeredComponent } from "../project/tanstack-form"
 import {
   addsNoClasses,
   wrapperPropOf,
@@ -173,6 +174,117 @@ export function createComponentTracker(
     return target
   }
 
+  const formHookOf = (variable: any) => {
+    if (variable?.defs?.length !== 1 || isMutated(variable)) return null
+    const def = variable.defs[0]
+    const declaration = def.node
+    const call = declaration?.init
+    if (
+      def.type !== "Variable" ||
+      declaration.id?.type !== "Identifier" ||
+      def.parent?.kind !== "const" ||
+      call?.type !== "CallExpression" ||
+      call.optional ||
+      call.callee?.type !== "Identifier"
+    )
+      return null
+    const hook = variableOf(call.callee, context)
+    if (hook?.defs?.length !== 1) return null
+    const hookDef = hook.defs[0]
+    if (hookDef.type === "ImportBinding")
+      return { name: call.callee.name, imported: true }
+    const container = hookDef.parent?.parent
+    if (
+      hookDef.type !== "Variable" ||
+      !(
+        container?.type === "Program" ||
+        (container?.type === "ExportNamedDeclaration" &&
+          container.parent?.type === "Program")
+      )
+    )
+      return null
+    return { name: call.callee.name, imported: false }
+  }
+
+  const registeredOf = (jsxName: any, attr: string): ResolvedElement | null => {
+    if (
+      jsxName?.type !== "JSXMemberExpression" ||
+      jsxName.object?.type !== "JSXIdentifier" ||
+      !filename
+    )
+      return null
+    const { object, property } = jsxName
+    const variable = variableOf(object, context)
+    if (variable?.defs?.length !== 1 || isMutated(variable)) return null
+    const def = variable.defs[0]
+    let hook
+    let group: "fieldComponents" | "formComponents" = "formComponents"
+    if (def.type === "Parameter") {
+      const callback = def.node
+      const field =
+        callback?.parent?.type === "JSXExpressionContainer"
+          ? callback.parent.parent
+          : null
+      const tag = field?.openingElement?.name
+      if (
+        def.name !== callback?.params?.[0] ||
+        !["ArrowFunctionExpression", "FunctionExpression"].includes(
+          callback.type
+        ) ||
+        field?.type !== "JSXElement" ||
+        tag?.type !== "JSXMemberExpression" ||
+        tag.object?.type !== "JSXIdentifier" ||
+        tag.property?.name !== "AppField" ||
+        variable.references?.some((ref: any) => ref.isWrite?.())
+      )
+        return null
+      hook = formHookOf(variableOf(tag.object, context))
+      group = "fieldComponents"
+    } else {
+      hook = formHookOf(variable)
+    }
+    if (!hook) return null
+    const registered = registeredComponent(
+      filename,
+      context.sourceCode?.ast,
+      hook.name,
+      group,
+      property.name,
+      hook.imported
+    )
+    if (!registered) return null
+    const wrapper = `${object.name}.${property.name}`
+    const imported = namedImportOf(registered.program, registered.component)
+    if (imported && ignored.some((p) => p.test(imported.source))) return null
+    const binding = imported
+      ? definingExportOf(imported.source, imported.original, registered.file)
+      : null
+    const component = imported
+      ? componentFromImport(
+          index,
+          binding,
+          importNameOf(imported, registered.component, null),
+          patterns,
+          null,
+          ui
+        )
+      : index.owns(registered.file)
+        ? { component: registered.component, file: registered.file }
+        : null
+    if (component) return { ...component, wrapper }
+    if ((imported && !binding) || (binding && NODE_MODULES.test(binding.file)))
+      return null
+    const target = wrapperTargetOf(
+      binding?.file ?? registered.file,
+      binding?.name ?? registered.component,
+      patterns,
+      binding ? undefined : registered.program,
+      ui,
+      wrapperPropOf(attr)
+    )
+    return target ? { ...target, wrapper } : null
+  }
+
   // Resolution first, name second: an import into the ui directory is
   // that component whatever it was renamed to, and one into a package is
   // not, however familiar. Only an unresolvable import falls back to the
@@ -181,9 +293,12 @@ export function createComponentTracker(
   // goes wherever the wrapper hands that prop, not where className goes.
   const resolveName = (
     element: ElementName | null,
-    attribute = "className"
+    attribute = "className",
+    jsxName?: any
   ): ResolvedElement | null => {
     if (!element) return null
+    const registered = registeredOf(jsxName, attribute)
+    if (registered) return registered
     // Vue writes an imported CardTitle as `<card-title>` too.
     const root =
       element.alias && !imports.has(element.root) && imports.has(element.alias)
@@ -280,7 +395,8 @@ export function createComponentTracker(
       }
     },
     // By JSX name node.
-    resolve: (jsxName: any) => resolveName(jsxElementNameOf(jsxName)),
+    resolve: (jsxName: any) =>
+      resolveName(jsxElementNameOf(jsxName), undefined, jsxName),
     resolveName,
   }
 }
@@ -1356,22 +1472,28 @@ export function classSiteVisitors(
   // when the classes are written on it instead. A component that adds
   // no classes, a trigger that only hands its props to Base UI, has no
   // look to own, so the plain element is left to itself.
+  const resolveElement = (element: any, attribute?: string) =>
+    tracker.resolveName(
+      reader.nameOf(element),
+      attribute,
+      element?.openingElement?.name
+    )
+
   const resolvedOf = (element: any, attribute = "className") => {
     if (!element) return null
     const rendered = reader.renderedElementOf?.(element)
-    const resolved =
-      rendered && tracker.resolveName(reader.nameOf(rendered), attribute)
+    const resolved = rendered && resolveElement(rendered, attribute)
     if (resolved) {
       return {
         ...resolved,
         wrapper: resolved.wrapper ?? reader.nameOf(element)?.text ?? "",
       }
     }
-    const own = tracker.resolveName(reader.nameOf(element), attribute)
+    const own = resolveElement(element, attribute)
     if (own) return own
     const owner = reader.parentElementOf(element)
     if (!owner || reader.renderedElementOf?.(owner) !== element) return null
-    const judge = tracker.resolveName(reader.nameOf(owner), attribute)
+    const judge = resolveElement(owner, attribute)
     if (
       judge?.file &&
       !judge.wrapper &&
@@ -1394,7 +1516,7 @@ export function classSiteVisitors(
       node = reader.parentElementOf(node)
     ) {
       const name = reader.nameOf(node)
-      const resolved = tracker.resolveName(name)
+      const resolved = resolveElement(node)
       if (resolved && accepts(resolved.component)) {
         return { name: name?.text ?? "", direct }
       }
@@ -1410,7 +1532,7 @@ export function classSiteVisitors(
     const parent = reader.parentElementOf(element)
     if (!parent) return null
     const name = reader.nameOf(parent)
-    const resolved = tracker.resolveName(name)
+    const resolved = resolveElement(parent)
     return resolved && !accepts(resolved.component) ? (name?.text ?? "") : null
   }
 
