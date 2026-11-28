@@ -41,10 +41,16 @@ describe("require-static-classes", () => {
           filename: PAGE,
           code: `export const A = ({ cls }: { cls: string }) => <div className={cls} />`,
         },
-        // So is one rendered by a component that adds no classes.
+        // An imported Button variant is known, even in a render prop.
         {
           filename: PAGE,
           code: `${dialog}\n${buttonVariants}\nexport const A = () => <DialogTrigger render={<a href="/docs" className={buttonVariants({ variant: "link" })} />} />`,
+        },
+        {
+          filename: PAGE,
+          code: `${popover}
+${buttonVariants}
+export const A = () => <PopoverClose render={<a href="/docs" className={buttonVariants({ variant: "link" })} />} />`,
         },
       ],
       invalid: [
@@ -83,7 +89,7 @@ describe("require-static-classes", () => {
         // A component with classes of its own still judges what it renders.
         {
           filename: PAGE,
-          code: `${popover}\n${buttonVariants}\nexport const A = () => <PopoverClose render={<a href="/docs" className={buttonVariants({ variant: "link" })} />} />`,
+          code: `${popover}\nexport const A = () => <PopoverClose render={<a href="/docs" className={makeClasses()} />} />`,
           errors: [{ messageId: "dynamicClasses" }],
         },
       ],

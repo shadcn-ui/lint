@@ -12,6 +12,7 @@ import {
 import { componentsFor } from "../project/components"
 import { NODE_MODULES } from "../project/fs"
 import { definingExportOf, type ExportBinding } from "../project/modules"
+import { componentUsesCva } from "../project/variants"
 import {
   addsNoClasses,
   wrapperPropOf,
@@ -257,6 +258,39 @@ export function createComponentTracker(
       : null
   }
 
+  const factories = new Map<string, ResolvedElement | null>()
+  function resolveFactory(callee: any): ResolvedElement | null {
+    if (callee?.type !== "Identifier" || !filename || skipped.has(callee.name))
+      return null
+    const imported = imports.get(callee.name)
+    if (!imported || imported.namespace) return null
+    const variable = variableOf(callee, context)
+    if (
+      variable?.defs?.length !== 1 ||
+      variable.defs[0].type !== "ImportBinding"
+    )
+      return null
+    if (factories.has(callee.name)) return factories.get(callee.name) ?? null
+    const binding = bindingOf(callee.name, imported.original)
+    let found = null
+    const factory = binding?.name
+    if (
+      binding &&
+      factory?.endsWith("Variants") &&
+      !NODE_MODULES.test(binding.file)
+    ) {
+      const component =
+        factory[0].toUpperCase() + factory.slice(1, -"Variants".length)
+      if (
+        index.files.get(component) === binding.file &&
+        componentUsesCva(binding.file, component, factory)
+      )
+        found = { component, file: binding.file, wrapper: null }
+    }
+    factories.set(callee.name, found)
+    return found
+  }
+
   return {
     collectImport(node: any) {
       const source = node.source?.value
@@ -282,6 +316,7 @@ export function createComponentTracker(
     // By JSX name node.
     resolve: (jsxName: any) => resolveName(jsxElementNameOf(jsxName)),
     resolveName,
+    resolveFactory,
   }
 }
 
@@ -838,6 +873,7 @@ export function collectClassStrings(
     resolve?: boolean
     valuesMode?: boolean
     onHelperCall?: (node: any) => void
+    useImportedFactory?: (call: any) => boolean
   } = {}
 ) {
   const helpers = options.mergeFunctions ?? new Set(DEFAULT_MERGE_FUNCTIONS)
@@ -1088,6 +1124,10 @@ export function collectClassStrings(
   // the call is merged in. A tv with slots returns functions, not
   // classes, so it is left unread.
   const visitVariantCall = (node: any, valuesMode: boolean) => {
+    if (options.useImportedFactory?.(node)) {
+      visitVariantOverrides(node)
+      return true
+    }
     if (node.callee?.type !== "Identifier") return false
     const resolved = resolveIdentifier(node.callee, context, path)
     if (!resolved || resolved.steps.length) return false
@@ -1105,6 +1145,11 @@ export function collectClassStrings(
     readBinding(resolved.variable, [], valuesMode, () =>
       visit(init, valuesMode)
     )
+    visitVariantOverrides(node)
+    return true
+  }
+
+  const visitVariantOverrides = (node: any) => {
     for (const arg of node.arguments) {
       const props = unwrapTs(arg)
       if (props?.type !== "ObjectExpression") {
@@ -1122,7 +1167,6 @@ export function collectClassStrings(
           visit(prop.value, false)
       }
     }
-    return true
   }
 
   // In a cva or tv config, `defaultVariants` and the selectors inside
@@ -1356,7 +1400,11 @@ export function classSiteVisitors(
   // when the classes are written on it instead. A component that adds
   // no classes, a trigger that only hands its props to Base UI, has no
   // look to own, so the plain element is left to itself.
-  const resolvedOf = (element: any, attribute = "className") => {
+  const resolvedOf = (
+    element: any,
+    attribute = "className",
+    factory?: ResolvedElement
+  ) => {
     if (!element) return null
     const rendered = reader.renderedElementOf?.(element)
     const resolved =
@@ -1369,6 +1417,7 @@ export function classSiteVisitors(
     }
     const own = tracker.resolveName(reader.nameOf(element), attribute)
     if (own) return own
+    if (factory) return factory
     const owner = reader.parentElementOf(element)
     if (!owner || reader.renderedElementOf?.(owner) !== element) return null
     const judge = tracker.resolveName(reader.nameOf(owner), attribute)
@@ -1424,10 +1473,52 @@ export function classSiteVisitors(
     // Markup's own `class` takes an object the way clsx does, keys as
     // classes. Anywhere else an object is a classNames map.
     const keyed = reader.classObjects === true && attribute === "class"
+    const owners = new Map<string, ResolvedElement>()
+    const root =
+      value?.type === "JSXExpressionContainer" ? value.expression : value
+    // A conditional factory output does not put its contract on a
+    // fallback string. Only direct calls and unconditional merge inputs
+    // determine the contract of an otherwise unrecognized element.
+    const isMerged = (call: any) => {
+      let input = referenceExpression(call)
+      while (input !== root) {
+        const outer = input.parent
+        const name = dottedName(outer?.callee)
+        if (
+          outer?.type !== "CallExpression" ||
+          outer.optional ||
+          !outer.arguments.includes(input) ||
+          !name ||
+          !helpers.has(name) ||
+          collectOptions.variantFunctions.has(name)
+        )
+          return false
+        input = referenceExpression(outer)
+      }
+      return true
+    }
+    const collect =
+      element && attribute
+        ? {
+            ...collectOptions,
+            useImportedFactory(call: any) {
+              const owner =
+                !call.optional && tracker.resolveFactory(call.callee)
+              if (!owner) return false
+              if (isMerged(call))
+                owners.set(`${owner.file}:${owner.component}`, owner)
+              return true
+            },
+          }
+        : collectOptions
     const classes =
       value && !keyed
-        ? collectFromValue(value, context, collectOptions)
-        : collectClassStrings(value ?? node, context, collectOptions)
+        ? collectFromValue(value, context, collect)
+        : collectClassStrings(value ?? node, context, collect)
+    if (owners.size === 1 && element && attribute) {
+      const owner = owners.values().next().value
+      resolved = resolvedOf(element, attribute, owner)
+    }
     return {
       ...classes,
       component: resolved?.component ?? null,

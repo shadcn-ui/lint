@@ -25,6 +25,7 @@ const cache = new Map<
     mtimeMs: number
     definitions: VariantDefinition[]
     uses: Map<string, Set<string>>
+    cvaNames: Set<string>
   }
 >()
 
@@ -256,19 +257,58 @@ function namesIn(node: any, types: Map<string, any>) {
   return names
 }
 
+function literalConfig(node: any): boolean {
+  if (!node || node.type === "Literal") return true
+  if (node.type === "ArrayExpression") return node.elements.every(literalConfig)
+  if (node.type === "ObjectExpression") {
+    return node.properties.every(
+      (p: any) =>
+        p.type === "Property" &&
+        !p.computed &&
+        p.kind === "init" &&
+        !p.method &&
+        literalConfig(p.value)
+    )
+  }
+  return false
+}
+
 // The file's definitions, and the factories each function or `const`
 // names in its body or its props, so a factory is offered only to the
 // components that use it.
 function readVariants(source: string, file: string) {
   const definitions: VariantDefinition[] = []
   const uses = new Map<string, Set<string>>()
-  if (!MAY_DEFINE_VARIANTS.test(source)) return { definitions, uses }
+  const cvaNames = new Set<string>()
+  if (!MAY_DEFINE_VARIANTS.test(source)) return { definitions, uses, cvaNames }
   let ast: any
   try {
     ast = parseSource(source, file)
   } catch {
-    return { definitions, uses }
+    return { definitions, uses, cvaNames }
   }
+  const exposesCva = ast?.body?.some(
+    (statement: any) =>
+      statement.type === "ImportDeclaration" &&
+      statement.source.value === "class-variance-authority" &&
+      statement.importKind !== "type" &&
+      statement.specifiers.some(
+        (specifier: any) =>
+          specifier.type === "ImportSpecifier" &&
+          specifier.imported?.name === "cva" &&
+          specifier.local?.name === "cva" &&
+          specifier.importKind !== "type"
+      )
+  )
+  const topLevelBindings = new Set(
+    (ast?.body ?? []).flatMap(
+      (statement: any) =>
+        (statement.type === "ExportNamedDeclaration"
+          ? statement.declaration
+          : statement
+        )?.declarations ?? []
+    )
+  )
   const declared = declarationsIn(ast)
   const scopes = new Map<string, any>()
   const types = new Map<string, any>()
@@ -300,6 +340,15 @@ function readVariants(source: string, file: string) {
           ? parent.id.name
           : null
       definitions.push({ name, axes, source: "factory" })
+      if (
+        exposesCva &&
+        name &&
+        node.callee.name === "cva" &&
+        topLevelBindings.has(parent) &&
+        node.arguments.every(literalConfig)
+      ) {
+        cvaNames.add(name)
+      }
       return
     }
     const signature = componentSignature(node)
@@ -314,14 +363,14 @@ function readVariants(source: string, file: string) {
   const factories = new Set(
     definitions.flatMap((d) => (d.source === "factory" && d.name ? d.name : []))
   )
-  if (!factories.size) return { definitions, uses }
+  if (!factories.size) return { definitions, uses, cvaNames }
   for (const [name, node] of scopes) {
     const used = [...namesIn(node, types)].filter(
       (n) => n !== name && factories.has(n)
     )
     if (used.length) uses.set(name, new Set(used))
   }
-  return { definitions, uses }
+  return { definitions, uses, cvaNames }
 }
 
 export function extractVariantDefinitions(source: string, file = "x.tsx") {
@@ -337,7 +386,7 @@ function fileVariantsOf(file: string) {
   try {
     read = readVariants(fs.readFileSync(file, "utf-8"), file)
   } catch {
-    read = { definitions: [], uses: new Map() }
+    read = { definitions: [], uses: new Map(), cvaNames: new Set() }
   }
   const entry = { mtimeMs, ...read }
   cache.set(file, entry)
@@ -402,6 +451,20 @@ function definitionFor(file: string, component: string) {
         (isSfc(file) || (!!d.name && !!read?.uses.get(component)?.has(d.name)))
     ) ??
     null
+  )
+}
+
+// Only a conventional, same-file cva export that its component actually
+// uses is enough to assign the component's contract to a foreign tag.
+export function componentUsesCva(
+  file: string,
+  component: string,
+  factory: string
+) {
+  const variants = fileVariantsOf(file)
+  return (
+    !!variants?.cvaNames.has(factory) &&
+    !!variants.uses.get(component)?.has(factory)
   )
 }
 
