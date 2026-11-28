@@ -184,6 +184,25 @@ describe.skipIf(!buildUsable)("oxlint", { timeout: RUN_TIMEOUT }, () => {
     expect(out).toContain("shadcn(no-raw-colors)")
   })
 
+  test("checks imported component variant factories under Oxlint", () => {
+    const out = oxlint(
+      path.join(FIXTURES, "project"),
+      "app/imported-variants.tsx",
+      {
+        "shadcn/no-restyle": [
+          "error",
+          { contracts: [{ pattern: "^Button$", allow: ["layout"] }] },
+        ],
+        "shadcn/require-static-classes": "error",
+      }
+    )
+    expect(
+      out.match(/"text-red-600" is not allowed on <Button>/g)
+    ).toHaveLength(2)
+    expect(out).toContain('"bg-red-600" is not allowed on <Button>')
+    expect(out).not.toContain("shadcn(require-static-classes)")
+  })
+
   test("contracts and the layout keyword apply under Oxlint", () => {
     // A contract replaces the top-level list: an unclassified name on Card
     // is a finding under any list, and a layout class one that says what

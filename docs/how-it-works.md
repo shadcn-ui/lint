@@ -339,6 +339,12 @@ Svelte and Vue components forward `class` the same way. See
   A dotted name such as `h.Class` matches a method call.
 - Same-file variables and object values, one hop deep, including a call
   to a same-file `cva` or `tv` result, which may produce any variant.
+- A named import of a component's conventional `cva` factory, such as
+  `buttonVariants`, when defined with literal arguments in the component's
+  own file. A direct call or an unconditional input to a class merge
+  can give an otherwise unrecognized tag that component's contract.
+  Class overrides at the call site are checked; the factory's own
+  appearance classes are not treated as consumer overrides.
 - Readable objects spread onto elements, including nested spreads and
   computed keys.
 - `style` attributes, `<style>` elements, and SVG color attributes:
