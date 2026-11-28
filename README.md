@@ -162,6 +162,10 @@ You can add
 [custom messages](#custom-messages) and [contracts](#contracts) so agents
 get your design system’s instructions with the error.
 
+For an agent fixing existing findings, point it at the
+[shadcn-lint skill](skills/shadcn-lint/SKILL.md). It explains how to
+preserve the intended appearance without weakening your rules.
+
 ### It works
 
 We tested these rules with coding agents across more than 150 task runs. Almost every task reached zero violations in one correction round.
